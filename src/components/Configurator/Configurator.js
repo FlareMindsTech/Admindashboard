@@ -87,15 +87,7 @@ export default function Configurator(props) {
                 alignItems="center"
                 mb="24px"
               >
-                <Text fontSize="md" fontWeight="600" mb="4px">
-                  Dark/Light
-                </Text>
-                <Button
-                  onClick={toggleColorMode}
-                  color={colorMode === "light" ? "Dark" : "Light"}
-                >
-                  Toggle {colorMode === "light" ? "Dark" : "Light"}
-                </Button>
+                
               </Flex>
 
               <HSeparator />
