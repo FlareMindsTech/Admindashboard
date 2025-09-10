@@ -29,7 +29,7 @@ import {
   CartIcon,
   DocumentIcon,
   GlobeIcon,
-  WalletIcon,
+  ClothIcon,
 } from "components/Icons/Icons.js";
 import React from "react";
 // Variables
@@ -69,7 +69,7 @@ export default function Dashboard() {
                   color='gray.400'
                   fontWeight='bold'
                   textTransform='uppercase'>
-                  Today's Money
+                  Today's Top Sales
                 </StatLabel>
                 <Flex>
                   <StatNumber fontSize='lg' color={textColor} fontWeight='bold'>
@@ -83,7 +83,7 @@ export default function Dashboard() {
                 h={"45px"}
                 w={"45px"}
                 bg={iconBlue}>
-                <WalletIcon h={"24px"} w={"24px"} color={iconBoxInside} />
+                <ClothIcon h={"24px"} w={"24px"} color={iconBoxInside} />
               </IconBox>
             </Flex>
             <Text color='gray.400' fontSize='sm'>
@@ -108,7 +108,7 @@ export default function Dashboard() {
                   color='gray.400'
                   fontWeight='bold'
                   textTransform='uppercase'>
-                  Today's Users
+                  Total Users
                 </StatLabel>
                 <Flex>
                   <StatNumber fontSize='lg' color={textColor} fontWeight='bold'>
@@ -147,7 +147,7 @@ export default function Dashboard() {
                   color='gray.400'
                   fontWeight='bold'
                   textTransform='uppercase'>
-                  New Clients
+                  Total Staffs
                 </StatLabel>
                 <Flex>
                   <StatNumber fontSize='lg' color={textColor} fontWeight='bold'>
@@ -213,148 +213,139 @@ export default function Dashboard() {
         </Card>
       </SimpleGrid>
       <Grid
-        templateColumns={{ sm: "1fr", lg: "2fr 1fr" }}
-        templateRows={{ lg: "repeat(2, auto)" }}
-        gap='20px'>       
-        <Card p='0px' maxW={{ sm: "320px", md: "100%" }}>
-          <Flex direction='column'>
-            <Flex align='center' justify='space-between' p='22px'>
-              <Text fontSize='lg' color={textColor} fontWeight='bold'>
-                Page visits
-              </Text>
-              <Button variant='primary' maxH='30px'>
-                SEE ALL
-              </Button>
-            </Flex>
-            <Box overflow={{ sm: "scroll", lg: "hidden" }}>
-              <Table>
-                <Thead>
-                  <Tr bg={tableRowColor}>
-                    <Th color='gray.400' borderColor={borderColor}>
-                      Page name
-                    </Th>
-                    <Th color='gray.400' borderColor={borderColor}>
-                      Visitors
-                    </Th>
-                    <Th color='gray.400' borderColor={borderColor}>
-                      Unique users
-                    </Th>
-                    <Th color='gray.400' borderColor={borderColor}>
-                      Bounce rate
-                    </Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {pageVisits.map((el, index, arr) => {
-                    return (
-                      <Tr key={index}>
-                        <Td
-                          color={textTableColor}
-                          fontSize='sm'
-                          fontWeight='bold'
-                          borderColor={borderColor}
-                          border={index === arr.length - 1 ? "none" : null}>
-                          {el.pageName}
-                        </Td>
-                        <Td
-                          color={textTableColor}
-                          fontSize='sm'
-                          border={index === arr.length - 1 ? "none" : null}
-                          borderColor={borderColor}>
-                          {el.visitors}
-                        </Td>
-                        <Td
-                          color={textTableColor}
-                          fontSize='sm'
-                          border={index === arr.length - 1 ? "none" : null}
-                          borderColor={borderColor}>
-                          {el.uniqueUsers}
-                        </Td>
-                        <Td
-                          color={textTableColor}
-                          fontSize='sm'
-                          border={index === arr.length - 1 ? "none" : null}
-                          borderColor={borderColor}>
-                          {el.bounceRate}
-                        </Td>
-                      </Tr>
-                    );
-                  })}
-                </Tbody>
-              </Table>
-            </Box>
-          </Flex>
-        </Card>
-        <Card p='0px' maxW={{ sm: "320px", md: "100%" }}>
-          <Flex direction='column'>
-            <Flex align='center' justify='space-between' p='22px'>
-              <Text fontSize='lg' color={textColor} fontWeight='bold'>
-                Social traffic
-              </Text>
-              <Button variant='primary' maxH='30px'>
-                SEE ALL
-              </Button>
-            </Flex>
-          </Flex>
-          <Box overflow={{ sm: "scroll", lg: "hidden" }}>
-            <Table>
-              <Thead>
-                <Tr bg={tableRowColor}>
-                  <Th color='gray.400' borderColor={borderColor}>
-                    Referral
-                  </Th>
-                  <Th color='gray.400' borderColor={borderColor}>
-                    Visitors
-                  </Th>
-                  <Th color='gray.400' borderColor={borderColor}></Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {socialTraffic.map((el, index, arr) => {
-                  return (
-                    <Tr key={index}>
-                      <Td
-                        color={textTableColor}
-                        fontSize='sm'
-                        fontWeight='bold'
-                        borderColor={borderColor}
-                        border={index === arr.length - 1 ? "none" : null}>
-                        {el.referral}
-                      </Td>
-                      <Td
-                        color={textTableColor}
-                        fontSize='sm'
-                        borderColor={borderColor}
-                        border={index === arr.length - 1 ? "none" : null}>
-                        {el.visitors}
-                      </Td>
-                      <Td
-                        color={textTableColor}
-                        fontSize='sm'
-                        borderColor={borderColor}
-                        border={index === arr.length - 1 ? "none" : null}>
-                        <Flex align='center'>
-                          <Text
-                            color={textTableColor}
-                            fontWeight='bold'
-                            fontSize='sm'
-                            me='12px'>{`${el.percentage}%`}</Text>
-                          <Progress
-                            size='xs'
-                            colorScheme={el.color}
-                            value={el.percentage}
-                            minW='120px'
-                          />
-                        </Flex>
-                      </Td>
-                    </Tr>
-                  );
-                })}
-              </Tbody>
-            </Table>
-          </Box>
-        </Card>
-      </Grid>
+  templateColumns={{ sm: "1fr", lg: "2fr 1fr" }}
+  templateRows={{ lg: "repeat(2, auto)" }}
+  gap="20px"
+>
+  {/* Page visits card */}
+  <Card p="0px" maxW={{ sm: "320px", md: "100%" }}>
+    <Flex direction="column">
+      <Flex align="center" justify="space-between" p="22px">
+        <Text fontSize="lg" color={textColor} fontWeight="bold">
+          Page visits
+        </Text>
+      </Flex>
+
+      {/* Scroll only on hover */}
+      <Box
+        maxH="300px"
+        overflow="hidden"
+        _hover={{ overflow: "auto" }}
+        sx={{
+          "&::-webkit-scrollbar": {
+            width: "6px",
+            height: "6px",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            background: "#888",
+            borderRadius: "10px",
+          },
+          "&::-webkit-scrollbar-thumb:hover": {
+            background: "#555",
+          },
+        }}
+      >
+        <Table>
+          <Thead>
+            <Tr bg={tableRowColor}>
+              <Th color="gray.400" borderColor={borderColor}>Page name</Th>
+              <Th color="gray.400" borderColor={borderColor}>Visitors</Th>
+              <Th color="gray.400" borderColor={borderColor}>Unique users</Th>
+              <Th color="gray.400" borderColor={borderColor}>Bounce rate</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {pageVisits.concat(pageVisits).concat(pageVisits).map((el, index, arr) => (
+              <Tr key={index}>
+                <Td color={textTableColor} fontSize="sm" fontWeight="bold"
+                  borderColor={borderColor} border={index === arr.length - 1 ? "none" : null}>
+                  {el.pageName}
+                </Td>
+                <Td color={textTableColor} fontSize="sm"
+                  borderColor={borderColor} border={index === arr.length - 1 ? "none" : null}>
+                  {el.visitors}
+                </Td>
+                <Td color={textTableColor} fontSize="sm"
+                  borderColor={borderColor} border={index === arr.length - 1 ? "none" : null}>
+                  {el.uniqueUsers}
+                </Td>
+                <Td color={textTableColor} fontSize="sm"
+                  borderColor={borderColor} border={index === arr.length - 1 ? "none" : null}>
+                  {el.bounceRate}
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      </Box>
+    </Flex>
+  </Card>
+
+  {/* Social traffic card */}
+  <Card p="0px" maxW={{ sm: "320px", md: "100%" }}>
+    <Flex direction="column">
+      <Flex align="center" justify="space-between" p="22px">
+        <Text fontSize="lg" color={textColor} fontWeight="bold">
+          Social traffic
+        </Text>
+      </Flex>
+    </Flex>
+
+    {/* Scroll only on hover */}
+    <Box
+      maxH="300px"
+      overflow="hidden"
+      _hover={{ overflow: "auto" }}
+      sx={{
+        "&::-webkit-scrollbar": {
+          width: "6px",
+          height: "6px",
+        },
+        "&::-webkit-scrollbar-thumb": {
+          background: "#888",
+          borderRadius: "10px",
+        },
+        "&::-webkit-scrollbar-thumb:hover": {
+          background: "#555",
+        },
+      }}
+    >
+      <Table>
+        <Thead>
+          <Tr bg={tableRowColor}>
+            <Th color="gray.400" borderColor={borderColor}>Referral</Th>
+            <Th color="gray.400" borderColor={borderColor}>Visitors</Th>
+            <Th color="gray.400" borderColor={borderColor}></Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          {socialTraffic.concat(socialTraffic).concat(socialTraffic).map((el, index, arr) => (
+            <Tr key={index}>
+              <Td color={textTableColor} fontSize="sm" fontWeight="bold"
+                borderColor={borderColor} border={index === arr.length - 1 ? "none" : null}>
+                {el.referral}
+              </Td>
+              <Td color={textTableColor} fontSize="sm"
+                borderColor={borderColor} border={index === arr.length - 1 ? "none" : null}>
+                {el.visitors}
+              </Td>
+              <Td color={textTableColor} fontSize="sm"
+                borderColor={borderColor} border={index === arr.length - 1 ? "none" : null}>
+                <Flex align="center">
+                  <Text color={textTableColor} fontWeight="bold" fontSize="sm" me="12px">
+                    {`${el.percentage}%`}
+                  </Text>
+                  <Progress size="xs" colorScheme={el.color} value={el.percentage} minW="120px" />
+                </Flex>
+              </Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
+    </Box>
+  </Card>
+</Grid>
+
     </Flex>
   );
 }

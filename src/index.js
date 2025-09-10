@@ -17,7 +17,7 @@
 */
 import React from "react";
 import ReactDOM from "react-dom";
-import { HashRouter, Route, Switch, Redirect } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import AuthLayout from "layouts/Auth.js";
 import AdminLayout from "layouts/Admin.js";
@@ -29,13 +29,13 @@ import theme from "theme/theme.js";
 ReactDOM.render(
   <ChakraProvider theme={theme} resetCss={false} position="relative">
     <HashRouter>
-      <Switch>
-        <Route path={`/auth`} component={AuthLayout} />
-        <Route path={`/admin`} component={AdminLayout} />
-        {/* <Route path={`/rtl`} component={RTLLayout} /> */}
-        <Redirect from={`/`} to="/admin/dashboard" />
-      </Switch>
-    </HashRouter> 
+      <Routes>
+        <Route path="/auth/*" element={<AuthLayout />} />
+        <Route path="/admin/*" element={<AdminLayout />} />
+        {/* <Route path="/rtl/*" element={<RTLLayout />} /> */}
+        <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+      </Routes>
+    </HashRouter>
   </ChakraProvider>,
   document.getElementById("root")
 );

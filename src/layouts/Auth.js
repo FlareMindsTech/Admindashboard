@@ -1,10 +1,10 @@
 // chakra imports
-import { Box, ChakraProvider, Portal } from "@chakra-ui/react";
+import { Box, Portal } from "@chakra-ui/react";
 import Footer from "components/Footer/Footer.js";
 // core components
 import AuthNavbar from "components/Navbars/AuthNavbar.js";
 import React from "react";
-import { Redirect, Route, Switch } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import routes from "routes.js";
 
 export default function Pages(props) {
@@ -13,9 +13,9 @@ export default function Pages(props) {
   const wrapper = React.createRef();
   React.useEffect(() => {
     document.body.style.overflow = "unset";
-    // Specify how to clean up after this effect:
     return function cleanup() {};
   });
+
   const getActiveRoute = (routes) => {
     let activeRoute = "Default Brand Text";
     for (let i = 0; i < routes.length; i++) {
@@ -39,6 +39,7 @@ export default function Pages(props) {
     }
     return activeRoute;
   };
+
   const getActiveNavbar = (routes) => {
     let activeNavbar = false;
     for (let i = 0; i < routes.length; i++) {
@@ -59,6 +60,7 @@ export default function Pages(props) {
     }
     return activeNavbar;
   };
+
   const getRoutes = (routes) => {
     return routes.map((prop, key) => {
       if (prop.collapse) {
@@ -71,7 +73,7 @@ export default function Pages(props) {
         return (
           <Route
             path={prop.layout + prop.path}
-            component={prop.component}
+            element={<prop.component {...rest} />}
             key={key}
           />
         );
@@ -80,22 +82,24 @@ export default function Pages(props) {
       }
     });
   };
+
   const navRef = React.useRef();
   document.documentElement.dir = "ltr";
+
   return (
-    <Box ref={navRef} w='100%'>
+    <Box ref={navRef} w="100%">
       <Portal containerRef={navRef}>
-        <AuthNavbar secondary={getActiveNavbar(routes)} logoText='' />
+        <AuthNavbar secondary={getActiveNavbar(routes)} logoText="" />
       </Portal>
-      <Box w='100%'>
-        <Box ref={wrapper} w='100%'>
-          <Switch>
+      <Box w="100%">
+        <Box ref={wrapper} w="100%">
+          <Routes>
             {getRoutes(routes)}
-            <Redirect from='/auth' to='/auth/login-page' />
-          </Switch>
+            <Route path="/auth" element={<Navigate to="/auth/login-page" replace />} />
+          </Routes>
         </Box>
       </Box>
-      <Box px='24px' mx='auto' width='1044px' maxW='100%' mt='60px'>
+      <Box px="24px" mx="auto" width="1044px" maxW="100%" mt="60px">
         <Footer />
       </Box>
     </Box>

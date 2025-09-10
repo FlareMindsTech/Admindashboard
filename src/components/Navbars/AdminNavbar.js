@@ -5,10 +5,10 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   Flex,
-  Link,
   useColorModeValue
 } from "@chakra-ui/react";
 import React, { useEffect, useState } from "react";
+import { Link as RouterLink } from "react-router-dom";  // ✅ v6 Link
 import AdminNavbarLinks from "./AdminNavbarLinks";
 
 export default function AdminNavbar(props) {
@@ -19,8 +19,8 @@ export default function AdminNavbar(props) {
 
     return () => {
       window.removeEventListener("scroll", changeNavbar);
-    }
-  })
+    };
+  });
 
   const {
     variant,
@@ -32,9 +32,15 @@ export default function AdminNavbar(props) {
     ...rest
   } = props;
 
-  // Here are all the props that may change depending on navbar's type or state.(secondary, variant, scrolled)
-  let mainText = (fixed && scrolled) ? useColorModeValue("gray.700", "gray.200") : useColorModeValue("white", "gray.200");
-  let secondaryText = (fixed && scrolled) ? useColorModeValue("gray.700", "gray.200") : useColorModeValue("white", "gray.200");
+  let mainText =
+    fixed && scrolled
+      ? useColorModeValue("gray.700", "gray.200")
+      : useColorModeValue("white", "gray.200");
+  let secondaryText =
+    fixed && scrolled
+      ? useColorModeValue("gray.700", "gray.200")
+      : useColorModeValue("white", "gray.200");
+
   let navbarPosition = "absolute";
   let navbarFilter = "none";
   let navbarBackdrop = "none";
@@ -43,6 +49,7 @@ export default function AdminNavbar(props) {
   let navbarBorder = "transparent";
   let secondaryMargin = "0px";
   let paddingX = "15px";
+
   if (props.fixed === true)
     if (scrolled === true) {
       navbarPosition = "fixed";
@@ -54,7 +61,10 @@ export default function AdminNavbar(props) {
         "linear-gradient(112.83deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.8) 110.84%)",
         "linear-gradient(112.83deg, rgba(255, 255, 255, 0.21) 0%, rgba(255, 255, 255, 0) 110.84%)"
       );
-      navbarBorder = useColorModeValue("#FFFFFF", "rgba(255, 255, 255, 0.31)");
+      navbarBorder = useColorModeValue(
+        "#FFFFFF",
+        "rgba(255, 255, 255, 0.31)"
+      );
       navbarFilter = useColorModeValue(
         "none",
         "drop-shadow(0px 7px 23px rgba(0, 0, 0, 0.05))"
@@ -68,6 +78,7 @@ export default function AdminNavbar(props) {
     secondaryMargin = "22px";
     paddingX = "30px";
   }
+
   const changeNavbar = () => {
     if (window.scrollY > 1) {
       setScrolled(true);
@@ -75,7 +86,7 @@ export default function AdminNavbar(props) {
       setScrolled(false);
     }
   };
-  
+
   return (
     <Flex
       position={navbarPosition}
@@ -86,10 +97,7 @@ export default function AdminNavbar(props) {
       backdropFilter={navbarBackdrop}
       borderWidth="1.5px"
       borderStyle="solid"
-      transitionDelay="0s, 0s, 0s, 0s"
-      transitionDuration=" 0.25s, 0.25s, 0.25s, 0s"
-      transition-property="box-shadow, background-color, filter, border"
-      transitionTimingFunction="linear, linear, linear, linear"
+      transition="all 0.25s linear"
       alignItems={{ xl: "center" }}
       borderRadius="16px"
       display="flex"
@@ -123,25 +131,28 @@ export default function AdminNavbar(props) {
         <Box mb={{ sm: "8px", md: "0px" }}>
           <Breadcrumb>
             <BreadcrumbItem color={mainText}>
-              <BreadcrumbLink href="#" color={secondaryText}>
+              {/* ✅ Use RouterLink */}
+              <BreadcrumbLink as={RouterLink} to="/admin/dashboard" color={secondaryText}>
                 Pages
               </BreadcrumbLink>
             </BreadcrumbItem>
 
             <BreadcrumbItem color={mainText}>
-              <BreadcrumbLink href="#" color={mainText}>
+              <BreadcrumbLink as={RouterLink} to="#" color={mainText}>
                 {brandText}
               </BreadcrumbLink>
             </BreadcrumbItem>
           </Breadcrumb>
-          {/* Here we create navbar brand, based on route name */}
-          <Link
+
+          {/* Navbar brand */}
+          <Box
+            as={RouterLink}
+            to="/admin/dashboard"
             color={mainText}
-            href="#"
             bg="inherit"
             borderRadius="inherit"
             fontWeight="bold"
-            _hover={{ color: { mainText } }}
+            _hover={{ color: mainText }}
             _active={{
               bg: "inherit",
               transform: "none",
@@ -152,7 +163,7 @@ export default function AdminNavbar(props) {
             }}
           >
             {brandText}
-          </Link>
+          </Box>
         </Box>
         <Box ms="auto" w={{ sm: "100%", md: "unset" }}>
           <AdminNavbarLinks

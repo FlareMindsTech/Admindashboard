@@ -4,24 +4,34 @@ import {
   Button,
   Flex,
   HStack,
-  Link, Stack, Text, useColorMode, useColorModeValue
+  Link,
+  Stack,
+  Text,
+  useColorMode,
+  useColorModeValue,
 } from "@chakra-ui/react";
+
 import {
   ArgonLogoDark,
   ArgonLogoLight,
-  ChakraLogoBlue, ChakraLogoDark,
-  ChakraLogoLight, DocumentIcon,
+  ChakraLogoBlue,
+  ChakraLogoDark,
+  ChakraLogoLight,
+  DocumentIcon,
   HomeIcon,
   PersonIcon,
-  RocketIcon
+  RocketIcon,
 } from "components/Icons/Icons";
+
 import { SidebarResponsive } from "components/Sidebar/Sidebar";
 import React from "react";
 import { NavLink } from "react-router-dom";
 import routes from "routes.js";
+
 export default function AuthNavbar(props) {
   const { logo, logoText, secondary, ...rest } = props;
   const { colorMode } = useColorMode();
+
   // Chakra color mode
   let mainText = "white";
   let navbarIcon = "white";
@@ -37,6 +47,8 @@ export default function AuthNavbar(props) {
     base: useColorModeValue("gray.700", "white"),
     md: "white",
   };
+
+  // Brand
   let brand = (
     <Link
       href={`${process.env.PUBLIC_URL}/#/`}
@@ -53,77 +65,75 @@ export default function AuthNavbar(props) {
         <Box w="1px" h="20px" bg={"white"} />
         <ChakraLogoBlue w="82px" h="21px" />
       </Stack>
-      <Text fontsize="sm" mt="3px">
+      <Text fontSize="sm" mt="3px">
         {logoText}
       </Text>
     </Link>
   );
+
   hamburgerColor = { base: "white" };
+
+  // ✅ Updated NavLink for v6
   var linksAuth = (
     <HStack display={{ sm: "none", lg: "flex" }}>
-      <NavLink to="/admin/dashboard">
+      <NavLink
+        to="/admin/dashboard"
+        className={({ isActive }) => (isActive ? "active-link" : "")}
+      >
         <Button
           fontSize="sm"
-          ms="0px"
-          me="0px"
-          px="0px"
-          me={{ sm: "2px", md: "16px" }}
           color={navbarIcon}
           variant="no-effects"
-          leftIcon={<HomeIcon color={navbarIcon} w="12px" h="12px" me="0px" />}
+          leftIcon={<HomeIcon color={navbarIcon} w="12px" h="12px" />}
         >
           <Text>Dashboard</Text>
         </Button>
       </NavLink>
-      <NavLink to="/admin/profile">
+
+      <NavLink
+        to="/admin/profile"
+        className={({ isActive }) => (isActive ? "active-link" : "")}
+      >
         <Button
           fontSize="sm"
-          ms="0px"
-          me="0px"
-          px="0px"
-          me={{ sm: "2px", md: "16px" }}
           color={navbarIcon}
           variant="no-effects"
-          leftIcon={
-            <PersonIcon color={navbarIcon} w="12px" h="12px" me="0px" />
-          }
+          leftIcon={<PersonIcon color={navbarIcon} w="12px" h="12px" />}
         >
           <Text>Profile</Text>
         </Button>
       </NavLink>
-      <NavLink to="/auth/signup">
+
+      <NavLink
+        to="/auth/signup"
+        className={({ isActive }) => (isActive ? "active-link" : "")}
+      >
         <Button
           fontSize="sm"
-          ms="0px"
-          me="0px"
-          px="0px"
-          me={{ sm: "2px", md: "16px" }}
           color={navbarIcon}
           variant="no-effects"
-          leftIcon={
-            <RocketIcon color={navbarIcon} w="12px" h="12px" me="0px" />
-          }
+          leftIcon={<RocketIcon color={navbarIcon} w="12px" h="12px" />}
         >
           <Text>Sign Up</Text>
         </Button>
       </NavLink>
-      <NavLink to="/auth/signin">
+
+      <NavLink
+        to="/auth/signin"
+        className={({ isActive }) => (isActive ? "active-link" : "")}
+      >
         <Button
           fontSize="sm"
-          ms="0px"
-          px="0px"
-          me={{ sm: "2px", md: "16px" }}
           color={navbarIcon}
           variant="no-effects"
-          leftIcon={
-            <DocumentIcon color={navbarIcon} w="12px" h="12px" me="0px" />
-          }
+          leftIcon={<DocumentIcon color={navbarIcon} w="12px" h="12px" />}
         >
           <Text>Sign In</Text>
         </Button>
       </NavLink>
     </HStack>
   );
+
   return (
     <Flex
       position={navbarPosition}
@@ -156,12 +166,7 @@ export default function AuthNavbar(props) {
             secondary={props.secondary}
             routes={routes}
             logo={
-              <Stack
-                direction="row"
-                spacing="12px"
-                align="center"
-                justify="center"
-              >
+              <Stack direction="row" spacing="12px" align="center" justify="center">
                 {colorMode === "dark" ? (
                   <ArgonLogoLight w="74px" h="27px" />
                 ) : (

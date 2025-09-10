@@ -1,111 +1,165 @@
-// Chakra imports
 import {
   Flex,
   Table,
   Tbody,
+  Td,
   Text,
   Th,
   Thead,
   Tr,
-  useColorModeValue
+  useColorModeValue,
+  Button,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  ModalFooter,
+  Input,
+  useDisclosure
 } from "@chakra-ui/react";
-// Custom components
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
 import CardHeader from "components/Card/CardHeader.js";
-import TablesProjectRow from "components/Tables/TablesProjectRow";
-import TablesTableRow from "components/Tables/TablesTableRow";
-import React from "react";
-import { tablesProjectData, tablesTableData } from "variables/general";
+import React, { useState } from "react";
+import { productsTableData, ordersTableData } from "variables/general.js";
 
 function Tables() {
   const textColor = useColorModeValue("gray.700", "white");
   const borderColor = useColorModeValue("gray.200", "gray.600");
 
+  // ✅ Modal state
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [editData, setEditData] = useState(null);
+
+  // ✅ Handle edit click
+  const handleEdit = (row) => {
+    setEditData(row);
+    onOpen();
+  };
+
+  // ✅ Handle form input change
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setEditData((prev) => ({ ...prev, [name]: value }));
+  };
+
   return (
     <Flex direction="column" pt={{ base: "120px", md: "75px" }}>
+      {/* ✅ Products Table */}
       <Card overflowX={{ sm: "scroll", xl: "hidden" }} pb="0px">
         <CardHeader p="6px 0px 22px 0px">
           <Text fontSize="xl" color={textColor} fontWeight="bold">
-            Authors Table
+            Products Table
           </Text>
         </CardHeader>
         <CardBody>
           <Table variant="simple" color={textColor}>
             <Thead>
-              <Tr my=".8rem" pl="0px" color="gray.400" >
-                <Th pl="0px" borderColor={borderColor} color="gray.400" >
-                  Author
-                </Th>
-                <Th borderColor={borderColor} color="gray.400" >Function</Th>
-                <Th borderColor={borderColor} color="gray.400" >Status</Th>
-                <Th borderColor={borderColor} color="gray.400" >Employed</Th>
-                <Th borderColor={borderColor}></Th>
+              <Tr color="gray.400">
+                <Th pl="0px" borderColor={borderColor}>Product</Th>
+                <Th borderColor={borderColor}>Category</Th>
+                <Th borderColor={borderColor}>Price</Th>
+                <Th borderColor={borderColor}>Stock</Th>
+                <Th borderColor={borderColor}>Status</Th>
+                <Th borderColor={borderColor}>Added On</Th>
+                <Th borderColor={borderColor}>Action</Th>
               </Tr>
             </Thead>
             <Tbody>
-              {tablesTableData.map((row, index, arr) => {
-                return (
-                  <TablesTableRow
-                    name={row.name}
-                    logo={row.logo}
-                    email={row.email}
-                    subdomain={row.subdomain}
-                    domain={row.domain}
-                    status={row.status}
-                    date={row.date}
-                    isLast={index === arr.length - 1 ? true : false}
-                    key={index}
-                  />
-                );
-              })}
+              {productsTableData.map((row, index) => (
+                <Tr key={index}>
+                  <Td>{row.name}</Td>
+                  <Td>{row.category}</Td>
+                  <Td>{row.price}</Td>
+                  <Td>{row.stock}</Td>
+                  <Td>{row.status}</Td>
+                  <Td>{row.date}</Td>
+                  <Td>
+                    <Button size="sm" colorScheme="blue" onClick={() => handleEdit(row)}>
+                      Edit
+                    </Button>
+                  </Td>
+                </Tr>
+              ))}
             </Tbody>
           </Table>
         </CardBody>
       </Card>
-      <Card
-        my="22px"
-        overflowX={{ sm: "scroll", xl: "hidden" }}
-        pb="0px"
-      >
+
+      {/* ✅ Orders Table */}
+      <Card my="22px" overflowX={{ sm: "scroll", xl: "hidden" }} pb="0px">
         <CardHeader p="6px 0px 22px 0px">
           <Flex direction="column">
-            <Text fontSize="lg" color={textColor} fontWeight="bold" pb=".5rem">
-              Projects Table
+            <Text fontSize="xl" color={textColor} fontWeight="bold">
+              Orders Table
             </Text>
           </Flex>
         </CardHeader>
         <CardBody>
           <Table variant="simple" color={textColor}>
             <Thead>
-              <Tr my=".8rem" pl="0px">
-                <Th pl="0px" color="gray.400" borderColor={borderColor}>
-                  Companies
-                </Th>
-                <Th color="gray.400" borderColor={borderColor}>Budget</Th>
-                <Th color="gray.400" borderColor={borderColor}>Status</Th>
-                <Th color="gray.400" borderColor={borderColor}>Completion</Th>
-                <Th></Th>
+              <Tr color="gray.400">
+                <Th pl="0px" borderColor={borderColor}>Order ID</Th>
+                <Th borderColor={borderColor}>Customer</Th>
+                <Th borderColor={borderColor}>Product</Th>
+                <Th borderColor={borderColor}>Amount</Th>
+                <Th borderColor={borderColor}>Status</Th>
+                <Th borderColor={borderColor}>Date</Th>
+                <Th borderColor={borderColor}>Action</Th>
               </Tr>
             </Thead>
             <Tbody>
-              {tablesProjectData.map((row, index, arr) => {
-                return (
-                  <TablesProjectRow
-                    name={row.name}
-                    logo={row.logo}
-                    status={row.status}
-                    budget={row.budget}
-                    progression={row.progression}
-                    isLast={index === arr.length - 1 ? true : false}
-                    key={index}
-                  />
-                );
-              })}
+              {ordersTableData.map((row, index) => (
+                <Tr key={index}>
+                  <Td>{row.orderId}</Td>
+                  <Td>{row.customer}</Td>
+                  <Td>{row.product}</Td>
+                  <Td>{row.amount}</Td>
+                  <Td>{row.status}</Td>
+                  <Td>{row.date}</Td>
+                  <Td>
+                    <Button size="sm" colorScheme="blue" onClick={() => handleEdit(row)}>
+                      Edit
+                    </Button>
+                  </Td>
+                </Tr>
+              ))}
             </Tbody>
           </Table>
         </CardBody>
       </Card>
+
+      {/* ✅ Edit Modal */}
+      <Modal isOpen={isOpen} onClose={onClose} size="lg">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Edit Row</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {editData && (
+              <Flex direction="column" gap="12px">
+                {Object.keys(editData).map((key, i) => (
+                  <Input
+                    key={i}
+                    name={key}
+                    value={editData[key]}
+                    onChange={handleChange}
+                    placeholder={key}
+                  />
+                ))}
+              </Flex>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={onClose}>
+              Save
+            </Button>
+            <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Flex>
   );
 }
