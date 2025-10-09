@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import axiosInstance from "views/utils/axiosInstance";
 import {
   Box,
   Flex,
@@ -68,7 +69,7 @@ function AdminLogin() {
     try {
       // --- API Call (kept as is) ---
       const res = await axios.post(
-        "http://localhost:7000/api/admins/login",
+        `${axiosInstance}/api/admins/login`,
         { email, password },
         { headers: { "Content-Type": "application/json" } }
       );

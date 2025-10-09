@@ -1,32 +1,20 @@
 import axios from 'axios';
 
-// --- Configuration ---
-// IMPORTANT: Replace this with your actual backend API URL.
-// Ensure it points to the route prefix before your specific endpoints (e.g., /products, /categories).
-const API_BASE_URL = 'http://localhost:7000'; 
-// If your backend routes are prefixed with '/api', use:
-// const API_BASE_URL = 'http://localhost:7000/api'; 
-// Use the URL that precedes '/products/all' or '/categories/all'.
+const API_BASE_URL = 'https://boutique-ecommerce-1.onrender.com'; 
 
-// Create a custom Axios instance
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000, // Timeout requests after 10 seconds
+  timeout: 10000, 
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// --- Interceptor to Inject JWT Token ---
-// This request interceptor runs before every request is sent.
 axiosInstance.interceptors.request.use(
   (config) => {
-    // 1. Get the JWT token from local storage
     const token = localStorage.getItem('token');
 
-    // 2. If the token exists, attach it to the Authorization header
     if (token) {
-      // Standard format for JWT authentication
       config.headers.Authorization = `Bearer ${token}`;
     }
     

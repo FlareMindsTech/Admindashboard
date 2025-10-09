@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import axiosInstance from "../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
 // Chakra imports
 import {
@@ -49,7 +50,7 @@ export default function Dashboard() {
   const [users, setUsers] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "" });
+  const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "", role: "" });
 
   const [topDressDetails] = useState([
     { id: 1, name: "Floral Summer Dress", price: 1200, size: "M", color: "Red" },
@@ -152,7 +153,7 @@ export default function Dashboard() {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.post(
-        "http://localhost:7000/api/admins/create",
+        `${axiosInstance}/api/admins/create`,
         newAdmin,
         { headers: { Authorization: `Bearer ${token}` } }
       );

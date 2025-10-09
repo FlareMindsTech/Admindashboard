@@ -1,8 +1,8 @@
 {
-	"name": "argon-dashboard-chakra",
+	"name": "AdminDashboard",
 	"version": "1.0.3",
 	"private": true,
-	"homepage": "https://demos.creative-tim.com/argon-dashboard-chakra/#/",
+	"homepage": "https://demos.creative-tim.com/AdminDashboard/#/",
 	"dependencies": {
 		"@chakra-ui/icons": "^1.1.7",
 		"@chakra-ui/react": "^1.8.8",
