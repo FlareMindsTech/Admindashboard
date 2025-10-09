@@ -109,7 +109,7 @@ export default function AdminProfile() {
       }
 
       // ✅ Backend URL
-      const BASE_URL = "http://localhost:7000/api/admins";
+      const BASE_URL = "https://boutique-ecommerce-1.onrender.com/api/admins";
       const headers = { Authorization: `Bearer ${token}` };
 
       try {

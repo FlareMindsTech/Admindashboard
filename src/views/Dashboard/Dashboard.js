@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+// Remove the default 'axios' import
+// import axios from "axios"; 
 import { useNavigate } from "react-router-dom";
+// --- CRITICAL CHANGE: IMPORT THE CUSTOM AXIOS INSTANCE ---
+// Adjust the path to where your axiosInstance.js file is located
+import axiosInstance from "../utils/axiosInstance"; 
+// ---------------------------------------------------------
+
 // Chakra imports
 import {
   Box,
@@ -18,7 +24,7 @@ import {
   Tr,
   useColorModeValue,
   Heading,
-  Badge,
+  // ... (rest of Chakra components)
   Text,
   useToast,
   Modal,
@@ -51,25 +57,6 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "" });
 
-  const [topDressDetails] = useState([
-    { id: 1, name: "Floral Summer Dress", price: 1200, size: "M", color: "Red" },
-    { id: 2, name: "Classic Black Gown", price: 2500, size: "L", color: "Black" },
-    { id: 3, name: "Casual Denim Jacket", price: 1800, size: "XL", color: "Blue" },
-  ]);
-
-  const [showStaffDetails] = useState([
-    { id: 1, name: "Ravi Kumar", email: "ravi.kumar@shopnow.com", department: "Customer Support", role: "Support Executive" },
-    { id: 2, name: "Meena Sharma", email: "meena.sharma@shopnow.com", department: "Order Management", role: "Order Supervisor" },
-    { id: 3, name: "Vikram Singh", email: "vikram.singh@shopnow.com", department: "Logistics", role: "Delivery Manager" },
-    { id: 4, name: "Anjali Verma", email: "anjali.verma@shopnow.com", department: "Inventory", role: "Stock Manager" },
-  ]);
-
-  const [showSalesDetails] = useState([
-    { id: 1, orderId: "ORD1001", customer: "Sanjay Kumar", product: "Wireless Headphones", quantity: 2, total: 4000, status: "Delivered" },
-    { id: 2, orderId: "ORD1002", customer: "Priya Sharma", product: "Smartphone", quantity: 1, total: 15000, status: "Shipped" },
-    { id: 3, orderId: "ORD1003", customer: "Arun Raj", product: "Casual Shoes", quantity: 3, total: 3600, status: "Pending" },
-    { id: 4, orderId: "ORD1004", customer: "Meena Devi", product: "Laptop Bag", quantity: 1, total: 1200, status: "Cancelled" },
-  ]);
 
   // Fetch current user from localStorage
   useEffect(() => {
@@ -92,17 +79,23 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:7000/api/admins/all", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // --- REFACTORED: Use axiosInstance, which automatically includes the token and base URL ---
+        // NOTE: Assuming your backend API_BASE_URL is 'https://boutique-ecommerce-1.onrender.com/' 
+        // and the route path is '/api/admins/all'.
+        // If your axiosInstance base URL already includes '/api', adjust the path below to '/admins/all'.
+        const res = await axiosInstance.get("api/admins/all"); 
+        // ----------------------------------------------------------------------------------------
         setUsers(res.data.admins || []);
       } catch (err) {
         console.error("Error fetching users:", err);
+        // Optionally add a toast for error here
       }
     };
-    fetchUsers();
-  }, []);
+    // Ensure the data fetching only happens after authentication check is complete (optional but safer)
+    if (currentUser) {
+        fetchUsers();
+    }
+  }, [currentUser]); // Dependency on currentUser ensures it runs after user is set
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -116,7 +109,7 @@ export default function Dashboard() {
 
   // Create new admin
   const handleCreateAdmin = async () => {
-    // Frontend validation
+    // Frontend validation (remains the same and is good practice)
     if (!newAdmin.name || !newAdmin.email || !newAdmin.password) {
       return toast({
         title: "Validation Error",
@@ -150,12 +143,14 @@ export default function Dashboard() {
     }
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post(
-        "http://localhost:7000/api/admins/create",
-        newAdmin,
-        { headers: { Authorization: `Bearer ${token}` } }
+      // --- REFACTORED: Use axiosInstance, which automatically includes the token and base URL ---
+      // The token verification is handled automatically by the backend upon receiving the token 
+      // attached by the axiosInstance interceptor.
+      const res = await axiosInstance.post(
+        "api/admins/create", // Route relative to axiosInstance's baseURL
+        newAdmin
       );
+      // ------------------------------------------------------------------------------------------
 
       toast({
         title: "Admin Created",
@@ -172,7 +167,7 @@ export default function Dashboard() {
       console.error(err);
       toast({
         title: "Error",
-        description: err.response?.data?.message || "Server error",
+        description: err.response?.data?.message || "Server error. Check if the user is a Super Admin.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -183,6 +178,7 @@ export default function Dashboard() {
   if (!currentUser) return null;
 
   return (
+// ... (Rest of the JSX remains the same)
     <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
       <Box mb={6}>
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
@@ -195,8 +191,7 @@ export default function Dashboard() {
           Create Admin
         </Button>
       )}
-
-      {/* Modal for Creating Admin */}
+// ... (Modal JSX remains the same)
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <ModalOverlay />
         <ModalContent>
@@ -241,7 +236,7 @@ export default function Dashboard() {
             <StatNumber fontSize="xl" color={textColor}>{users.length}</StatNumber>
           </Stat>
           <Button mt={3} colorScheme="blue" leftIcon={<FaChartLine />} onClick={() => setActiveSection("users")}>
-            Show User Details
+            Show Admin Details
           </Button>
         </Card>
       </SimpleGrid>

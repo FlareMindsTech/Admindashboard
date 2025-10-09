@@ -56,14 +56,14 @@ axiosInstance.interceptors.response.use(
   },
   (error) => {
     if (error.response && error.response.status === 401) {
-      console.error('Unauthorized (401) received. Token may be expired or invalid.');
-      
+ console.error('Unauthorized (401) received. Token may be expired or invalid.');
+
   localStorage.removeItem('token');
       localStorage.removeItem('user');
       // Also clear admin specific data if you use different keys
       localStorage.removeItem('adminToken');
-      localStorage.removeItem('adminUser');
-    }
+localStorage.removeItem('adminUser');
+  }
     return Promise.reject(error);
   }
 );

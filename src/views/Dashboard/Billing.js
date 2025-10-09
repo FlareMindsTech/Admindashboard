@@ -85,7 +85,7 @@ export default function Billing() {
 
   const fetchOrders = async () => {
     try {
-      const res = await axios.get("http://localhost:7000/api/orders/all");
+      const res = await axios.get("https://boutique-ecommerce-1.onrender.com/api/orders/all");
       setOrders(res.data);
     } catch (err) {
       console.error("Error fetching orders:", err);
@@ -94,7 +94,7 @@ export default function Billing() {
 
   const fetchTransactions = async () => {
     try {
-      const res = await axios.get("http://localhost:7000/api/transactions/all");
+      const res = await axios.get("https://boutique-ecommerce-1.onrender.com/api/transactions/all");
       setTransactions(res.data);
     } catch (err) {
       console.error("Error fetching transactions:", err);
@@ -103,7 +103,7 @@ export default function Billing() {
 
   const fetchPayments = async () => {
     try {
-      const res = await axios.get("http://localhost:7000/api/payments/all");
+      const res = await axios.get("https://boutique-ecommerce-1.onrender.com/api/payments/all");
       setPayments(res.data);
     } catch (err) {
       console.error("Error fetching payments:", err);
@@ -140,7 +140,7 @@ export default function Billing() {
         deliveryTime,
         confirmationDate: new Date().toISOString(),
       };
-      await axios.put(`http://localhost:7000/api/orders/update/${selectedOrder._id}`, updatedOrder);
+      await axios.put(`https://boutique-ecommerce-1.onrender.com/api/orders/update/${selectedOrder._id}`, updatedOrder);
       fetchOrders();
       setSelectedOrder({ ...selectedOrder, ...updatedOrder });
       onClose();
@@ -151,7 +151,7 @@ export default function Billing() {
 
   const handleMarkDelivered = async () => {
     try {
-      await axios.put(`http://localhost:7000/api/orders/update/${selectedOrder._id}`, { status: "delivered" });
+      await axios.put(`https://boutique-ecommerce-1.onrender.com/api/orders/update/${selectedOrder._id}`, { status: "delivered" });
       fetchOrders();
       setSelectedOrder({ ...selectedOrder, status: "delivered" });
     } catch (err) {
@@ -162,7 +162,7 @@ export default function Billing() {
   // ------------------ PAYMENT HANDLERS ------------------
   const handlePaymentStatusChange = async (paymentId, newStatus) => {
     try {
-      await axios.put(`http://localhost:7000/api/payments/update/${paymentId}`, { status: newStatus });
+      await axios.put(`https://boutique-ecommerce-1.onrender.com/api/payments/update/${paymentId}`, { status: newStatus });
       fetchPayments();
     } catch (err) {
       console.error("Error updating payment status:", err);

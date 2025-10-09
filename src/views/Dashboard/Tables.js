@@ -34,14 +34,13 @@ import {
 import { DeleteIcon, LinkIcon, CloseIcon, AddIcon } from "@chakra-ui/icons";
 import React, { useState, useEffect } from "react";
 // --- CRITICAL CHANGE: IMPORT THE CUSTOM AXIOS INSTANCE ---
-import axiosInstance from "../utils/axiosInstance"; 
+import axiosInstance from "../utils/axiosInstance";
 // ---------------------------------------------------------
 import { useNavigate } from "react-router-dom";
 
 // --- CRITICAL FIX: DEFINE BASE_URL FOR IMAGE HANDLING ---
-const BASE_URL = "http://localhost:7000"; // <--- ADJUST THIS TO YOUR ACTUAL BACKEND SERVER ADDRESS 
+const BASE_URL = "https://boutique-ecommerce-1.onrender.com/"; // <--- ADJUST THIS TO YOUR ACTUAL BACKEND SERVER ADDRESS
 // ---------------------------------------------------------
-
 
 function AddProductForm() {
   // --- STATE MANAGEMENT ---
@@ -90,12 +89,14 @@ function AddProductForm() {
   const toast = useToast();
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
-  const [isAuthChecked, setIsAuthChecked] = useState(false); 
-  
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+
   // ------------------ ADMIN VALIDATION & TOKEN FETCH ------------------
   useEffect(() => {
     const userString = localStorage.getItem("user");
     const token = localStorage.getItem("token");
+    console.log("userString:", userString);
+    console.log("token:", token);
 
     if (!token) {
       toast({
@@ -126,19 +127,22 @@ function AddProductForm() {
     }
 
     setCurrentUser(user);
-    setIsAuthChecked(true); 
+    setIsAuthChecked(true);
   }, [navigate, toast]);
 
   // ------------------ FETCH DATA FUNCTIONS ------------------
   const fetchProducts = async () => {
     try {
-      const res = await axiosInstance.get(`/products/all`); 
+      const res = await get(`${BASE_URL}/products/all`);
       setProducts(res.data.data || []);
+      console.log(products);
     } catch (err) {
       console.error("Fetch Products Error:", err);
       toast({
         title: "Error fetching products",
-        description: err.response?.data?.message || "Could not load products list. Check API/Auth/Server Status.",
+        description:
+          err.response?.data?.message ||
+          "Could not load products list. Check API/Auth/Server Status.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -149,13 +153,15 @@ function AddProductForm() {
 
   const fetchCategories = async () => {
     try {
-      const res = await axiosInstance.get(`/categories/all`); 
+      const res = await axiosInstance.get(`/categories/all`);
       setCategories(res.data.data || []);
     } catch (err) {
       console.error("Fetch Categories Error:", err);
       toast({
         title: "Error fetching categories",
-        description: err.response?.data?.message || "Could not load categories list. Check API/Auth/Server Status.",
+        description:
+          err.response?.data?.message ||
+          "Could not load categories list. Check API/Auth/Server Status.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -181,7 +187,9 @@ function AddProductForm() {
     return (
       <Flex h="100vh" justify="center" align="center">
         <Spinner size="xl" color="teal.500" thickness="4px" />
-        <Text ml="4" fontSize="xl">Loading Inventory...</Text>
+        <Text ml="4" fontSize="xl">
+          Loading Inventory...
+        </Text>
       </Flex>
     );
   }
@@ -190,13 +198,16 @@ function AddProductForm() {
   const getFullImageUrl = (path) => {
     if (path.startsWith("http")) return path;
     if (path.startsWith("uploads/")) return `${BASE_URL}/${path}`;
-    return `${BASE_URL}/uploads/products/${path.split('/').pop()}`;
+    return `${BASE_URL}/uploads/products/${path.split("/").pop()}`;
   };
 
   const handleImageChange = async (e) => {
     if (isLoading || productImages.length >= 5) return;
 
-    const files = Array.from(e.target.files).slice(0, 5 - productImages.length);
+    const files = Array.from(e.target.files).slice(
+      0,
+      5 - productImages.length
+    );
     if (!files.length) return;
     setIsLoading(true);
 
@@ -214,28 +225,42 @@ function AddProductForm() {
         .map((res) => res.data.data.imageUrl);
 
       if (!uploadedUrls.length) {
-        toast({ title: "Upload Failed", description: "No images were uploaded successfully.", status: "warning" });
+        toast({
+          title: "Upload Failed",
+          description: "No images were uploaded successfully.",
+          status: "warning",
+        });
         return;
       }
 
-      setProductImages((prev) => [...prev, ...uploadedUrls].slice(0, 5)); 
-      toast({ title: "Upload Successful ✅", description: `${uploadedUrls.length} image(s) uploaded.`, status: "success" });
+      setProductImages((prev) => [...prev, ...uploadedUrls].slice(0, 5));
+      toast({
+        title: "Upload Successful ✅",
+        description: `${uploadedUrls.length} image(s) uploaded.`,
+        status: "success",
+      });
     } catch (err) {
       console.error("Failed to upload images", err.response?.data || err.message);
       toast({
         title: "Upload Error",
-        description: err.response?.data?.message || "Failed to upload images. Check file size/type and network.",
-        status: "error"
+        description:
+          err.response?.data?.message ||
+          "Failed to upload images. Check file size/type and network.",
+        status: "error",
       });
     } finally {
       setIsLoading(false);
-      e.target.value = null; 
+      e.target.value = null;
     }
   };
 
   const handleAddImageUrl = () => {
     if (!newImageUrl.trim() || productImages.length >= 5) {
-      toast({ title: "Input Error", description: "Please enter a valid image URL or max images reached.", status: "warning" });
+      toast({
+        title: "Input Error",
+        description: "Please enter a valid image URL or max images reached.",
+        status: "warning",
+      });
       return;
     }
     setProductImages((prev) => [...prev, newImageUrl.trim()]);
@@ -285,7 +310,11 @@ function AddProductForm() {
 
   const handleSubmitProduct = async () => {
     if (isLoading) {
-      toast({ title: "Wait", description: "Please wait for the current action to complete.", status: "info" });
+      toast({
+        title: "Wait",
+        description: "Please wait for the current action to complete.",
+        status: "info",
+      });
       return;
     }
 
@@ -303,7 +332,7 @@ function AddProductForm() {
       name: name.trim(),
       description: description.trim(),
       category: selectedCategoryId,
-      images: productImages, 
+      images: productImages,
       status: status,
       variants: [
         {
@@ -312,26 +341,30 @@ function AddProductForm() {
           price: Number(price),
           mrp: mrp ? Number(mrp) : 0,
           stock: Number(stock),
-          sku: `${sanitizedName.substring(0, 4)}_${size.toUpperCase()}_${new Date().getTime() % 10000}`, 
+          sku: `${sanitizedName.substring(0, 4)}_${size.toUpperCase()}_${
+            new Date().getTime() % 10000
+          }`,
         },
       ],
     };
 
     try {
       if (editProductId) {
-        await axiosInstance.put(
-          `/products/update/${editProductId}`,
-          productData
-        );
-        toast({ title: "Product Updated 🎉", description: `Product "${name}" has been updated.`, status: "success" });
+        await axiosInstance.put(`/products/update/${editProductId}`, productData);
+        toast({
+          title: "Product Updated 🎉",
+          description: `Product "${name}" has been updated.`,
+          status: "success",
+        });
       } else {
-        await axiosInstance.post(
-          `/products/create`,
-          productData
-        );
-        toast({ title: "Product Added 🚀", description: `New product "${name}" has been created.`, status: "success" });
+        await axiosInstance.post(`/products/create`, productData);
+        toast({
+          title: "Product Added 🚀",
+          description: `New product "${name}" has been created.`,
+          status: "success",
+        });
       }
-      await fetchProducts(); 
+      await fetchProducts();
     } catch (err) {
       console.error("Failed to submit product", err.response?.data || err.message);
       toast({
@@ -354,32 +387,39 @@ function AddProductForm() {
     if (isLoading) return;
 
     if (!categoryName) {
-      toast({ title: "Category Name Required", description: "Please enter a name for the new category.", status: "warning" });
+      toast({
+        title: "Category Name Required",
+        description: "Please enter a name for the new category.",
+        status: "warning",
+      });
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const res = await axiosInstance.post(
-        `/categories/create`,
-        {
-          name: categoryName,
-          description: categoryDescription,
-          status: "active",
-        }
-      );
+      const res = await axiosInstance.post(`/categories/create`, {
+        name: categoryName,
+        description: categoryDescription,
+        status: "active",
+      });
       const categoryId = res.data.data?._id || res.data.category?._id;
       if (!categoryId) throw new Error("Invalid response from server");
 
       setSelectedCategoryId(categoryId);
       fetchCategories();
-      toast({ title: "Category Added ✨", description: `Category "${categoryName}" added and selected.`, status: "success" });
+      toast({
+        title: "Category Added ✨",
+        description: `Category "${categoryName}" added and selected.`,
+        status: "success",
+      });
     } catch (err) {
       console.error("Failed to add category", err.response?.data || err.message);
       toast({
         title: "Category Error",
-        description: err.response?.data?.message || "Error adding category. Check if category already exists.",
+        description:
+          err.response?.data?.message ||
+          "Error adding category. Check if category already exists.",
         status: "error",
       });
     } finally {
@@ -426,17 +466,24 @@ function AddProductForm() {
     setIsLoading(true);
 
     try {
-      await axiosInstance.delete(
-        `/products/delete/${productToDelete._id}`
-      );
-      await fetchProducts(); 
-      toast({ title: "Product Deleted 🗑️", description: `Product "${productToDelete.name}" has been removed.`, status: "info" });
+      await axiosInstance.delete(`/products/delete/${productToDelete._id}`);
+      await fetchProducts();
+      toast({
+        title: "Product Deleted 🗑️",
+        description: `Product "${productToDelete.name}" has been removed.`,
+        status: "info",
+      });
     } catch (err) {
-      console.error("Failed to delete product", err.response?.data || err.message);
+      console.error(
+        "Failed to delete product",
+        err.response?.data || err.message
+      );
       toast({
         title: "Deletion Error",
-        description: err.response?.data?.message || "Failed to delete the product. Check your permissions.",
-        status: "error"
+        description:
+          err.response?.data?.message ||
+          "Failed to delete the product. Check your permissions.",
+        status: "error",
       });
     } finally {
       setIsLoading(false);
@@ -448,7 +495,7 @@ function AddProductForm() {
   // ------------------ RENDER LOGIC ------------------
 
   return (
-    <Box p={{ base: "4", md: "8" }} minH="100vh" >
+    <Box p={{ base: "4", md: "8" }} minH="100vh">
       {/* HEADER SECTION */}
       <Flex
         justify="space-between"
@@ -461,9 +508,9 @@ function AddProductForm() {
         shadow="md"
         direction={{ base: "column", md: "row" }} // Stack on mobile
       >
-        <Text 
+        <Text
           fontSize={{ base: "xl", md: "3xl" }} // Responsive font size
-          fontWeight="extrabold" 
+          fontWeight="extrabold"
           color="#82278A"
           mb={{ base: "3", md: "0" }} // Margin below text on mobile
         >
@@ -489,7 +536,12 @@ function AddProductForm() {
 
       {/* --- Products Grid --- */}
       <Box>
-        <Text fontSize="2xl" fontWeight="semibold" mb="6" color={useColorModeValue("gray.700", "white")}>
+        <Text
+          fontSize="2xl"
+          fontWeight="semibold"
+          mb="6"
+          color={useColorModeValue("gray.700", "white")}
+        >
           Current Inventory
         </Text>
         <Grid
@@ -502,7 +554,17 @@ function AddProductForm() {
           gap="6"
         >
           {products.length === 0 ? (
-            <Alert status="info" gridColumn={{ base: "span 1", sm: "span 2", md: "span 3", lg: "span 4" }} borderRadius="md" variant="left-accent">
+            <Alert
+              status="info"
+              gridColumn={{
+                base: "span 1",
+                sm: "span 2",
+                md: "span 3",
+                lg: "span 4",
+              }}
+              borderRadius="md"
+              variant="left-accent"
+            >
               <AlertIcon />
               No products found. Start by adding a new product!
             </Alert>
@@ -525,7 +587,13 @@ function AddProductForm() {
                   _hover={{ shadow: "2xl", transform: "translateY(-3px)" }}
                 >
                   {/* Product Image */}
-                  <Box h="220px" w="100%" overflow="hidden" borderBottom="1px solid" borderColor="gray.200">
+                  <Box
+                    h="220px"
+                    w="100%"
+                    overflow="hidden"
+                    borderBottom="1px solid"
+                    borderColor="gray.200"
+                  >
                     <Image
                       src={getFullImageUrl(p.images?.[0] || "placeholder.jpg")}
                       alt={p.name}
@@ -539,11 +607,20 @@ function AddProductForm() {
                   {/* Product Details */}
                   <Box p="4" pb="6">
                     <Flex justify="space-between" align="start" mb="2">
-                      <Text fontWeight="extrabold" fontSize="lg" noOfLines={1} color={useColorModeValue("gray.800", "white")}>
+                      <Text
+                        fontWeight="extrabold"
+                        fontSize="lg"
+                        noOfLines={1}
+                        color={useColorModeValue("gray.800", "white")}
+                      >
                         {p.name}
                       </Text>
                       {p.category?.name && (
-                        <Badge colorScheme="purple" variant="solid" textTransform="capitalize">
+                        <Badge
+                          colorScheme="purple"
+                          variant="solid"
+                          textTransform="capitalize"
+                        >
                           {p.category.name}
                         </Badge>
                       )}
@@ -555,7 +632,12 @@ function AddProductForm() {
 
                     <Flex align="center" gap="2" mb="3" wrap="wrap">
                       {variant?.size && (
-                        <Badge colorScheme="blue" variant="outline" borderRadius="full" px="3">
+                        <Badge
+                          colorScheme="blue"
+                          variant="outline"
+                          borderRadius="full"
+                          px="3"
+                        >
                           {variant.size}
                         </Badge>
                       )}
@@ -575,14 +657,27 @@ function AddProductForm() {
                       <Text
                         as="span"
                         fontWeight="bold"
-                        color={isOutOfStock ? "red.500" : isLowStock ? "orange.500" : "green.500"}
+                        color={
+                          isOutOfStock
+                            ? "red.500"
+                            : isLowStock
+                            ? "orange.500"
+                            : "green.500"
+                        }
                       >
                         {variant?.stock || 0}
                       </Text>
-                      {isOutOfStock && <Badge ml="2" colorScheme="red">SOLD OUT</Badge>}
-                      {isLowStock && !isOutOfStock && <Badge ml="2" colorScheme="orange">LOW STOCK</Badge>}
+                      {isOutOfStock && (
+                        <Badge ml="2" colorScheme="red">
+                          SOLD OUT
+                        </Badge>
+                      )}
+                      {isLowStock && !isOutOfStock && (
+                        <Badge ml="2" colorScheme="orange">
+                          LOW STOCK
+                        </Badge>
+                      )}
                     </Text>
-
 
                     <Stack mt="5" direction="row" spacing="3">
                       <Button
@@ -616,7 +711,12 @@ function AddProductForm() {
       </Box>
 
       {/* ---------------- PRODUCT MODAL ---------------- */}
-      <Modal isOpen={isProductOpen} onClose={resetForm} size={{ base: "full", md: "5xl" }} scrollBehavior="inside">
+      <Modal
+        isOpen={isProductOpen}
+        onClose={resetForm}
+        size={{ base: "full", md: "5xl" }}
+        scrollBehavior="inside"
+      >
         <ModalOverlay />
         <ModalContent borderRadius={{ base: "none", md: "xl" }}>
           <ModalHeader
@@ -634,7 +734,9 @@ function AddProductForm() {
               {/* --- Product Details (Left Side) --- */}
               <GridItem>
                 <Stack spacing="5">
-                  <Text fontSize="xl" fontWeight="semibold" color="#82278A">Product Information</Text>
+                  <Text fontSize="xl" fontWeight="semibold" color="#82278A">
+                    Product Information
+                  </Text>
                   <Divider />
                   <FormControl isRequired>
                     <FormLabel>Product Name</FormLabel>
@@ -689,19 +791,18 @@ function AddProductForm() {
                   {/* Status Dropdown - Added for editing */}
                   {editProductId && (
                     <FormControl isRequired>
-                        <FormLabel>Product Status</FormLabel>
-                        <Select
-                            value={status}
-                            onChange={(e) => setStatus(e.target.value)}
-                            size="lg"
-                        >
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="draft">Draft</option>
-                        </Select>
+                      <FormLabel>Product Status</FormLabel>
+                      <Select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                        size="lg"
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="draft">Draft</option>
+                      </Select>
                     </FormControl>
                   )}
-
 
                   <FormControl isRequired>
                     <FormLabel>Size Variant (Only one supported by current form)</FormLabel>
@@ -721,7 +822,9 @@ function AddProductForm() {
                     </Flex>
                   </FormControl>
 
-                  <Text fontSize="xl" fontWeight="semibold" color="#82278A" mt="4">Pricing & Stock</Text>
+                  <Text fontSize="xl" fontWeight="semibold" color="#82278A" mt="4">
+                    Pricing & Stock
+                  </Text>
                   <Divider />
 
                   <Grid templateColumns={{ base: "1fr", sm: "repeat(3, 1fr)" }} gap="4">
@@ -759,7 +862,12 @@ function AddProductForm() {
               {/* --- Image Upload (Right Side) --- */}
               <GridItem>
                 <Box p="5" bg={bgProductDetails} borderRadius="xl" shadow="inner">
-                  <FormLabel fontWeight="bold" fontSize="lg" mb="4" color="#82278A">
+                  <FormLabel
+                    fontWeight="bold"
+                    fontSize="lg"
+                    mb="4"
+                    color="#82278A"
+                  >
                     Product Images ({productImages.length}/5)
                   </FormLabel>
 
@@ -790,7 +898,10 @@ function AddProductForm() {
                           objectFit="cover"
                         />
                         {/* Primary Label/Remove Button */}
-                        <Tooltip label={idx === 0 ? "Primary Image" : "Make Primary"} hasArrow>
+                        <Tooltip
+                          label={idx === 0 ? "Primary Image" : "Make Primary"}
+                          hasArrow
+                        >
                           <Badge
                             position="absolute"
                             top="0"
@@ -825,20 +936,24 @@ function AddProductForm() {
 
                   {/* Upload via File Input */}
                   <FormControl mb="4">
-                    <FormLabel 
-                      htmlFor="file-upload" 
-                      cursor="pointer" 
-                      border="2px dashed" 
-                      borderColor="gray.400" 
-                      p="4" 
-                      borderRadius="md" 
-                      textAlign="center" 
+                    <FormLabel
+                      htmlFor="file-upload"
+                      cursor="pointer"
+                      border="2px dashed"
+                      borderColor="gray.400"
+                      p="4"
+                      borderRadius="md"
+                      textAlign="center"
                       _hover={{ borderColor: "teal.500" }}
                     >
                       {isLoading ? (
-                        <HStack justify="center"><Spinner size="sm" /> <Text>Uploading...</Text></HStack>
+                        <HStack justify="center">
+                          <Spinner size="sm" /> <Text>Uploading...</Text>
+                        </HStack>
                       ) : (
-                        `Click to upload images (Max ${5 - productImages.length} more)`
+                        `Click to upload images (Max ${
+                          5 - productImages.length
+                        } more)`
                       )}
                     </FormLabel>
                     <Input
@@ -855,19 +970,23 @@ function AddProductForm() {
                   {/* Upload via URL Input */}
                   <HStack mb="4">
                     <Input
-                        placeholder="Paste image URL here"
-                        value={newImageUrl}
-                        onChange={(e) => setNewImageUrl(e.target.value)}
-                        isDisabled={productImages.length >= 5 || isLoading}
+                      placeholder="Paste image URL here"
+                      value={newImageUrl}
+                      onChange={(e) => setNewImageUrl(e.target.value)}
+                      isDisabled={productImages.length >= 5 || isLoading}
                     />
-                    <Button 
-                        onClick={handleAddImageUrl} 
-                        colorScheme="teal" 
-                        leftIcon={<LinkIcon />}
-                        isDisabled={productImages.length >= 5 || !newImageUrl.trim() || isLoading}
-                        flexShrink={0}
+                    <Button
+                      onClick={handleAddImageUrl}
+                      colorScheme="teal"
+                      leftIcon={<LinkIcon />}
+                      isDisabled={
+                        productImages.length >= 5 ||
+                        !newImageUrl.trim() ||
+                        isLoading
+                      }
+                      flexShrink={0}
                     >
-                        Add URL
+                      Add URL
                     </Button>
                   </HStack>
                 </Box>
@@ -876,7 +995,12 @@ function AddProductForm() {
           </ModalBody>
 
           <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={resetForm} isDisabled={isLoading}>
+            <Button
+              variant="ghost"
+              mr={3}
+              onClick={resetForm}
+              isDisabled={isLoading}
+            >
               Cancel
             </Button>
             <Button
@@ -899,33 +1023,42 @@ function AddProductForm() {
           <ModalCloseButton />
           <ModalBody pb={6}>
             <Stack spacing={4}>
+              {/* --- CRITICAL FIX: ADD MISSING FORM CONTROL FOR CATEGORY NAME --- */}
               <FormControl isRequired>
                 <FormLabel>Category Name</FormLabel>
                 <Input
-                  placeholder="e.g., Men's Clothing, Electronics"
+                  placeholder="e.g., Summer Collection"
                   value={categoryName}
                   onChange={(e) => setCategoryName(e.target.value)}
                 />
               </FormControl>
-
+              {/* ------------------------------------------------------------------ */}
               <FormControl>
-                <FormLabel>Description</FormLabel>
+                <FormLabel>Description (Optional)</FormLabel>
                 <Textarea
-                  placeholder="Brief description of the category"
+                  placeholder="Briefly describe the category."
                   value={categoryDescription}
                   onChange={(e) => setCategoryDescription(e.target.value)}
+                  rows={3}
                 />
               </FormControl>
             </Stack>
           </ModalBody>
+
           <ModalFooter>
-            <Button onClick={onCategoryClose} variant="ghost" mr={3} isDisabled={isLoading}>
+            <Button
+              variant="ghost"
+              mr={3}
+              onClick={onCategoryClose}
+              isDisabled={isLoading}
+            >
               Cancel
             </Button>
             <Button
               colorScheme="blue"
               onClick={handleSubmitCategory}
               isLoading={isLoading}
+              loadingText="Adding..."
             >
               Add Category
             </Button>
@@ -940,23 +1073,26 @@ function AddProductForm() {
           <ModalHeader>Confirm Deletion</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Text>
-              Are you sure you want to delete the product:
-              <Text as="span" fontWeight="bold" ml="1">
-                {productToDelete?.name}?
-              </Text>
-            </Text>
-            <Alert status="warning" mt="4" borderRadius="md">
+            <Alert status="warning" borderRadius="md">
               <AlertIcon />
-              This action is irreversible.
+              Are you sure you want to permanently delete the product:{" "}
+              <Text as="span" fontWeight="bold" ml="1">
+                "{productToDelete?.name}"
+              </Text>
+              ? This action cannot be undone.
             </Alert>
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onDeleteClose} isDisabled={isLoading}>
-              Cancel
+              No, Keep It
             </Button>
-            <Button colorScheme="red" onClick={confirmDeleteProduct} isLoading={isLoading}>
-              Delete Product
+            <Button
+              colorScheme="red"
+              onClick={confirmDeleteProduct}
+              isLoading={isLoading}
+              leftIcon={<DeleteIcon />}
+            >
+              Yes, Delete
             </Button>
           </ModalFooter>
         </ModalContent>
