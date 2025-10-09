@@ -1,219 +1,218 @@
-import React from "react";
-// Chakra imports
+import React, { useState } from "react";
+import axios from "axios";
 import {
   Box,
   Flex,
   Button,
   FormControl,
   FormLabel,
-  HStack,
   Input,
-  Icon,
-  Link,
-  Switch,
   Text,
   useColorModeValue,
+  useToast,
 } from "@chakra-ui/react";
-// Assets
-import signInImage from "assets/img/signInImage.png";
-import { FaApple, FaFacebook, FaGoogle } from "react-icons/fa";
+// Assuming signInImage is available at this path
+import signInImage from "assets/img/signInImage.png"; 
 
-function SignIn() {
-  // Chakra color mode
-  const textColor = useColorModeValue("gray.700", "white");
+function AdminLogin() {
   const bgForm = useColorModeValue("white", "navy.800");
-  const titleColor = useColorModeValue("gray.700", "blue.500");
-  const colorIcons = useColorModeValue("gray.700", "white");
-  const bgIcons = useColorModeValue("trasnparent", "navy.700");
-  const bgIconsHover = useColorModeValue("gray.50", "whiteAlpha.100");
+  const titleColor = useColorModeValue("blue.600", "blue.300");
+  const toast = useToast();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Backend validation regex (Kept as is for consistency)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
+
+  const handleLogin = async () => {
+    // --- Validation logic (kept as is) ---
+    if (!email || !password) {
+      toast({
+        title: "Missing fields",
+        description: "Email and password are required",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!passwordRegex.test(password)) {
+      toast({
+        title: "Invalid Password",
+        description:
+          "Password must be at least 8 characters, include uppercase, lowercase, and a number",
+        status: "warning",
+        duration: 4000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // --- API Call (kept as is) ---
+      const res = await axios.post(
+        "http://localhost:7000/api/admins/login",
+        { email, password },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      const { token, name, role } = res.data;
+
+      localStorage.setItem("token", token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ name, email, role })
+      );
+
+      console.log("Token stored:", localStorage.getItem("token"));
+      console.log("User stored:", localStorage.getItem("user"));
+
+      toast({
+        title: "Login Successful",
+        description: `Welcome, ${name}!`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // --- Redirection logic (kept as is) ---
+      setTimeout(() => {
+        if (role === "super admin" || role === "admin") {
+          // Changed to client-side router navigation if available, 
+          // but sticking to window.location.href as in your original code
+          window.location.href = "/admin/dashboard"; 
+        } else {
+          window.location.href = "/";
+        }
+      }, 500);
+    } catch (err) {
+      console.error("Login error:", err);
+      toast({
+        title: "Login Failed",
+        description: err.response?.data?.message || "Server error",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <Flex position='relative' mb='40px'>
+    <Flex position="relative" w="100%" h="100vh" overflowY="auto">
+      {/* Background Image Container */}
+      <Box
+        position="fixed" // Fixed to cover the whole viewport, regardless of scrolling
+        top="0"
+        left="0"
+        w="100%"
+        h="100%"
+        bgImage={`url(${signInImage})`}
+        bgSize="cover"
+        bgPosition="center"
+        zIndex="1" // Ensure background is behind the form
+      >
+        <Box w="100%" h="100%" bg="blue.500" opacity="0.75"></Box>
+      </Box>
+
+      {/* Login Form Container */}
       <Flex
-        minH={{ md: "1000px" }}
-        h={{ sm: "initial", md: "75vh", lg: "85vh" }}
-        w='100%'
-        maxW='1044px'
-        mx='auto'
-        justifyContent='space-between'
-        mb='30px'
-        pt={{ md: "0px" }}>
+        // minH removed, use h/w for content positioning
+        h={{ base: "auto", md: "100vh" }} // 'auto' on mobile, full height on desktop
+        w="100%"
+        maxW={{ base: "100%", md: "1044px" }} // Max width on desktop
+        mx="auto"
+        justifyContent="center"
+        alignItems={{ base: "flex-start", md: "center" }} // Center vertically on desktop
+        py={{ base: "40px", md: "0" }} // Add padding on top/bottom for mobile
+        position="relative" // Crucial: sets context for zIndex, allowing content to overlay fixed background
+        zIndex="2" // Ensure form is in front of the background
+      >
         <Flex
-          w='100%'
-          h='100%'
-          alignItems='center'
-          justifyContent='center'
-          mb='60px'
-          mt={{ base: "50px", md: "20px" }}>
-          <Flex
-            zIndex='2'
-            direction='column'
-            w='445px'
-            background='transparent'
-            borderRadius='15px'
-            p='40px'
-            mx={{ base: "100px" }}
-            m={{ base: "20px", md: "auto" }}
-            bg={bgForm}
-            boxShadow={useColorModeValue(
-              "0px 5px 14px rgba(0, 0, 0, 0.05)",
-              "unset"
-            )}>
-            <Text
-              fontSize='xl'
-              color={textColor}
-              fontWeight='bold'
-              textAlign='center'
-              mb='22px'>
-              Register With
-            </Text>
-            <HStack spacing='15px' justify='center' mb='22px'>
-              <Flex
-                justify='center'
-                align='center'
-                w='75px'
-                h='75px'
-                borderRadius='8px'
-                border={useColorModeValue("1px solid", "0px")}
-                borderColor='gray.200'
-                cursor='pointer'
-                transition='all .25s ease'
-                bg={bgIcons}
-                _hover={{ bg: bgIconsHover }}>
-                <Link href='#'>
-                  <Icon as={FaFacebook} color={colorIcons} w='30px' h='30px' />
-                </Link>
-              </Flex>
-              <Flex
-                justify='center'
-                align='center'
-                w='75px'
-                h='75px'
-                borderRadius='8px'
-                border={useColorModeValue("1px solid", "0px")}
-                borderColor='gray.200'
-                cursor='pointer'
-                transition='all .25s ease'
-                bg={bgIcons}
-                _hover={{ bg: bgIconsHover }}>
-                <Link href='#'>
-                  <Icon
-                    as={FaApple}
-                    color={colorIcons}
-                    w='30px'
-                    h='30px'
-                    _hover={{ filter: "brightness(120%)" }}
-                  />
-                </Link>
-              </Flex>
-              <Flex
-                justify='center'
-                align='center'
-                w='75px'
-                h='75px'
-                borderRadius='8px'
-                border={useColorModeValue("1px solid", "0px")}
-                borderColor='gray.200'
-                cursor='pointer'
-                transition='all .25s ease'
-                bg={bgIcons}
-                _hover={{ bg: bgIconsHover }}>
-                <Link href='#'>
-                  <Icon
-                    as={FaGoogle}
-                    color={colorIcons}
-                    w='30px'
-                    h='30px'
-                    _hover={{ filter: "brightness(120%)" }}
-                  />
-                </Link>
-              </Flex>
-            </HStack>
-            <Text
-              fontSize='lg'
-              color='gray.400'
-              fontWeight='bold'
-              textAlign='center'
-              mb='22px'>
-              or
-            </Text>
-            <FormControl>
-              <FormLabel ms='4px' fontSize='sm' fontWeight='normal'>
-                Name
-              </FormLabel>
-              <Input
-                variant='auth'
-                fontSize='sm'
-                ms='4px'
-                type='text'
-                placeholder='Your full name'
-                mb='24px'
-                size='lg'
-              />
-              <FormLabel ms='4px' fontSize='sm' fontWeight='normal'>
-                Password
-              </FormLabel>
-              <Input
-                variant='auth'
-                fontSize='sm'
-                ms='4px'
-                type='password'
-                placeholder='Your password'
-                mb='24px'
-                size='lg'
-              />
-              <FormControl display='flex' alignItems='center' mb='24px'>
-                <Switch id='remember-login' colorScheme='blue' me='10px' />
-                <FormLabel htmlFor='remember-login' mb='0' fontWeight='normal'>
-                  Remember me
-                </FormLabel>
-              </FormControl>
-              <Button
-                fontSize='10px'
-                variant='dark'
-                fontWeight='bold'
-                w='100%'
-                h='45'
-                mb='24px'>
-                SIGN UP
-              </Button>
-            </FormControl>
-            <Flex
-              flexDirection='column'
-              justifyContent='center'
-              alignItems='center'
-              maxW='100%'
-              mt='0px'>
-              <Text color={textColor} fontWeight='medium'>
-                Already have an account?
-                <Link
-                  color={titleColor}
-                  as='span'
-                  ms='5px'
-                  href='#'
-                  fontWeight='bold'>
-                  Sign In
-                </Link>
-              </Text>
-            </Flex>
-          </Flex>
+          direction="column"
+          // --- RESPONSIVE WIDTH ADJUSTMENTS ---
+          w={{ base: "90%", sm: "400px", md: "445px" }} // Narrower on small screens, fixed width on md+
+          // ------------------------------------
+          borderRadius="20px"
+          p={{ base: "20px", sm: "40px" }} // Reduced padding on smaller screens
+          bg={bgForm}
+          boxShadow={useColorModeValue(
+            "0px 8px 30px rgba(0, 0, 0, 0.1)",
+            "0px 8px 30px rgba(0, 0, 0, 0.4)"
+          )}
+          mt={{ base: "100px", md: "0" }} // Push the form down on mobile so it's not hidden behind a potential fixed header
+          mb={{ base: "100px", md: "0" }}
+        >
+          <Text
+            fontSize="2xl"
+            color={titleColor}
+            fontWeight="extrabold"
+            textAlign="center"
+            mb="28px"
+          >
+            Admin Login
+          </Text>
+
+          <FormControl mb="4">
+            <FormLabel fontSize="sm" fontWeight="semibold">
+              Email
+            </FormLabel>
+            <Input
+              type="email"
+              placeholder="Enter email"
+              mb="24px"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              size="lg" // Larger input size for better mobile tap target
+            />
+
+            <FormLabel fontSize="sm" fontWeight="semibold">
+              Password
+            </FormLabel>
+            <Input
+              type="password"
+              placeholder="Enter password"
+              mb="24px"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              size="lg" // Larger input size for better mobile tap target
+            />
+
+            <Button
+              w="100%"
+              h="50px"
+              borderRadius="12px"
+              bg="blue.500"
+              color="white"
+              onClick={handleLogin}
+              isLoading={loading}
+              fontSize="md"
+            >
+              LOGIN
+            </Button>
+          </FormControl>
         </Flex>
-        <Box
-          overflowX='hidden'
-          h='100%'
-          w='100%'
-          left='0px'
-          position='absolute'
-          bgImage={signInImage}>
-          <Box
-            w='100%'
-            h='100%'
-            bgSize='cover'
-            bg='blue.500'
-            opacity='0.8'></Box>
-        </Box>
       </Flex>
     </Flex>
   );
 }
 
-export default SignIn;
+export default AdminLogin;

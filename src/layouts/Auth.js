@@ -61,6 +61,7 @@ export default function Pages(props) {
     return activeNavbar;
   };
 
+  // ✅ Fixed to use element (instead of component) so SignUp & SignIn work
   const getRoutes = (routes) => {
     return routes.map((prop, key) => {
       if (prop.collapse) {
@@ -72,14 +73,13 @@ export default function Pages(props) {
       if (prop.layout === "/auth") {
         return (
           <Route
-            path={prop.layout + prop.path}
-            element={<prop.component {...rest} />}
+            path={prop.path}
+            element={prop.element}
             key={key}
           />
         );
-      } else {
-        return null;
       }
+      return null;
     });
   };
 
@@ -95,7 +95,8 @@ export default function Pages(props) {
         <Box ref={wrapper} w="100%">
           <Routes>
             {getRoutes(routes)}
-            <Route path="/auth" element={<Navigate to="/auth/login-page" replace />} />
+            {/* ✅ Default /auth redirect */}
+            <Route path="/auth" element={<Navigate to="/auth/signin" replace />} />
           </Routes>
         </Box>
       </Box>

@@ -105,20 +105,6 @@ export default function AuthNavbar(props) {
       </NavLink>
 
       <NavLink
-        to="/auth/signup"
-        className={({ isActive }) => (isActive ? "active-link" : "")}
-      >
-        <Button
-          fontSize="sm"
-          color={navbarIcon}
-          variant="no-effects"
-          leftIcon={<RocketIcon color={navbarIcon} w="12px" h="12px" />}
-        >
-          <Text>Sign Up</Text>
-        </Button>
-      </NavLink>
-
-      <NavLink
         to="/auth/signin"
         className={({ isActive }) => (isActive ? "active-link" : "")}
       >
@@ -128,7 +114,7 @@ export default function AuthNavbar(props) {
           variant="no-effects"
           leftIcon={<DocumentIcon color={navbarIcon} w="12px" h="12px" />}
         >
-          <Text>Sign In</Text>
+          <Text>Sign In </Text>
         </Button>
       </NavLink>
     </HStack>
@@ -188,21 +174,7 @@ export default function AuthNavbar(props) {
           />
         </Box>
         {linksAuth}
-        <Link href="https://creative-tim.com/product/argon-dashboard-chakra">
-          <Button
-            bg={bgButton}
-            color={colorButton}
-            fontSize="xs"
-            variant="no-hover"
-            px="30px"
-            display={{
-              sm: "none",
-              lg: "flex",
-            }}
-          >
-            Free Download
-          </Button>
-        </Link>
+       
       </Flex>
     </Flex>
   );

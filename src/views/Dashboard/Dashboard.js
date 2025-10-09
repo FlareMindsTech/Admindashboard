@@ -1,10 +1,11 @@
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 // Chakra imports
 import {
   Box,
   Button,
   Flex,
-  Grid,
-  Progress,
   SimpleGrid,
   Stat,
   StatLabel,
@@ -12,340 +13,265 @@ import {
   Table,
   Tbody,
   Td,
-  Text,
   Th,
   Thead,
   Tr,
-  useColorMode,
   useColorModeValue,
+  Heading,
+  Badge,
+  Text,
+  useToast,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  ModalFooter,
+  FormControl,
+  FormLabel,
+  Input,
 } from "@chakra-ui/react";
 // Custom components
 import Card from "components/Card/Card.js";
 import BarChart from "components/Charts/BarChart";
-import LineChart from "components/Charts/LineChart";
-import IconBox from "components/Icons/IconBox";
-// Custom icons
-import {
-  CartIcon,
-  DocumentIcon,
-  GlobeIcon,
-  ClothIcon,
-} from "components/Icons/Icons.js";
-import React from "react";
-// Variables
-import {
-  barChartData,
-  barChartOptions,
-  lineChartData,
-  lineChartOptions,
-} from "variables/charts";
-import { pageVisits, socialTraffic } from "variables/general";
+import { FaChartLine, FaUserEdit } from "react-icons/fa";
+import { RiDeleteBin5Fill } from "react-icons/ri";
 
 export default function Dashboard() {
-  // Chakra Color Mode
-  const iconBlue = useColorModeValue("blue.500", "blue.500");
-  const iconBoxInside = useColorModeValue("white", "white");
   const textColor = useColorModeValue("gray.700", "white");
-  const tableRowColor = useColorModeValue("#F7FAFC", "navy.900");
+  const tableHeaderBg = useColorModeValue("gray.100", "gray.700");
   const borderColor = useColorModeValue("gray.200", "gray.600");
-  const textTableColor = useColorModeValue("gray.500", "white");
+  const toast = useToast();
+  const navigate = useNavigate();
 
-  const { colorMode } = useColorMode();
+  const [activeSection, setActiveSection] = useState("");
+  const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "" });
+
+  const [topDressDetails] = useState([
+    { id: 1, name: "Floral Summer Dress", price: 1200, size: "M", color: "Red" },
+    { id: 2, name: "Classic Black Gown", price: 2500, size: "L", color: "Black" },
+    { id: 3, name: "Casual Denim Jacket", price: 1800, size: "XL", color: "Blue" },
+  ]);
+
+  const [showStaffDetails] = useState([
+    { id: 1, name: "Ravi Kumar", email: "ravi.kumar@shopnow.com", department: "Customer Support", role: "Support Executive" },
+    { id: 2, name: "Meena Sharma", email: "meena.sharma@shopnow.com", department: "Order Management", role: "Order Supervisor" },
+    { id: 3, name: "Vikram Singh", email: "vikram.singh@shopnow.com", department: "Logistics", role: "Delivery Manager" },
+    { id: 4, name: "Anjali Verma", email: "anjali.verma@shopnow.com", department: "Inventory", role: "Stock Manager" },
+  ]);
+
+  const [showSalesDetails] = useState([
+    { id: 1, orderId: "ORD1001", customer: "Sanjay Kumar", product: "Wireless Headphones", quantity: 2, total: 4000, status: "Delivered" },
+    { id: 2, orderId: "ORD1002", customer: "Priya Sharma", product: "Smartphone", quantity: 1, total: 15000, status: "Shipped" },
+    { id: 3, orderId: "ORD1003", customer: "Arun Raj", product: "Casual Shoes", quantity: 3, total: 3600, status: "Pending" },
+    { id: 4, orderId: "ORD1004", customer: "Meena Devi", product: "Laptop Bag", quantity: 1, total: 1200, status: "Cancelled" },
+  ]);
+
+  // Fetch current user from localStorage
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (!storedUser || (storedUser.role !== "admin" && storedUser.role !== "super admin")) {
+      toast({
+        title: "Access Denied",
+        description: "Only admin or super admin users can access this page.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      navigate("/auth/signin");
+      return;
+    }
+    setCurrentUser(storedUser);
+  }, [navigate, toast]);
+
+  // Fetch users from backend
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get("http://localhost:7000/api/admins/all", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUsers(res.data.admins || []);
+      } catch (err) {
+        console.error("Error fetching users:", err);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Delivered": return "green";
+      case "Shipped": return "blue";
+      case "Pending": return "yellow";
+      case "Cancelled": return "red";
+      default: return "gray";
+    }
+  };
+
+  // Create new admin
+  const handleCreateAdmin = async () => {
+    // Frontend validation
+    if (!newAdmin.name || !newAdmin.email || !newAdmin.password) {
+      return toast({
+        title: "Validation Error",
+        description: "All fields are required",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newAdmin.email)) {
+      return toast({
+        title: "Validation Error",
+        description: "Invalid email format",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(newAdmin.password)) {
+      return toast({
+        title: "Validation Error",
+        description: "Password must be at least 8 characters, include uppercase, lowercase, and a number",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.post(
+        "http://localhost:7000/api/admins/create",
+        newAdmin,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast({
+        title: "Admin Created",
+        description: `Admin ${res.data.admin.name} created successfully`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setUsers((prev) => [...prev, res.data.admin]);
+      setNewAdmin({ name: "", email: "", password: "" });
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: err.response?.data?.message || "Server error",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  if (!currentUser) return null;
 
   return (
-    <Flex flexDirection='column' pt={{ base: "120px", md: "75px" }}>
-      <SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing='24px' mb='20px'>
-        <Card minH='125px'>
-          <Flex direction='column'>
-            <Flex
-              flexDirection='row'
-              align='center'
-              justify='center'
-              w='100%'
-              mb='25px'>
-              <Stat me='auto'>
-                <StatLabel
-                  fontSize='xs'
-                  color='gray.400'
-                  fontWeight='bold'
-                  textTransform='uppercase'>
-                  Today's Top Sales
-                </StatLabel>
-                <Flex>
-                  <StatNumber fontSize='lg' color={textColor} fontWeight='bold'>
-                    $53,897
-                  </StatNumber>
-                </Flex>
-              </Stat>
-              <IconBox
-                borderRadius='50%'
-                as='box'
-                h={"45px"}
-                w={"45px"}
-                bg={iconBlue}>
-                <ClothIcon h={"24px"} w={"24px"} color={iconBoxInside} />
-              </IconBox>
-            </Flex>
-            <Text color='gray.400' fontSize='sm'>
-              <Text as='span' color='green.400' fontWeight='bold'>
-                +3.48%{" "}
-              </Text>
-              Since last month
-            </Text>
-          </Flex>
-        </Card>
-        <Card minH='125px'>
-          <Flex direction='column'>
-            <Flex
-              flexDirection='row'
-              align='center'
-              justify='center'
-              w='100%'
-              mb='25px'>
-              <Stat me='auto'>
-                <StatLabel
-                  fontSize='xs'
-                  color='gray.400'
-                  fontWeight='bold'
-                  textTransform='uppercase'>
-                  Total Users
-                </StatLabel>
-                <Flex>
-                  <StatNumber fontSize='lg' color={textColor} fontWeight='bold'>
-                    $3,200
-                  </StatNumber>
-                </Flex>
-              </Stat>
-              <IconBox
-                borderRadius='50%'
-                as='box'
-                h={"45px"}
-                w={"45px"}
-                bg={iconBlue}>
-                <GlobeIcon h={"24px"} w={"24px"} color={iconBoxInside} />
-              </IconBox>
-            </Flex>
-            <Text color='gray.400' fontSize='sm'>
-              <Text as='span' color='green.400' fontWeight='bold'>
-                +5.2%{" "}
-              </Text>
-              Since last month
-            </Text>
-          </Flex>
-        </Card>
-        <Card minH='125px'>
-          <Flex direction='column'>
-            <Flex
-              flexDirection='row'
-              align='center'
-              justify='center'
-              w='100%'
-              mb='25px'>
-              <Stat me='auto'>
-                <StatLabel
-                  fontSize='xs'
-                  color='gray.400'
-                  fontWeight='bold'
-                  textTransform='uppercase'>
-                  Total Staffs
-                </StatLabel>
-                <Flex>
-                  <StatNumber fontSize='lg' color={textColor} fontWeight='bold'>
-                    +2,503
-                  </StatNumber>
-                </Flex>
-              </Stat>
-              <IconBox
-                borderRadius='50%'
-                as='box'
-                h={"45px"}
-                w={"45px"}
-                bg={iconBlue}>
-                <DocumentIcon h={"24px"} w={"24px"} color={iconBoxInside} />
-              </IconBox>
-            </Flex>
-            <Text color='gray.400' fontSize='sm'>
-              <Text as='span' color='red.500' fontWeight='bold'>
-                -2.82%{" "}
-              </Text>
-              Since last month
-            </Text>
-          </Flex>
-        </Card>
-        <Card minH='125px'>
-          <Flex direction='column'>
-            <Flex
-              flexDirection='row'
-              align='center'
-              justify='center'
-              w='100%'
-              mb='25px'>
-              <Stat me='auto'>
-                <StatLabel
-                  fontSize='xs'
-                  color='gray.400'
-                  fontWeight='bold'
-                  textTransform='uppercase'>
-                  Total Sales
-                </StatLabel>
-                <Flex>
-                  <StatNumber fontSize='lg' color={textColor} fontWeight='bold'>
-                    $173,000
-                  </StatNumber>
-                </Flex>
-              </Stat>
-              <IconBox
-                borderRadius='50%'
-                as='box'
-                h={"45px"}
-                w={"45px"}
-                bg={iconBlue}>
-                <CartIcon h={"24px"} w={"24px"} color={iconBoxInside} />
-              </IconBox>
-            </Flex>
-            <Text color='gray.400' fontSize='sm'>
-              <Text as='span' color='green.400' fontWeight='bold'>
-                +8.12%{" "}
-              </Text>
-              Since last month
-            </Text>
-          </Flex>
+    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
+      <Box mb={6}>
+        <Text fontSize="2xl" fontWeight="bold" color={textColor}>
+          Welcome, {currentUser.name} 👋
+        </Text>
+      </Box>
+
+      {currentUser.role === "super admin" && (
+        <Button mb={4} colorScheme="green" onClick={() => setIsModalOpen(true)}>
+          Create Admin
+        </Button>
+      )}
+
+      {/* Modal for Creating Admin */}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Create New Admin</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <FormControl mb={3}>
+              <FormLabel>Name</FormLabel>
+              <Input
+                value={newAdmin.name}
+                onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
+              />
+            </FormControl>
+            <FormControl mb={3}>
+              <FormLabel>Email</FormLabel>
+              <Input
+                value={newAdmin.email}
+                onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
+              />
+            </FormControl>
+            <FormControl mb={3}>
+              <FormLabel>Password</FormLabel>
+              <Input
+                type="password"
+                value={newAdmin.password}
+                onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
+              />
+            </FormControl>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={handleCreateAdmin}>Create</Button>
+            <Button onClick={() => setIsModalOpen(false)}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Summary Cards */}
+      <SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px" mb="20px">
+        <Card minH="125px" p={4} shadow="md" border="1px solid" borderColor={borderColor}>
+          <Stat>
+            <StatLabel color="gray.500">Total Users</StatLabel>
+            <StatNumber fontSize="xl" color={textColor}>{users.length}</StatNumber>
+          </Stat>
+          <Button mt={3} colorScheme="blue" leftIcon={<FaChartLine />} onClick={() => setActiveSection("users")}>
+            Show User Details
+          </Button>
         </Card>
       </SimpleGrid>
-      <Grid
-  templateColumns={{ sm: "1fr", lg: "2fr 1fr" }}
-  templateRows={{ lg: "repeat(2, auto)" }}
-  gap="20px"
->
-  {/* Page visits card */}
-  <Card p="0px" maxW={{ sm: "320px", md: "100%" }}>
-    <Flex direction="column">
-      <Flex align="center" justify="space-between" p="22px">
-        <Text fontSize="lg" color={textColor} fontWeight="bold">
-          Page visits
-        </Text>
-      </Flex>
 
-      {/* Scroll only on hover */}
-      <Box
-        maxH="300px"
-        overflow="hidden"
-        _hover={{ overflow: "auto" }}
-        sx={{
-          "&::-webkit-scrollbar": {
-            width: "6px",
-            height: "6px",
-          },
-          "&::-webkit-scrollbar-thumb": {
-            background: "#888",
-            borderRadius: "10px",
-          },
-          "&::-webkit-scrollbar-thumb:hover": {
-            background: "#555",
-          },
-        }}
-      >
-        <Table>
-          <Thead>
-            <Tr bg={tableRowColor}>
-              <Th color="gray.400" borderColor={borderColor}>Page name</Th>
-              <Th color="gray.400" borderColor={borderColor}>Visitors</Th>
-              <Th color="gray.400" borderColor={borderColor}>Unique users</Th>
-              <Th color="gray.400" borderColor={borderColor}>Bounce rate</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {pageVisits.concat(pageVisits).concat(pageVisits).map((el, index, arr) => (
-              <Tr key={index}>
-                <Td color={textTableColor} fontSize="sm" fontWeight="bold"
-                  borderColor={borderColor} border={index === arr.length - 1 ? "none" : null}>
-                  {el.pageName}
-                </Td>
-                <Td color={textTableColor} fontSize="sm"
-                  borderColor={borderColor} border={index === arr.length - 1 ? "none" : null}>
-                  {el.visitors}
-                </Td>
-                <Td color={textTableColor} fontSize="sm"
-                  borderColor={borderColor} border={index === arr.length - 1 ? "none" : null}>
-                  {el.uniqueUsers}
-                </Td>
-                <Td color={textTableColor} fontSize="sm"
-                  borderColor={borderColor} border={index === arr.length - 1 ? "none" : null}>
-                  {el.bounceRate}
-                </Td>
+      {/* Users Section */}
+      {activeSection === "users" && (
+        <Card p={5} shadow="xl">
+          <Heading size="md" mb={4}>👤 Admin Details</Heading>
+          <Table variant="striped" colorScheme="blue">
+            <Thead bg="blue.100">
+              <Tr>
+                <Th>ID</Th>
+                <Th>Name</Th>
+                <Th>Email</Th>
+                <Th>Role</Th>
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </Box>
-    </Flex>
-  </Card>
-
-  {/* Social traffic card */}
-  <Card p="0px" maxW={{ sm: "320px", md: "100%" }}>
-    <Flex direction="column">
-      <Flex align="center" justify="space-between" p="22px">
-        <Text fontSize="lg" color={textColor} fontWeight="bold">
-          Social traffic
-        </Text>
-      </Flex>
-    </Flex>
-
-    {/* Scroll only on hover */}
-    <Box
-      maxH="300px"
-      overflow="hidden"
-      _hover={{ overflow: "auto" }}
-      sx={{
-        "&::-webkit-scrollbar": {
-          width: "6px",
-          height: "6px",
-        },
-        "&::-webkit-scrollbar-thumb": {
-          background: "#888",
-          borderRadius: "10px",
-        },
-        "&::-webkit-scrollbar-thumb:hover": {
-          background: "#555",
-        },
-      }}
-    >
-      <Table>
-        <Thead>
-          <Tr bg={tableRowColor}>
-            <Th color="gray.400" borderColor={borderColor}>Referral</Th>
-            <Th color="gray.400" borderColor={borderColor}>Visitors</Th>
-            <Th color="gray.400" borderColor={borderColor}></Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {socialTraffic.concat(socialTraffic).concat(socialTraffic).map((el, index, arr) => (
-            <Tr key={index}>
-              <Td color={textTableColor} fontSize="sm" fontWeight="bold"
-                borderColor={borderColor} border={index === arr.length - 1 ? "none" : null}>
-                {el.referral}
-              </Td>
-              <Td color={textTableColor} fontSize="sm"
-                borderColor={borderColor} border={index === arr.length - 1 ? "none" : null}>
-                {el.visitors}
-              </Td>
-              <Td color={textTableColor} fontSize="sm"
-                borderColor={borderColor} border={index === arr.length - 1 ? "none" : null}>
-                <Flex align="center">
-                  <Text color={textTableColor} fontWeight="bold" fontSize="sm" me="12px">
-                    {`${el.percentage}%`}
-                  </Text>
-                  <Progress size="xs" colorScheme={el.color} value={el.percentage} minW="120px" />
-                </Flex>
-              </Td>
-            </Tr>
-          ))}
-        </Tbody>
-      </Table>
-    </Box>
-  </Card>
-</Grid>
-
+            </Thead>
+            <Tbody>
+              {users.map((u, idx) => (
+                <Tr key={u._id || idx}>
+                  <Td>{idx + 1}</Td>
+                  <Td>{u.name}</Td>
+                  <Td>{u.email}</Td>
+                  <Td>{u.role}</Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </Card>
+      )}
     </Flex>
   );
 }

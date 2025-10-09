@@ -5,27 +5,32 @@ class BarChart extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      chartData: [],
-      chartOptions: {},
+      chartData: props.chartData || [],
+      chartOptions: props.chartOptions || { xaxis: { categories: [] } },
     };
   }
 
-  componentDidMount() {
-    this.setState({
-      chartData: this.props.chartData,
-      chartOptions: this.props.chartOptions,
-    });
+  componentDidUpdate(prevProps) {
+    if (
+      prevProps.chartData !== this.props.chartData ||
+      prevProps.chartOptions !== this.props.chartOptions
+    ) {
+      this.setState({
+        chartData: this.props.chartData || [],
+        chartOptions: this.props.chartOptions || { xaxis: { categories: [] } },
+      });
+    }
   }
 
   render() {
     return (
-        <Chart
-          options={this.state.chartOptions}
-          series={this.state.chartData}
-          type="bar"
-          width="100%"
-          height="100%"
-        />
+      <Chart
+        options={this.state.chartOptions}
+        series={this.state.chartData}
+        type="bar"
+        width="100%"
+        height="100%"
+      />
     );
   }
 }
