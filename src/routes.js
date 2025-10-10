@@ -27,7 +27,7 @@ var dashRoutes = [
   },
   {
     path: "/tables",
-    name: "Tables",
+    name: "Product Management",
     rtlName: "لوحة القيادة",
     icon: <StatsIcon color="inherit" />,
     element: <Tables />,     
@@ -58,20 +58,13 @@ var dashRoutes = [
       },
       {
         path: "/signin",
-        name: "Sign In",
+        name: "Login",
         rtlName: "لوحة القيادة",
         icon: <DocumentIcon color="inherit" />,
         element: <SignIn />,    
         layout: "/auth",
       },
-      {
-        path: "/signup",
-        name: "Sign Up",
-        rtlName: "لوحة القيادة",
-        icon: <RocketIcon color="inherit" />,
-        element: <SignUp />,    
-        layout: "/auth",
-      },
+      
     ],
   },
 ];

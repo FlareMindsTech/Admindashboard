@@ -1,56 +1,94 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://boutique-ecommerce-1.onrender.com'; 
+// --- Configuration ---
+// IMPORTANT: Replace this with your actual backend API URL.
+const API_BASE_URL = 'https://boutique-ecommerce-1.onrender.com/'; 
+const TIMEOUT_MS = 10000;
+
+// =========================================================
+// 1. GENERAL USER/CUSTOMER AXIOS INSTANCE (axiosInstance)
+//    - Uses 'token' key from localStorage
+// =========================================================
 
 const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000, 
-  headers: {
-    'Content-Type': 'application/json',
-  },
+    baseURL: API_BASE_URL,
+    timeout: TIMEOUT_MS,
+    headers: {
+        'Content-Type': 'application/json',
+    },
 });
 
+// --- Interceptor for General User/Customer Authentication (using 'token') ---
 axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    (config) => {
+        const token = localStorage.getItem('token'); 
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
     }
-    
-    return config;
-  },
-  (error) => {
-    // Handle request errors (e.g., network issues)
-    return Promise.reject(error);
-  }
 );
 
-// --- Optional: Interceptor to Handle 401 Unauthorized Responses ---
-// This response interceptor can automatically log out users whose token has expired
-axiosInstance.interceptors.response.use(
-  (response) => {
-    // If the request was successful, just return the response
-    return response;
-  },
-  (error) => {
-    // Check if the response error is 401 Unauthorized
+// =========================================================
+// 2. DEDICATED ADMIN AXIOS INSTANCE (adminAxiosInstance)
+//    - Uses 'adminToken' key from localStorage
+// =========================================================
+
+const adminAxiosInstance = axios.create({
+    baseURL: API_BASE_URL,
+    timeout: TIMEOUT_MS,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+// --- Interceptor for Admin Authentication (using 'adminToken') ---
+adminAxiosInstance.interceptors.request.use(
+    (config) => {
+        // Retrieve the dedicated admin token
+        const adminToken = localStorage.getItem('adminToken'); 
+        if (adminToken) {
+            config.headers.Authorization = `Bearer ${adminToken}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
+// =========================================================
+// 3. COMMON RESPONSE INTERCEPTOR (Applied to both instances)
+//    - Handles global error cases like 401
+// =========================================================
+
+const unauthorizedResponseHandler = (error) => {
     if (error.response && error.response.status === 401) {
-      console.error('Unauthorized (401) received. Token may be expired or invalid.');
-      
-      // Clear token and user data from local storage
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      
-      // Redirect the user to the login page (or another appropriate action)
-      // Note: You can't use 'navigate' hook here, so you must use a standard window redirect.
-      // window.location.href = '/auth/signin';
-      
-      // You can add a global toast/notification here if needed, but the frontend's
-      // useEffect already handles the redirection upon the *next* reload/page load.
+        console.error('Unauthorized (401) received. Clearing all auth data.');
+        
+        // Clear all relevant authentication keys on 401
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole'); // Assuming you store role
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
     }
     return Promise.reject(error);
-  }
+};
+
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    unauthorizedResponseHandler
 );
 
-export default axiosInstance;
+adminAxiosInstance.interceptors.response.use(
+    (response) => response,
+    unauthorizedResponseHandler
+);
+
+
+export default axiosInstance; // General use
+export { adminAxiosInstance }; // Admin use

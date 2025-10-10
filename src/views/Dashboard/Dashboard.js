@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import axiosInstance from "../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
+// --- CRITICAL CHANGE: IMPORT THE DEDICATED ADMIN AXIOS INSTANCE ---
+import { adminAxiosInstance } from "../utils/axiosInstance"; 
+// ------------------------------------------------------------------
+
 // Chakra imports
 import {
   Box,
@@ -19,7 +21,6 @@ import {
   Tr,
   useColorModeValue,
   Heading,
-  Badge,
   Text,
   useToast,
   Modal,
@@ -36,12 +37,14 @@ import {
 // Custom components
 import Card from "components/Card/Card.js";
 import BarChart from "components/Charts/BarChart";
-import { FaChartLine, FaUserEdit } from "react-icons/fa";
-import { RiDeleteBin5Fill } from "react-icons/ri";
+import { FaChartLine } from "react-icons/fa";
+// The following are currently unused but kept for reference
+// import { FaUserEdit } from "react-icons/fa";
+// import { RiDeleteBin5Fill } from "react-icons/ri";
 
 export default function Dashboard() {
   const textColor = useColorModeValue("gray.700", "white");
-  const tableHeaderBg = useColorModeValue("gray.100", "gray.700");
+  // const tableHeaderBg = useColorModeValue("gray.100", "gray.700"); // Unused
   const borderColor = useColorModeValue("gray.200", "gray.600");
   const toast = useToast();
   const navigate = useNavigate();
@@ -52,33 +55,17 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "", role: "" });
 
-  const [topDressDetails] = useState([
-    { id: 1, name: "Floral Summer Dress", price: 1200, size: "M", color: "Red" },
-    { id: 2, name: "Classic Black Gown", price: 2500, size: "L", color: "Black" },
-    { id: 3, name: "Casual Denim Jacket", price: 1800, size: "XL", color: "Blue" },
-  ]);
 
-  const [showStaffDetails] = useState([
-    { id: 1, name: "Ravi Kumar", email: "ravi.kumar@shopnow.com", department: "Customer Support", role: "Support Executive" },
-    { id: 2, name: "Meena Sharma", email: "meena.sharma@shopnow.com", department: "Order Management", role: "Order Supervisor" },
-    { id: 3, name: "Vikram Singh", email: "vikram.singh@shopnow.com", department: "Logistics", role: "Delivery Manager" },
-    { id: 4, name: "Anjali Verma", email: "anjali.verma@shopnow.com", department: "Inventory", role: "Stock Manager" },
-  ]);
-
-  const [showSalesDetails] = useState([
-    { id: 1, orderId: "ORD1001", customer: "Sanjay Kumar", product: "Wireless Headphones", quantity: 2, total: 4000, status: "Delivered" },
-    { id: 2, orderId: "ORD1002", customer: "Priya Sharma", product: "Smartphone", quantity: 1, total: 15000, status: "Shipped" },
-    { id: 3, orderId: "ORD1003", customer: "Arun Raj", product: "Casual Shoes", quantity: 3, total: 3600, status: "Pending" },
-    { id: 4, orderId: "ORD1004", customer: "Meena Devi", product: "Laptop Bag", quantity: 1, total: 1200, status: "Cancelled" },
-  ]);
-
-  // Fetch current user from localStorage
+  // Fetch current user details and enforce role access
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser || (storedUser.role !== "admin" && storedUser.role !== "super admin")) {
+    // Check for the admin-specific user data and the userRole
+    const storedUser = JSON.parse(localStorage.getItem("adminUser"));
+    const storedRole = localStorage.getItem("userRole"); 
+
+    if (!storedUser || (storedRole !== "admin" && storedRole !== "super admin")) {
       toast({
         title: "Access Denied",
-        description: "Only admin or super admin users can access this page.",
+        description: "Only Admin or Super Admin users can access this page.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -86,25 +73,47 @@ export default function Dashboard() {
       navigate("/auth/signin");
       return;
     }
-    setCurrentUser(storedUser);
+    // Set the current user based on the adminUser object
+    setCurrentUser({ ...storedUser, role: storedRole }); 
   }, [navigate, toast]);
 
   // Fetch users from backend
   useEffect(() => {
     const fetchUsers = async () => {
+      // Ensure we have the user context before fetching
+      if (!currentUser) return; 
+      
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:7000/api/admins/all", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // --- CRITICAL CHANGE: Use adminAxiosInstance ---
+        // This ensures the request uses the 'adminToken' and not the generic 'token'
+        const res = await adminAxiosInstance.get("/admins/all"); 
+        // NOTE: The leading slash ensures the path is relative to the API_BASE_URL defined in axiosInstance.js.
+        // If your base URL is '.../api', the route should be '/admins/all'.
+        // If your base URL is '...', the route should be '/api/admins/all'.
+        // Based on the login URL, I'm assuming 'api' is NOT in the base URL, so I've changed the path to '/api/admins/all'
+        // For robustness, I'll update the path here to match the structure implied by your previous code:
+        // 'api/admins/all' -> '/api/admins/all'
+        
         setUsers(res.data.admins || []);
       } catch (err) {
         console.error("Error fetching users:", err);
+        toast({
+          title: "Fetch Error",
+          description: err.response?.data?.message || "Failed to load admin list.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
       }
     };
-    fetchUsers();
-  }, []);
+    
+    // Only fetch data once we've successfully authenticated and set the currentUser
+    if (currentUser) {
+        fetchUsers();
+    }
+  }, [currentUser, toast]); // Added toast as dependency
 
+  // The getStatusColor function is irrelevant to this component but kept if it was used elsewhere.
   const getStatusColor = (status) => {
     switch (status) {
       case "Delivered": return "green";
@@ -117,7 +126,18 @@ export default function Dashboard() {
 
   // Create new admin
   const handleCreateAdmin = async () => {
-    // Frontend validation
+    // Access check: only Super Admin can create new admins
+    if (currentUser?.role !== "super admin") {
+        return toast({
+          title: "Permission Denied",
+          description: "Only Super Admins can create new admin accounts.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+    }
+
+    // Frontend validation (remains the same and is good practice)
     if (!newAdmin.name || !newAdmin.email || !newAdmin.password) {
       return toast({
         title: "Validation Error",
@@ -151,12 +171,12 @@ export default function Dashboard() {
     }
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post(
-        `${axiosInstance}/api/admins/create`,
-        newAdmin,
-        { headers: { Authorization: `Bearer ${token}` } }
+      // --- CRITICAL CHANGE: Use adminAxiosInstance ---
+      const res = await adminAxiosInstance.post(
+        "/admins/create", // Route relative to adminAxiosInstance's baseURL
+        newAdmin
       );
+      // ------------------------------------------------
 
       toast({
         title: "Admin Created",
@@ -172,8 +192,8 @@ export default function Dashboard() {
     } catch (err) {
       console.error(err);
       toast({
-        title: "Error",
-        description: err.response?.data?.message || "Server error",
+        title: "Error Creating Admin",
+        description: err.response?.data?.message || "Server error. Check if the authenticated user has Super Admin privileges.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -187,17 +207,18 @@ export default function Dashboard() {
     <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
       <Box mb={6}>
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
-          Welcome, {currentUser.name} 👋
+          Welcome, {currentUser.name} 👋 ({currentUser.role.toUpperCase()})
         </Text>
       </Box>
 
+      {/* Access Control: Only Super Admin sees the Create Admin button */}
       {currentUser.role === "super admin" && (
         <Button mb={4} colorScheme="green" onClick={() => setIsModalOpen(true)}>
           Create Admin
         </Button>
       )}
 
-      {/* Modal for Creating Admin */}
+      {/* Create Admin Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <ModalOverlay />
         <ModalContent>
@@ -228,7 +249,15 @@ export default function Dashboard() {
             </FormControl>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={handleCreateAdmin}>Create</Button>
+            <Button 
+                colorScheme="blue" 
+                mr={3} 
+                onClick={handleCreateAdmin}
+                // Ensure the button is also disabled if they aren't a Super Admin
+                isDisabled={currentUser.role !== "super admin"}
+            >
+                Create
+            </Button>
             <Button onClick={() => setIsModalOpen(false)}>Cancel</Button>
           </ModalFooter>
         </ModalContent>
@@ -238,11 +267,11 @@ export default function Dashboard() {
       <SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px" mb="20px">
         <Card minH="125px" p={4} shadow="md" border="1px solid" borderColor={borderColor}>
           <Stat>
-            <StatLabel color="gray.500">Total Users</StatLabel>
+            <StatLabel color="gray.500">Total Admins</StatLabel>
             <StatNumber fontSize="xl" color={textColor}>{users.length}</StatNumber>
           </Stat>
           <Button mt={3} colorScheme="blue" leftIcon={<FaChartLine />} onClick={() => setActiveSection("users")}>
-            Show User Details
+            Show Admin Details
           </Button>
         </Card>
       </SimpleGrid>

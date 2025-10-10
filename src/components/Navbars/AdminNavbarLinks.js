@@ -101,11 +101,11 @@ export default function HeaderLinks(props) {
               h="20px"
               bg={colorMode === "dark" ? "white" : "gray.700"}
             />
-            {colorMode === "dark" ? (
+            {/* {colorMode === "dark" ? (
               <ChakraLogoLight w="82px" h="21px" />
             ) : (
               <ChakraLogoDark w="82px" h="21px" />
-            )}
+            )} */}
           </Stack>
         }
         colorMode={colorMode}

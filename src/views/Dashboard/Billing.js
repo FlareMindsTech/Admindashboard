@@ -28,11 +28,15 @@ import {
   Badge,
   useToast,
 } from "@chakra-ui/react";
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState, useEffect, useCallback } from "react";
+// REMOVED: import axios from "axios";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
+
+// --- CRITICAL CHANGE: IMPORT THE CUSTOM AXIOS INSTANCE ---
+import axiosInstance from "../utils/axiosInstance"; 
+// ---------------------------------------------------------
 
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
@@ -54,38 +58,29 @@ export default function Billing() {
   const [deliveryTime, setDeliveryTime] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("all");
 
-  const [currentUser, setCurrentUser] = useState(null);
+  // --- NEW STATE FOR ACCESS CONTROL ---
+  const [userRole, setUserRole] = useState(null); 
+  // We remove 'currentUser' state and rely on localStorage directly for token in getAuthHeader
+  // and userRole state for rendering checks.
 
-  // ------------------ ACCESS CONTROL ------------------
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (!user || (user.role !== "admin" && user.role !== "superadmin")) {
-      toast({
-        title: "Access Denied 🔒",
-        description: "Only admins and super admins can access this page.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-        position: "top",
-      });
-      navigate("/auth/signin");
-      return;
+  // --- Helper to get authorization header config. NOW uses localStorage directly for token ---
+  const getAuthHeader = useCallback(() => {
+    const token = localStorage.getItem("adminToken");
+    if (token) {
+      return {
+        headers: {
+          Authorization: `Bearer ${token}`, // Use token from adminToken key
+        },
+      };
     }
-    setCurrentUser(user);
-  }, [navigate, toast]);
+    return {};
+  }, []);
+  // -------------------------------------------------
 
-  // ------------------ FETCH DATA ------------------
-  useEffect(() => {
-    if (currentUser) {
-      fetchOrders();
-      fetchTransactions();
-      fetchPayments();
-    }
-  }, [currentUser]);
-
+  // ------------------ FETCH DATA WRAPPER ------------------
   const fetchOrders = async () => {
     try {
-      const res = await axios.get("http://localhost:7000/api/orders/all");
+      const res = await axiosInstance.get("api/orders/all", getAuthHeader());
       setOrders(res.data);
     } catch (err) {
       console.error("Error fetching orders:", err);
@@ -94,7 +89,7 @@ export default function Billing() {
 
   const fetchTransactions = async () => {
     try {
-      const res = await axios.get("http://localhost:7000/api/transactions/all");
+      const res = await axiosInstance.get("api/transactions/all", getAuthHeader());
       setTransactions(res.data);
     } catch (err) {
       console.error("Error fetching transactions:", err);
@@ -103,12 +98,48 @@ export default function Billing() {
 
   const fetchPayments = async () => {
     try {
-      const res = await axios.get("http://localhost:7000/api/payments/all");
+      const res = await axiosInstance.get("api/payments/all", getAuthHeader());
       setPayments(res.data);
     } catch (err) {
       console.error("Error fetching payments:", err);
     }
   };
+  
+  // Combine fetching functions into one to match the new useEffect's intent
+  const fetchData = useCallback(() => {
+    fetchOrders();
+    fetchTransactions();
+    fetchPayments();
+  }, [getAuthHeader]); // Include getAuthHeader if it were to change, though it's memoized
+
+  // ------------------ ACCESS CONTROL (NEW CODE) ------------------
+  useEffect(() => {
+    // Simplified Auth Check & Data Load:
+    // Check for the dedicated admin token
+    const token = localStorage.getItem("adminToken"); 
+    // Retrieve role from localStorage
+    const role = localStorage.getItem("userRole"); 
+    
+    if (!token || (role !== "admin" && role !== "super admin")) {
+      toast({ 
+          title: "Auth Required", 
+          description: "Please login as Admin.", 
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top", 
+      });
+      // Redirect to admin login page
+      navigate("/admin/login"); 
+      return;
+    }
+    
+    // --- NEW: Set the user role ---
+    // Note: The role stored is often lowercase, so we ensure it matches the checks (e.g., 'super admin' vs 'superadmin')
+    setUserRole(role?.replace(/\s/g, '') || null); 
+
+    fetchData();
+  }, [navigate, toast, fetchData]); // Added fetchData as a dependency since it's used inside
 
   // ------------------ ORDER HANDLERS ------------------
   const handleRowClick = (order) => {
@@ -140,7 +171,12 @@ export default function Billing() {
         deliveryTime,
         confirmationDate: new Date().toISOString(),
       };
-      await axios.put(`http://localhost:7000/api/orders/update/${selectedOrder._id}`, updatedOrder);
+      // --- MODIFIED: Include Authorization header ---
+      await axiosInstance.put(
+        `api/orders/update/${selectedOrder._id}`, 
+        updatedOrder, 
+        getAuthHeader()
+      );
       fetchOrders();
       setSelectedOrder({ ...selectedOrder, ...updatedOrder });
       onClose();
@@ -151,7 +187,12 @@ export default function Billing() {
 
   const handleMarkDelivered = async () => {
     try {
-      await axios.put(`http://localhost:7000/api/orders/update/${selectedOrder._id}`, { status: "delivered" });
+      // --- MODIFIED: Include Authorization header ---
+      await axiosInstance.put(
+        `api/orders/update/${selectedOrder._id}`, 
+        { status: "delivered" },
+        getAuthHeader()
+      );
       fetchOrders();
       setSelectedOrder({ ...selectedOrder, status: "delivered" });
     } catch (err) {
@@ -162,14 +203,19 @@ export default function Billing() {
   // ------------------ PAYMENT HANDLERS ------------------
   const handlePaymentStatusChange = async (paymentId, newStatus) => {
     try {
-      await axios.put(`http://localhost:7000/api/payments/update/${paymentId}`, { status: newStatus });
+      // --- MODIFIED: Include Authorization header ---
+      await axiosInstance.put(
+        `api/payments/update/${paymentId}`, 
+        { status: newStatus },
+        getAuthHeader()
+      );
       fetchPayments();
     } catch (err) {
       console.error("Error updating payment status:", err);
     }
   };
 
-  // ------------------ PDF RECEIPT ------------------
+  // ------------------ PDF RECEIPT (No change needed here) ------------------
   const handleDownload = () => {
     if (!selectedOrder) return;
     const doc = new jsPDF();
@@ -220,9 +266,10 @@ export default function Billing() {
   };
 
   // ------------------ RETURN NULL IF NO ACCESS ------------------
-  if (!currentUser) return null;
+  // Check if userRole is set to allow rendering
+  if (!userRole) return null;
 
-  // ------------------ RENDER ------------------
+  // ------------------ RENDER (JSX remains the same) ------------------
   return (
     <Box pt={{ base: "20px", md: "75px" }}>
       <Tabs isFitted variant="enclosed">
@@ -359,9 +406,9 @@ export default function Billing() {
                           <Td>
                             <Badge colorScheme={
                               p.status === "success" ? "green" :
-                              p.status === "pending" ? "yellow" :
-                              p.status === "failed" ? "red" :
-                              "gray"
+                                p.status === "pending" ? "yellow" :
+                                  p.status === "failed" ? "red" :
+                                    "gray"
                             }>
                               {p.status.toUpperCase()}
                             </Badge>
@@ -389,7 +436,7 @@ export default function Billing() {
         </TabPanels>
       </Tabs>
 
-      {/* Modal for Order Details */}
+      {/* Modal for Order Details (JSX remains the same) */}
       <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
         <ModalOverlay />
         <ModalContent>
