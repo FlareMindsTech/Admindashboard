@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-// --- CRITICAL CHANGE: IMPORT THE DEDICATED ADMIN AXIOS INSTANCE ---
-import { adminAxiosInstance, getAllAdmins } from "../utils/axiosInstance"; 
-// ------------------------------------------------------------------
+import { getAllCategories, createCategories } from "../utils/axiosInstance";
+// import { getAllProducts, createProduct } from "../utils/axiosInstance"; // <-- commented out
 
 // Chakra imports
 import {
-  Box,
-  Button,
   Flex,
-  SimpleGrid,
+  Grid,
   Stat,
   StatLabel,
   StatNumber,
@@ -21,60 +18,53 @@ import {
   Tr,
   useColorModeValue,
   Heading,
-  Badge,
   Text,
   useToast,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
-  ModalFooter,
+  Icon,
+  Button,
+  Box,
+  Input,
   FormControl,
   FormLabel,
-  Input,
+  SimpleGrid,
 } from "@chakra-ui/react";
+
 // Custom components
 import Card from "components/Card/Card.js";
-import BarChart from "components/Charts/BarChart";
-import { FaChartLine, FaUserEdit } from "react-icons/fa";
-import { RiDeleteBin5Fill } from "react-icons/ri";
+
+// Icons
+import { FaUsers, FaArrowLeft } from "react-icons/fa";
+import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
+import { MdCategory } from "react-icons/md";
 
 export default function Dashboard() {
   const textColor = useColorModeValue("gray.700", "white");
-  const tableHeaderBg = useColorModeValue("gray.100", "gray.700");
-  const borderColor = useColorModeValue("gray.200", "gray.600");
   const toast = useToast();
   const navigate = useNavigate();
 
-  const [activeSection, setActiveSection] = useState("");
-  const [users, setUsers] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "", role: "" });
+  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
 
-  const [topDressDetails] = useState([
-    { id: 1, name: "Floral Summer Dress", price: 1200, size: "M", color: "Red" },
-    { id: 2, name: "Classic Black Gown", price: 2500, size: "L", color: "Black" },
-    { id: 3, name: "Casual Denim Jacket", price: 1800, size: "XL", color: "Blue" },
-  ]);
+  // Panel states
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
-  const [showStaffDetails] = useState([
-    { id: 1, name: "Ravi Kumar", email: "ravi.kumar@shopnow.com", department: "Customer Support", role: "Support Executive" },
-    { id: 2, name: "Meena Sharma", email: "meena.sharma@shopnow.com", department: "Order Management", role: "Order Supervisor" },
-    { id: 3, name: "Vikram Singh", email: "vikram.singh@shopnow.com", department: "Logistics", role: "Delivery Manager" },
-    { id: 4, name: "Anjali Verma", email: "anjali.verma@shopnow.com", department: "Inventory", role: "Stock Manager" },
-  ]);
+  const [newCategory, setNewCategory] = useState({ name: "", description: "" });
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    price: "",
+    stock: "",
+    color: "",
+    size: "",
+    variants: "",
+    description: "",
+    imgUrls: [],
+    imgFiles: [],
+  });
 
-  const [showSalesDetails] = useState([
-    { id: 1, orderId: "ORD1001", customer: "Sanjay Kumar", product: "Wireless Headphones", quantity: 2, total: 4000, status: "Delivered" },
-    { id: 2, orderId: "ORD1002", customer: "Priya Sharma", product: "Smartphone", quantity: 1, total: 15000, status: "Shipped" },
-    { id: 3, orderId: "ORD1003", customer: "Arun Raj", product: "Casual Shoes", quantity: 3, total: 3600, status: "Pending" },
-    { id: 4, orderId: "ORD1004", customer: "Meena Devi", product: "Laptop Bag", quantity: 1, total: 1200, status: "Cancelled" },
-  ]);
-
-  // Fetch current user from localStorage
+  // Fetch current user
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (!storedUser || (storedUser.role !== "admin" && storedUser.role !== "super admin")) {
@@ -91,100 +81,76 @@ export default function Dashboard() {
     setCurrentUser(storedUser);
   }, [navigate, toast]);
 
-  // Fetch users from backend
+  // Fetch categories and products
   useEffect(() => {
-       const fetchUsers = async () => {
-      if (!currentUser) return;
-
+    const fetchData = async () => {
       try {
-        const data = await getAllAdmins();
-        console.log("Fetched admins:", data);
-        setUsers(data.admins || []); // assuming API returns { admins: [...] }
+        const categoryData = await getAllCategories();
+        setCategories(categoryData.categories || []);
+
+        // const productData = await getAllProducts(); // <-- commented out
+        // setProducts(productData.products || []); // <-- commented out
       } catch (err) {
-        console.error("Error fetching users:", err);
+        console.error(err);
         toast({
           title: "Fetch Error",
-          description: err.message || "Failed to load admin list.",
+          description: err.message || "Failed to load data",
           status: "error",
           duration: 3000,
           isClosable: true,
         });
       }
     };
+    fetchData();
+  }, [toast]);
 
-    if (currentUser) {
-      fetchUsers();
-    }
-  }, [currentUser, toast]); // Added toast as dependency
+  if (!currentUser) return null;
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Delivered": return "green";
-      case "Shipped": return "blue";
-      case "Pending": return "yellow";
-      case "Cancelled": return "red";
-      default: return "gray";
-    }
+  // Handlers
+  const handleBack = () => {
+    setIsAddCategoryOpen(false);
+    setIsAddProductOpen(false);
+    setSelectedCategory(null);
+    setNewCategory({ name: "", description: "" });
+    setNewProduct({
+      name: "",
+      price: "",
+      stock: "",
+      color: "",
+      size: "",
+      variants: "",
+      description: "",
+      imgUrls: [],
+      imgFiles: [],
+    });
   };
 
-  // Create new admin
-  const handleCreateAdmin = async () => {
-    // Frontend validation
-    if (!newAdmin.name || !newAdmin.email || !newAdmin.password) {
+  const handleSubmitCategory = async () => {
+    if (!newCategory.name.trim()) {
       return toast({
         title: "Validation Error",
-        description: "All fields are required",
+        description: "Category name is required",
         status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newAdmin.email)) {
-      return toast({
-        title: "Validation Error",
-        description: "Invalid email format",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-
-    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
-    if (!passwordRegex.test(newAdmin.password)) {
-      return toast({
-        title: "Validation Error",
-        description: "Password must be at least 8 characters, include uppercase, lowercase, and a number",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-
     try {
-      // --- CRITICAL CHANGE: Use adminAxiosInstance ---
-      const res = await adminAxiosInstance.post(
-        "/admins/create", // Route relative to adminAxiosInstance's baseURL
-        newAdmin
-      );
-
+      const data = await createCategories(newCategory);
       toast({
-        title: "Admin Created",
-        description: `Admin ${res.data.admin.name} created successfully`,
+        title: "Category Created",
+        description: `Category "${data.category.name}" created successfully`,
         status: "success",
         duration: 3000,
         isClosable: true,
       });
-
-      setUsers((prev) => [...prev, res.data.admin]);
-      setNewAdmin({ name: "", email: "", password: "" });
-      setIsModalOpen(false);
+      setCategories((prev) => [...prev, data.category]);
+      handleBack();
     } catch (err) {
-      console.error(err);
+      console.error("Error creating category:", err);
       toast({
         title: "Error",
-        description: err.response?.data?.message || "Server error",
+        description: err.message || "Failed to create category",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -192,103 +158,242 @@ export default function Dashboard() {
     }
   };
 
-  if (!currentUser) return null;
+  const handleAddProductClick = (category) => {
+    setSelectedCategory(category);
+    setIsAddProductOpen(true);
+  };
+
+  const handleSubmitProduct = async () => {
+    // const payload = { ...newProduct, categoryId: selectedCategory._id }; // commented
+    // const data = await createProduct(payload); // commented
+  };
 
   return (
     <Flex flexDirection="column" pt={{ base: "100px", md: "75px" }}>
-      {/* <Box mb={6}>
-        <Text fontSize="2xl" fontWeight="bold" color={textColor}>
-          Welcome, {currentUser.name} 👋
-        </Text>
-      </Box> */}
+      <Text fontSize="2xl" fontWeight="bold" color={textColor} mb={4}>
+        Welcome, {currentUser.name} 👋
+      </Text>
 
-      {/* Access Control: Only Super Admin sees the Create Admin button */}
-      {/* {currentUser.role === "super admin" && (
-        <Button mb={4} colorScheme="green" onClick={() => setIsModalOpen(true)}>
-          Create Admin
-        </Button>
-      )} */}
-
-      {/* Modal for Creating Admin */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Create New Admin</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <FormControl mb={3}>
-              <FormLabel>Name</FormLabel>
-              <Input
-                value={newAdmin.name}
-                onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
-              />
-            </FormControl>
-            <FormControl mb={3}>
-              <FormLabel>Email</FormLabel>
-              <Input
-                value={newAdmin.email}
-                onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
-              />
-            </FormControl>
-            <FormControl mb={3}>
-              <FormLabel>Password</FormLabel>
-              <Input
-                type="password"
-                value={newAdmin.password}
-                onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
-              />
-            </FormControl>
-          </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={handleCreateAdmin}>Create</Button>
-            <Button onClick={() => setIsModalOpen(false)}>Cancel</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      {/* Summary Cards */}
-      {/* <SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px" mb="20px">
-        <Card minH="125px" p={4} shadow="md" border="1px solid" borderColor={borderColor}>
-          <Stat>
-            <StatLabel color="gray.500">Total Users</StatLabel>
-            <StatNumber fontSize="xl" color={textColor}>{users.length}</StatNumber>
-          </Stat>
-          <Button mt={3} colorScheme="blue" leftIcon={<FaChartLine />} onClick={() => setActiveSection("users")}>
-            Show User Details
-          </Button>
+      {/* Dashboard Summary Cards */}
+      <Grid templateColumns={{ sm: "1fr", md: "1fr 1fr 1fr" }} gap="24px" mb="24px">
+        <Card minH="83px">
+          <Flex align="center" justify="space-between" p={4}>
+            <Stat>
+              <StatLabel fontSize="sm" color="gray.400" fontWeight="bold">
+                All Categories
+              </StatLabel>
+              <StatNumber fontSize="lg" color={textColor}>
+                {categories.length}
+              </StatNumber>
+            </Stat>
+            <Icon as={MdCategory} h={6} w={6} color="teal.400" />
+          </Flex>
         </Card>
-      </SimpleGrid> */}
-      <Flex justify="flex-end" mt={3}>
- 
-      </Flex>
-      
+        <Card minH="83px">
+          <Flex align="center" justify="space-between" p={4}>
+            <Stat>
+              <StatLabel fontSize="sm" color="gray.400" fontWeight="bold">
+                All Products
+              </StatLabel>
+              <StatNumber fontSize="lg" color={textColor}>
+                {products.length}
+              </StatNumber>
+            </Stat>
+            <Icon as={IoCheckmarkDoneCircleSharp} h={6} w={6} color="green.400" />
+          </Flex>
+        </Card>
+        <Card minH="83px">
+          <Flex align="center" justify="space-between" p={4}>
+            <Stat>
+              <StatLabel fontSize="sm" color="gray.400" fontWeight="bold">
+                Total Sales
+              </StatLabel>
+              <StatNumber fontSize="lg" color={textColor}>
+                10
+              </StatNumber>
+            </Stat>
+            <Icon as={FaUsers} h={6} w={6} color="blue.400" />
+          </Flex>
+        </Card>
+      </Grid>
 
-      {/* Users Section */}
-      {/* {activeSection === "users" && ( */}
+      {/* Conditional Panels */}
+      {isAddCategoryOpen ? (
         <Card p={5} shadow="xl">
-          <Heading size="md" mb={4}>👤 Admin Details</Heading>
-          <Table variant="striped" colorScheme="blue">
-            <Thead bg="blue.100">
+          <Flex mb={4} align="center">
+            <Button variant="ghost" onClick={handleBack} leftIcon={<FaArrowLeft />}>
+              Back
+            </Button>
+            <Heading size="md" ml={4}>
+              Create New Category
+            </Heading>
+          </Flex>
+          <FormControl mb={3}>
+            <FormLabel>Name</FormLabel>
+            <Input
+              value={newCategory.name}
+              onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+              placeholder="Enter category name"
+            />
+          </FormControl>
+          <FormControl mb={3}>
+            <FormLabel>Description</FormLabel>
+            <Input
+              value={newCategory.description}
+              onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+              placeholder="Enter category description"
+            />
+          </FormControl>
+          <Flex mt={4}>
+            <Button colorScheme="blue" mr={3} onClick={handleSubmitCategory}>
+              Submit
+            </Button>
+            <Button onClick={handleBack}>Cancel</Button>
+          </Flex>
+        </Card>
+      ) : isAddProductOpen ? (
+        <Card p={5} shadow="xl">
+          <Flex mb={4} align="center">
+            <Button variant="ghost" onClick={handleBack} leftIcon={<FaArrowLeft />}>
+              Back
+            </Button>
+            <Heading size="md" ml={4}>
+              Add Product to {selectedCategory?.name || "Category"}
+            </Heading>
+          </Flex>
+
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+            <FormControl>
+              <FormLabel>Product Name</FormLabel>
+              <Input
+                value={newProduct.name}
+                onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                placeholder="Enter product name"
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Price</FormLabel>
+              <Input
+                type="number"
+                value={newProduct.price}
+                onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                placeholder="Enter product price"
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Stock</FormLabel>
+              <Input
+                type="number"
+                value={newProduct.stock}
+                onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })}
+                placeholder="Enter stock quantity"
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Color</FormLabel>
+              <Input
+                value={newProduct.color}
+                onChange={(e) => setNewProduct({ ...newProduct, color: e.target.value })}
+                placeholder="Enter product color"
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Size</FormLabel>
+              <Input
+                value={newProduct.size}
+                onChange={(e) => setNewProduct({ ...newProduct, size: e.target.value })}
+                placeholder="Enter product size"
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Variants</FormLabel>
+              <Input
+                value={newProduct.variants}
+                onChange={(e) => setNewProduct({ ...newProduct, variants: e.target.value })}
+                placeholder="Enter product variants (comma separated)"
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Description</FormLabel>
+              <Input
+                value={newProduct.description}
+                onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                placeholder="Enter product description"
+              />
+            </FormControl>
+          </SimpleGrid>
+
+          {/* Images Section */}
+          <Box mt={4}>
+            <FormLabel>Images (1-5)</FormLabel>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+              {Array.from({ length: 2 }).map((_, idx) => (
+                <Input
+                  key={idx}
+                  type="text"
+                  placeholder={`Image URL ${idx + 1} (optional)`}
+                  value={newProduct.imgUrls?.[idx] || ""}
+                  onChange={(e) => {
+                    const urls = [...(newProduct.imgUrls || [])];
+                    urls[idx] = e.target.value;
+                    setNewProduct({ ...newProduct, imgUrls: urls });
+                  }}
+                />
+              ))}
+              <Input type="file" accept="image/*" multiple disabled />
+            </SimpleGrid>
+            <Text fontSize="sm" color="gray.500" mt={1}>
+              You can provide 1-5 images via URLs or file uploads.
+            </Text>
+          </Box>
+
+          <Flex mt={4} justify="flex-start">
+            <Button colorScheme="blue" mr={3} disabled>
+              Submit
+            </Button>
+            <Button onClick={handleBack}>Cancel</Button>
+          </Flex>
+        </Card>
+      ) : (
+        <Card p={5} shadow="xl">
+          <Flex justify="space-between" align="center">
+            <Heading size="md" mb={4}>
+              🏷️ Categories Details
+            </Heading>
+            <Button colorScheme="teal" mb={4} onClick={() => setIsAddCategoryOpen(true)}>
+              + Add Category
+            </Button>
+          </Flex>
+          <Table variant="striped" colorScheme="green">
+            <Thead bg="green.100">
               <Tr>
                 <Th>ID</Th>
                 <Th>Name</Th>
-                <Th>Email</Th>
-                <Th>Role</Th>
+                <Th>Description</Th>
+                <Th>Actions</Th>
               </Tr>
             </Thead>
             <Tbody>
-              {users.map((u, idx) => (
-                <Tr key={u._id || idx}>
+              {categories.map((cat, idx) => (
+                <Tr key={cat._id || idx}>
                   <Td>{idx + 1}</Td>
-                  <Td>{u.name}</Td>
-                  <Td>{u.email}</Td>
-                  <Td>{u.role}</Td>
+                  <Td>{cat.name}</Td>
+                  <Td>{cat.description || "-"}</Td>
+                  <Td>
+                    <Button
+                      size="sm"
+                      colorScheme="blue"
+                      onClick={() => handleAddProductClick(cat)}
+                    >
+                      + Add Products
+                    </Button>
+                  </Td>
                 </Tr>
               ))}
             </Tbody>
           </Table>
         </Card>
-      {/* )} */}
+      )}
     </Flex>
   );
 }

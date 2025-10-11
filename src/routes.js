@@ -6,7 +6,8 @@ import Billing from "views/Dashboard/Billing.js";
 import Profile from "views/Dashboard/Profile.js";
 import SignIn from "views/Pages/SignIn.js";
 import SignUp from "views/Pages/SignUp.js";
-import AdminManagement from "views/Dashboard/AdminManagement.js"; // Only default import
+import AdminManagement from "views/Dashboard/AdminManagement.js";
+
 
 import {
   HomeIcon,
@@ -16,6 +17,7 @@ import {
   DocumentIcon,
   RocketIcon,
 } from "components/Icons/Icons";
+import { MdCategory } from "react-icons/md"; // ✅ for category icon
 
 var dashRoutes = [
   {
@@ -23,7 +25,7 @@ var dashRoutes = [
     name: "Dashboard",
     rtlName: "لوحة القيادة",
     icon: <HomeIcon color="inherit" />,
-    element: <Dashboard />,   
+    element: <Dashboard />,
     layout: "/admin",
   },
   {
@@ -31,15 +33,16 @@ var dashRoutes = [
     name: "Admin Management",
     rtlName: "إدارة المسؤول",
     icon: <StatsIcon color="inherit" />,
-    element: <AdminManagement />,     
+    element: <AdminManagement />,
     layout: "/admin",
   },
+ 
   {
     path: "/tables",
     name: "User Management",
     rtlName: "لوحة القيادة",
     icon: <StatsIcon color="inherit" />,
-    element: <Dashboard />,     
+    element: <Dashboard />, // you can replace with UserManagement component if available
     layout: "/user",
   },
   {
@@ -47,7 +50,7 @@ var dashRoutes = [
     name: "Billing",
     rtlName: "لوحة القيادة",
     icon: <CreditIcon color="inherit" />,
-    element: <Billing />,     
+    element: <Billing />,
     layout: "/admin",
   },
   {
@@ -62,7 +65,7 @@ var dashRoutes = [
         rtlName: "لوحة القيادة",
         icon: <PersonIcon color="inherit" />,
         secondaryNavbar: true,
-        element: <Profile />,   
+        element: <Profile />,
         layout: "/admin",
       },
       {
@@ -70,7 +73,7 @@ var dashRoutes = [
         name: "Login",
         rtlName: "لوحة القيادة",
         icon: <DocumentIcon color="inherit" />,
-        element: <SignIn />,    
+        element: <SignIn />,
         layout: "/auth",
       },
     ],
