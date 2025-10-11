@@ -6,7 +6,6 @@ import Billing from "views/Dashboard/Billing.js";
 import Profile from "views/Dashboard/Profile.js";
 import SignIn from "views/Pages/SignIn.js";
 import SignUp from "views/Pages/SignUp.js";
-import AdminManagement from "views/Dashboard/AdminManagement.js";
 
 import {
   HomeIcon,
@@ -24,31 +23,15 @@ var dashRoutes = [
     rtlName: "لوحة القيادة",
     icon: <HomeIcon color="inherit" />,
     element: <Dashboard />,   
-    layout: "/dashboard",
-  },
-  // {
-  //   path: "/tables",
-  //   name: "Admin Management",
-  //   rtlName: "لوحة القيادة",
-  //   icon: <StatsIcon color="inherit" />,
-  //   element: <Tables />,     
-  //   layout: "/admin",
-  // },
-  {
-    path: "/admin-management",
-    name: "Admin Management",
-    rtlName: "إدارة المسؤول",
-    icon: <StatsIcon color="inherit" />,
-    element: <AdminManagement />,     
     layout: "/admin",
   },
   {
     path: "/tables",
-    name: "User Management",
+    name: "Tables",
     rtlName: "لوحة القيادة",
     icon: <StatsIcon color="inherit" />,
-    element: <Dashboard />,     
-    layout: "/user",
+    element: <Tables />,     
+    layout: "/admin",
   },
   {
     path: "/billing",

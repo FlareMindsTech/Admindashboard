@@ -1,91 +1,93 @@
-import axios from 'axios';
+import axios from "axios";
 
 // --- Configuration ---
-// IMPORTANT: Replace this with your actual backend API URL.
-const API_BASE_URL = 'https://boutique-ecommerce-1.onrender.com/';
-const BASE_URL = 'https://boutique-ecommerce-1.onrender.com/api';
-
+const API_BASE_URL = "https://boutique-ecommerce-1.onrender.com/";
+const BASE_URL = "https://boutique-ecommerce-1.onrender.com/api";
 const TIMEOUT_MS = 10000;
 
 // =========================================================
-// 1. GENERAL USER/CUSTOMER AXIOS INSTANCE (axiosInstance)
-//    - Uses 'token' key from localStorage
+// 1. GENERAL USER AXIOS INSTANCE
 // =========================================================
-
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000, 
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: TIMEOUT_MS,
+  headers: { "Content-Type": "application/json" },
 });
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-
+    const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
     return config;
   },
-  (error) => {
-    // Handle request errors (e.g., network issues)
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// --- Optional: Interceptor to Handle 401 Unauthorized Responses ---
-// This response interceptor can automatically log out users whose token has expired
 axiosInstance.interceptors.response.use(
-  (response) => {
-    // If the request was successful, just return the response
-    return response;
-  },
+  (response) => response,
   (error) => {
-    // Check if the response error is 401 Unauthorized
     if (error.response && error.response.status === 401) {
-      console.error('Unauthorized (401) received. Token may be expired or invalid.');
-      
-      // Clear token and user data from local storage
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      
-      // Redirect the user to the login page (or another appropriate action)
-      // Note: You can't use 'navigate' hook here, so you must use a standard window redirect.
-      // window.location.href = '/auth/signin';
-      
-      // You can add a global toast/notification here if needed, but the frontend's
-      // useEffect already handles the redirection upon the *next* reload/page load.
+      console.error("Unauthorized (401): Token expired or invalid.");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      // Optional: window.location.href = "/auth/signin";
     }
     return Promise.reject(error);
   }
 );
 
-adminAxiosInstance.interceptors.response.use(
-    (response) => response,
-    unauthorizedResponseHandler
+// =========================================================
+// 2. ADMIN AXIOS INSTANCE
+// =========================================================
+const adminAxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: TIMEOUT_MS,
+  headers: { "Content-Type": "application/json" },
+});
+
+adminAxiosInstance.interceptors.request.use(
+  (config) => {
+    const adminToken = localStorage.getItem("adminToken");
+    if (adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
 );
 
+adminAxiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      console.error("Admin Unauthorized (401): Token expired or invalid.");
+      localStorage.removeItem("adminToken");
+      // Optional: window.location.href = "/auth/signin";
+    }
+    return Promise.reject(error);
+  }
+);
 
-export default axiosInstance; // General use
-export { adminAxiosInstance }; // Admin use
+// =========================================================
+// 3. EXPORTS
+// =========================================================
+export default axiosInstance;
+export { adminAxiosInstance };
 
-
-
-
+// =========================================================
+// 4. API CALL FUNCTION (Example)
+// =========================================================
 export const getAllAdmins = async () => {
   try {
-     const token = localStorage.getItem("adminToken");
+    const token = localStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/admins/all`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         token: token,
       },
-      // If your route requires authentication:
-      // credentials: "include",
     });
 
     if (!response.ok) {
@@ -93,7 +95,7 @@ export const getAllAdmins = async () => {
     }
 
     const data = await response.json();
-    return data; // Return the admins data to the component
+    return data;
   } catch (error) {
     console.error("Error fetching admins:", error);
     throw error;
