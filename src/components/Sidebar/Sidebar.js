@@ -26,6 +26,7 @@ import {
   renderViewRTL,
 } from "components/Scrollbar/Scrollbar";
 import { HSeparator } from "components/Separator/Separator";
+import { SidebarHelp } from "components/Sidebar/SidebarHelp";
 import React from "react";
 import { Scrollbars } from "react-custom-scrollbars";
 import { NavLink } from "react-router-dom";
@@ -169,7 +170,10 @@ function Sidebar(props) {
                 : renderView
             }
           >
-            
+            <Box>{brand}</Box>
+            <Stack direction="column" mb="40px">
+              <Box>{links}</Box>
+            </Stack>
             {/* <SidebarHelp sidebarVariant={sidebarVariant} /> */}
           </Scrollbars>
         </Box>
@@ -317,7 +321,7 @@ export function SidebarResponsive(props) {
               <Stack direction="column" mb="40px">
                 <Box>{links}</Box>
               </Stack>
-             
+              <SidebarHelp />
             </Box>
           </DrawerBody>
         </DrawerContent>
