@@ -259,17 +259,12 @@ export default function Dashboard() {
         </Card>
       </SimpleGrid> */}
       <Flex justify="flex-end" mt={3}>
- <Button mt={3}
-        colorScheme="blue" 
-        // leftIcon={<FaChartLine /> } 
-        onClick={() => setActiveSection("users")}>
-            Show Admin Details
-          </Button>
+ 
       </Flex>
       
 
       {/* Users Section */}
-      {activeSection === "users" && (
+      {/* {activeSection === "users" && ( */}
         <Card p={5} shadow="xl">
           <Heading size="md" mb={4}>👤 Admin Details</Heading>
           <Table variant="striped" colorScheme="blue">
@@ -293,7 +288,7 @@ export default function Dashboard() {
             </Tbody>
           </Table>
         </Card>
-      )}
+      {/* )} */}
     </Flex>
   );
 }
