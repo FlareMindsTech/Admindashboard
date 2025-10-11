@@ -1,94 +1,87 @@
-import axios from 'axios';
+import axios from "axios";
 
-// --- Configuration ---
-// IMPORTANT: Replace this with your actual backend API URL.
-const API_BASE_URL = 'https://boutique-ecommerce-1.onrender.com/'; 
+// === Configuration ===
+const API_BASE_URL = "https://boutique-ecommerce-1.onrender.com"; // No trailing slash (Correct)
 const TIMEOUT_MS = 10000;
 
 // =========================================================
-// 1. GENERAL USER/CUSTOMER AXIOS INSTANCE (axiosInstance)
-//    - Uses 'token' key from localStorage
+// 1️⃣ GENERAL USER/CUSTOMER AXIOS INSTANCE
 // =========================================================
-
 const axiosInstance = axios.create({
-    baseURL: API_BASE_URL,
-    timeout: TIMEOUT_MS,
-    headers: {
-        'Content-Type': 'application/json',
-    },
+  baseURL: API_BASE_URL,
+  timeout: TIMEOUT_MS,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-// --- Interceptor for General User/Customer Authentication (using 'token') ---
+// --- Interceptor for General User Authentication (using 'token') ---
 axiosInstance.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token'); 
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    return config;
+  },
+  (error) => Promise.reject(error)
 );
 
 // =========================================================
-// 2. DEDICATED ADMIN AXIOS INSTANCE (adminAxiosInstance)
-//    - Uses 'adminToken' key from localStorage
+// 2️⃣ ADMIN / SUPER ADMIN AXIOS INSTANCE
 // =========================================================
-
 const adminAxiosInstance = axios.create({
-    baseURL: API_BASE_URL,
-    timeout: TIMEOUT_MS,
-    headers: {
-        'Content-Type': 'application/json',
-    },
+  baseURL: API_BASE_URL, // This is correct, as the /api is added in the component file
+  timeout: TIMEOUT_MS,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 // --- Interceptor for Admin Authentication (using 'adminToken') ---
 adminAxiosInstance.interceptors.request.use(
-    (config) => {
-        // Retrieve the dedicated admin token
-        const adminToken = localStorage.getItem('adminToken'); 
-        if (adminToken) {
-            config.headers.Authorization = `Bearer ${adminToken}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+  (config) => {
+    const adminToken = localStorage.getItem("adminToken");
+    if (adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`;
     }
+    return config;
+  },
+  (error) => Promise.reject(error)
 );
 
 // =========================================================
-// 3. COMMON RESPONSE INTERCEPTOR (Applied to both instances)
-//    - Handles global error cases like 401
+// 3️⃣ COMMON RESPONSE INTERCEPTOR (401 Unauthorized handler)
 // =========================================================
-
 const unauthorizedResponseHandler = (error) => {
-    if (error.response && error.response.status === 401) {
-        console.error('Unauthorized (401) received. Clearing all auth data.');
-        
-        // Clear all relevant authentication keys on 401
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('userRole'); // Assuming you store role
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('adminUser');
-    }
-    return Promise.reject(error);
+  if (error.response && error.response.status === 401) {
+    console.warn("⚠️ Unauthorized (401). Clearing auth data...");
+
+    // Clear tokens
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminUser");
+
+    // Optional: redirect to login page if needed
+    // window.location.href = "/admin/login";
+  }
+  return Promise.reject(error);
 };
 
+// Attach global handler
 axiosInstance.interceptors.response.use(
-    (response) => response,
-    unauthorizedResponseHandler
+  (res) => res,
+  unauthorizedResponseHandler
 );
-
 adminAxiosInstance.interceptors.response.use(
-    (response) => response,
-    unauthorizedResponseHandler
+  (res) => res,
+  unauthorizedResponseHandler
 );
 
-
-export default axiosInstance; // General use
-export { adminAxiosInstance }; // Admin use
+// =========================================================
+// ✅ EXPORTS
+// =========================================================
+export default axiosInstance;
+export { adminAxiosInstance };

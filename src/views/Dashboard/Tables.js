@@ -32,8 +32,8 @@ import React, { useState, useEffect } from "react";
 import axiosInstance, { adminAxiosInstance } from "../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
 
-// Base URL for images (renamed to IMAGE_BASE_URL for clarity)
-const IMAGE_BASE_URL = "https://boutique-ecommerce-1.onrender.com/";
+// Base URL for images now includes the '/api' prefix
+const IMAGE_BASE_URL = "https://boutique-ecommerce-1.onrender.com/api";
 
 function AddProductForm() {
     // --- STATE MANAGEMENT ---
@@ -53,7 +53,7 @@ function AddProductForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [isDataLoading, setIsDataLoading] = useState(true);
 
-    // --- NEW: ROLE STATE ---
+    // --- ROLE STATE (Used for conditional rendering and function checks) ---
     const [userRole, setUserRole] = useState(null); 
 
     // Category Modal State
@@ -77,8 +77,10 @@ function AddProductForm() {
     const bgCard = useColorModeValue("white", "gray.700");
 
     // --- ACCESS CHECK HELPER ---
+    // This checks the userRole state against the required roles.
     const isAllowed = (requiredRoles) => {
-        return requiredRoles.includes(userRole);
+        const normalizedRole = userRole?.toLowerCase() || ""; 
+        return requiredRoles.includes(normalizedRole);
     };
     
     // ------------------ DATA FETCH ------------------
@@ -86,9 +88,9 @@ function AddProductForm() {
     const fetchData = async () => {
         try {
             const [productsRes, categoriesRes] = await Promise.all([
-                // 💡 These paths are correct, assuming adminAxiosInstance has the correct baseURL:
-                adminAxiosInstance.get("/products/all"),
-                adminAxiosInstance.get("/categories/all"),
+                // adminAxiosInstance automatically includes the adminToken
+                adminAxiosInstance.get("/api/products/all"),
+                adminAxiosInstance.get("/api/categories/all"),
             ]);
             setProducts(productsRes.data.data || []);
             setCategories(categoriesRes.data.data || []);
@@ -104,13 +106,15 @@ function AddProductForm() {
         }
     };
 
+    // ------------------ INITIAL AUTHORIZATION CHECK ------------------
     useEffect(() => {
+        // Read token and role from localStorage
         const token = localStorage.getItem("adminToken");
         const role = localStorage.getItem("userRole");
         
-        // 💡 CRITICAL PART FOR ROLE CHECK (This logic is already correct)
         const normalizedRole = role?.toLowerCase().replace(/\s/g, '') || null;
         
+        // Critical: Redirect if no token or role is not admin/superadmin
         if (!token || (normalizedRole !== "admin" && normalizedRole !== "superadmin")) {
             toast({ title: "Auth Required", description: "Please login as Admin.", status: "error" });
             navigate("/admin/login");
@@ -126,7 +130,7 @@ function AddProductForm() {
 
     const getFullImageUrl = (path) => {
         if (path?.startsWith("http")) return path;
-        // 💡 Using the renamed IMAGE_BASE_URL
+        // Using the corrected IMAGE_BASE_URL
         if (path?.startsWith("uploads/")) return `${IMAGE_BASE_URL}/${path}`;
         return "https://via.placeholder.com/150?text=No+Image"; 
     };
@@ -146,8 +150,8 @@ function AddProductForm() {
         try {
             const formData = new FormData();
             formData.append("file", file);
-            // API path is relative to adminAxiosInstance baseURL (which we assume is now fixed)
-            const res = await adminAxiosInstance.post(`/products/upload`, formData);
+            // API call uses adminAxiosInstance
+            const res = await adminAxiosInstance.post(`/api/products/upload`, formData);
             const uploadedUrl = res.data.data?.imageUrl;
 
             if (!uploadedUrl) {
@@ -192,6 +196,7 @@ function AddProductForm() {
     };
 
     const handleSubmitProduct = async () => {
+        // Authorization check
         if (!isAllowed(["admin", "superadmin"])) { 
             toast({ title: "Unauthorized", description: "You don't have permission to modify products.", status: "error" });
             return;
@@ -225,10 +230,12 @@ function AddProductForm() {
 
         try {
             if (editProductId) {
-                await adminAxiosInstance.put(`/products/update/${editProductId}`, productData);
+                // API call uses adminAxiosInstance
+                await adminAxiosInstance.put(`/api/products/update/${editProductId}`, productData);
                 toast({ title: "Product Updated 🎉", status: "success" });
             } else {
-                await adminAxiosInstance.post(`/products/create`, productData);
+                // API call uses adminAxiosInstance
+                await adminAxiosInstance.post(`/api/products/create`, productData);
                 toast({ title: "Product Added 🚀", status: "success" });
             }
             await fetchData();
@@ -242,6 +249,7 @@ function AddProductForm() {
     };
 
     const handleSubmitCategory = async () => {
+        // Authorization check
         if (!isAllowed(["admin", "superadmin"])) { 
             toast({ title: "Unauthorized", description: "You don't have permission to add categories.", status: "error" });
             return;
@@ -251,7 +259,8 @@ function AddProductForm() {
 
         setIsLoading(true);
         try {
-            await adminAxiosInstance.post(`/categories/create`, { name: categoryName });
+            // API call uses adminAxiosInstance
+            await adminAxiosInstance.post(`/api/categories/create`, { name: categoryName });
             await fetchData();
             toast({ title: "Category Added ✨", status: "success" });
         } catch (err) {
@@ -264,6 +273,7 @@ function AddProductForm() {
     };
 
     const handleEditProduct = (product) => {
+        // Authorization check
         if (!isAllowed(["admin", "superadmin"])) { 
             toast({ title: "Unauthorized", description: "You don't have permission to edit products.", status: "error" });
             return;
@@ -286,6 +296,7 @@ function AddProductForm() {
     };
 
     const handleDeleteProduct = async (productId, productName) => {
+        // Authorization check
         if (!isAllowed(["admin", "superadmin"])) { 
             toast({ title: "Unauthorized", description: "You don't have permission to delete products.", status: "error" });
             return;
@@ -296,7 +307,8 @@ function AddProductForm() {
 
         setIsLoading(true);
         try {
-            await adminAxiosInstance.delete(`/products/delete/${productId}`);
+            // API call uses adminAxiosInstance
+            await adminAxiosInstance.delete(`/api/products/delete/${productId}`);
             await fetchData();
             toast({ title: "Product Deleted 🗑️", status: "info" });
         } catch (err) {
@@ -307,6 +319,7 @@ function AddProductForm() {
     };
 
     const handleIncreaseStock = async (productId, currentStock, variantIndex = 0) => {
+        // Authorization check
         if (!isAllowed(["admin", "superadmin"])) {
             toast({ title: "Unauthorized", description: "You don't have permission to modify stock.", status: "error" });
             return;
@@ -320,7 +333,8 @@ function AddProductForm() {
 
         setIsLoading(true);
         try {
-            await adminAxiosInstance.put(`/products/stock/increase`, { 
+            // API call uses adminAxiosInstance
+            await adminAxiosInstance.put(`/api/products/stock/increase`, { 
                 productId: productId, 
                 variantIndex: variantIndex, 
                 increaseBy: increaseAmount
@@ -387,6 +401,7 @@ function AddProductForm() {
                         <Badge colorScheme={stockBadge}>Stock: {variant?.stock || 0}</Badge>
                     </HStack>
 
+                    {/* Only show management buttons if user is admin or superadmin */}
                     {isAdmin && (
                         <Stack>
                             <HStack>
@@ -435,6 +450,7 @@ function AddProductForm() {
                     colorScheme="teal"
                     leftIcon={<AddIcon />}
                     onClick={onProductOpen}
+                    // Disable button if not authorized
                     isDisabled={isLoading || !isAllowed(["admin", "superadmin"])} 
                 >
                     Add Product
@@ -514,6 +530,7 @@ function AddProductForm() {
                                     onClick={onCategoryOpen}
                                     leftIcon={<AddIcon />}
                                     flexShrink={0}
+                                    // Disable button if not authorized
                                     isDisabled={!isAllowed(["admin", "superadmin"])}
                                 >
                                     New
@@ -568,6 +585,7 @@ function AddProductForm() {
                                     onChange={handleImageChange}
                                     accept="image/*"
                                     p="1"
+                                    // Disable if loading, max images reached, or not authorized
                                     disabled={isLoading || productImages.length >= 5 || !isAllowed(["admin", "superadmin"])}
                                 />
                                 {productImages.length > 0 && (
@@ -594,6 +612,7 @@ function AddProductForm() {
                             colorScheme="teal"
                             onClick={handleSubmitProduct}
                             isLoading={isLoading}
+                            // Disable button if not authorized
                             isDisabled={!isAllowed(["admin", "superadmin"])}
                         >
                             {editProductId ? "Save Changes" : "Create Product"}
@@ -625,6 +644,7 @@ function AddProductForm() {
                             colorScheme="blue"
                             onClick={handleSubmitCategory}
                             isLoading={isLoading}
+                            // Disable button if not authorized
                             isDisabled={!isAllowed(["admin", "superadmin"])}
                         >
                             Add Category
