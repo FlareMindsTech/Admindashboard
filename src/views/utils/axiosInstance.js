@@ -2,7 +2,9 @@ import axios from 'axios';
 
 // --- Configuration ---
 // IMPORTANT: Replace this with your actual backend API URL.
-const API_BASE_URL = 'https://boutique-ecommerce-1.onrender.com/'; 
+const API_BASE_URL = 'https://boutique-ecommerce-1.onrender.com/';
+const BASE_URL = 'https://boutique-ecommerce-1.onrender.com/api';
+
 const TIMEOUT_MS = 10000;
 
 // =========================================================
@@ -92,3 +94,31 @@ adminAxiosInstance.interceptors.response.use(
 
 export default axiosInstance; // General use
 export { adminAxiosInstance }; // Admin use
+
+
+
+
+export const getAllAdmins = async () => {
+  try {
+     const token = localStorage.getItem("adminToken");
+    const response = await fetch(`${BASE_URL}/admins/all`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        token: token,
+      },
+      // If your route requires authentication:
+      // credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data; // Return the admins data to the component
+  } catch (error) {
+    console.error("Error fetching admins:", error);
+    throw error;
+  }
+};
