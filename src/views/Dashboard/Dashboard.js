@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 // --- CRITICAL CHANGE: IMPORT THE DEDICATED ADMIN AXIOS INSTANCE ---
-import { adminAxiosInstance } from "../utils/axiosInstance"; 
+import { adminAxiosInstance, getAllAdmins } from "../utils/axiosInstance"; 
 // ------------------------------------------------------------------
 
 // Chakra imports
@@ -79,37 +79,27 @@ export default function Dashboard() {
 
   // Fetch users from backend
   useEffect(() => {
-    const fetchUsers = async () => {
-      // Ensure we have the user context before fetching
-      if (!currentUser) return; 
-      
+       const fetchUsers = async () => {
+      if (!currentUser) return;
+
       try {
-        // --- CRITICAL CHANGE: Use adminAxiosInstance ---
-        // This ensures the request uses the 'adminToken' and not the generic 'token'
-        const res = await adminAxiosInstance.get("/admins/all"); 
-        // NOTE: The leading slash ensures the path is relative to the API_BASE_URL defined in axiosInstance.js.
-        // If your base URL is '.../api', the route should be '/admins/all'.
-        // If your base URL is '...', the route should be '/api/admins/all'.
-        // Based on the login URL, I'm assuming 'api' is NOT in the base URL, so I've changed the path to '/api/admins/all'
-        // For robustness, I'll update the path here to match the structure implied by your previous code:
-        // 'api/admins/all' -> '/api/admins/all'
-        
-        setUsers(res.data.admins || []);
+        const data = await getAllAdmins();
+        console.log("Fetched admins:", data);
+        setUsers(data.admins || []); // assuming API returns { admins: [...] }
       } catch (err) {
         console.error("Error fetching users:", err);
         toast({
           title: "Fetch Error",
-          description: err.response?.data?.message || "Failed to load admin list.",
+          description: err.message || "Failed to load admin list.",
           status: "error",
           duration: 3000,
           isClosable: true,
         });
       }
     };
-    
-    // Only fetch data once we've successfully authenticated and set the currentUser
+
     if (currentUser) {
-        fetchUsers();
+      fetchUsers();
     }
   }, [currentUser, toast]); // Added toast as dependency
 
@@ -204,19 +194,19 @@ export default function Dashboard() {
   if (!currentUser) return null;
 
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
-      <Box mb={6}>
+    <Flex flexDirection="column" pt={{ base: "100px", md: "75px" }}>
+      {/* <Box mb={6}>
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
           Welcome, {currentUser.name} 👋 ({currentUser.role.toUpperCase()})
         </Text>
-      </Box>
+      </Box> */}
 
       {/* Access Control: Only Super Admin sees the Create Admin button */}
-      {currentUser.role === "super admin" && (
+      {/* {currentUser.role === "super admin" && (
         <Button mb={4} colorScheme="green" onClick={() => setIsModalOpen(true)}>
           Create Admin
         </Button>
-      )}
+      )} */}
 
       {/* Create Admin Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
@@ -264,7 +254,7 @@ export default function Dashboard() {
       </Modal>
 
       {/* Summary Cards */}
-      <SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px" mb="20px">
+      {/* <SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px" mb="20px">
         <Card minH="125px" p={4} shadow="md" border="1px solid" borderColor={borderColor}>
           <Stat>
             <StatLabel color="gray.500">Total Admins</StatLabel>
@@ -274,7 +264,16 @@ export default function Dashboard() {
             Show Admin Details
           </Button>
         </Card>
-      </SimpleGrid>
+      </SimpleGrid> */}
+      <Flex justify="flex-end" mt={3}>
+ <Button mt={3}
+        colorScheme="blue" 
+        // leftIcon={<FaChartLine /> } 
+        onClick={() => setActiveSection("users")}>
+            Show Admin Details
+          </Button>
+      </Flex>
+      
 
       {/* Users Section */}
       {activeSection === "users" && (
