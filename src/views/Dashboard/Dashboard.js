@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+// --- CRITICAL CHANGE: IMPORT THE DEDICATED ADMIN AXIOS INSTANCE ---
+import { adminAxiosInstance, getAllAdmins } from "../utils/axiosInstance"; 
+// ------------------------------------------------------------------
+
 // Chakra imports
 import {
   Box,
@@ -89,19 +93,29 @@ export default function Dashboard() {
 
   // Fetch users from backend
   useEffect(() => {
-    const fetchUsers = async () => {
+       const fetchUsers = async () => {
+      if (!currentUser) return;
+
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:7000/api/admins/all", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setUsers(res.data.admins || []);
+        const data = await getAllAdmins();
+        console.log("Fetched admins:", data);
+        setUsers(data.admins || []); // assuming API returns { admins: [...] }
       } catch (err) {
         console.error("Error fetching users:", err);
+        toast({
+          title: "Fetch Error",
+          description: err.message || "Failed to load admin list.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
       }
     };
-    fetchUsers();
-  }, []);
+
+    if (currentUser) {
+      fetchUsers();
+    }
+  }, [currentUser, toast]); // Added toast as dependency
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -181,18 +195,19 @@ export default function Dashboard() {
   if (!currentUser) return null;
 
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
-      <Box mb={6}>
+    <Flex flexDirection="column" pt={{ base: "100px", md: "75px" }}>
+      {/* <Box mb={6}>
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
           Welcome, {currentUser.name} 👋
         </Text>
-      </Box>
+      </Box> */}
 
-      {currentUser.role === "super admin" && (
+      {/* Access Control: Only Super Admin sees the Create Admin button */}
+      {/* {currentUser.role === "super admin" && (
         <Button mb={4} colorScheme="green" onClick={() => setIsModalOpen(true)}>
           Create Admin
         </Button>
-      )}
+      )} */}
 
       {/* Modal for Creating Admin */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
@@ -232,7 +247,7 @@ export default function Dashboard() {
       </Modal>
 
       {/* Summary Cards */}
-      <SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px" mb="20px">
+      {/* <SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px" mb="20px">
         <Card minH="125px" p={4} shadow="md" border="1px solid" borderColor={borderColor}>
           <Stat>
             <StatLabel color="gray.500">Total Users</StatLabel>
@@ -242,7 +257,16 @@ export default function Dashboard() {
             Show User Details
           </Button>
         </Card>
-      </SimpleGrid>
+      </SimpleGrid> */}
+      <Flex justify="flex-end" mt={3}>
+ <Button mt={3}
+        colorScheme="blue" 
+        // leftIcon={<FaChartLine /> } 
+        onClick={() => setActiveSection("users")}>
+            Show Admin Details
+          </Button>
+      </Flex>
+      
 
       {/* Users Section */}
       {activeSection === "users" && (
