@@ -16,7 +16,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 // Assuming signInImage is available at this path
-import signInImage from "assets/img/signInImage.png";
+import signInImage from "assets/img/signInImage.png"; 
 
 function AdminLogin() {
   const bgForm = useColorModeValue("white", "navy.800");
@@ -81,32 +81,18 @@ function AdminLogin() {
 
       const { token, name, role } = res.data;
 
-      // ----------------------------------------------------------------
-      // 🔥 CRITICAL CHANGES START HERE: Store token and role separately
-      // ----------------------------------------------------------------
-      // 1. Store the JWT in the DEDICATED ADMIN KEY for adminAxiosInstance
-      localStorage.setItem("adminToken", token); 
-      
-      // 2. Store the role in the DEDICATED ROLE KEY for the frontend component checks
-      localStorage.setItem("userRole", role); 
-
-      // 3. Store the user details in an ADMIN-SPECIFIC KEY (Optional, but good practice)
+      localStorage.setItem("token", token);
       localStorage.setItem(
-        "adminUser",
+        "user",
         JSON.stringify({ name, email, role })
       );
-      
-      // 4. (Cleanup) Remove potential old generic user/token to avoid conflicts
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      // ----------------------------------------------------------------
 
-      console.log("Admin Token stored:", localStorage.getItem("adminToken"));
-      console.log("User Role stored:", localStorage.getItem("userRole"));
+      console.log("Token stored:", localStorage.getItem("token"));
+      console.log("User stored:", localStorage.getItem("user"));
 
       toast({
         title: "Login Successful",
-        description: `Welcome, ${name} (${role.toUpperCase()})!`,
+        description: `Welcome, ${name}!`,
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -115,9 +101,10 @@ function AdminLogin() {
       // --- Redirection logic (kept as is) ---
       setTimeout(() => {
         if (role === "super admin" || role === "admin") {
-          window.location.href = "/admin/dashboard";
+          // Changed to client-side router navigation if available, 
+          // but sticking to window.location.href as in your original code
+          window.location.href = "/admin/dashboard"; 
         } else {
-          // Fallback, though API should only return admin/super admin roles here
           window.location.href = "/";
         }
       }, 500);

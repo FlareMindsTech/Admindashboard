@@ -28,15 +28,11 @@ import {
   Badge,
   useToast,
 } from "@chakra-ui/react";
-import React, { useState, useEffect, useCallback } from "react";
-// REMOVED: import axios from "axios";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
-
-// --- CRITICAL CHANGE: IMPORT THE CUSTOM AXIOS INSTANCE ---
-import axiosInstance from "../utils/axiosInstance"; 
-// ---------------------------------------------------------
 
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";

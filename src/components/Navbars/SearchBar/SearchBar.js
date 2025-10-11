@@ -14,6 +14,32 @@ export function SearchBar(props) {
   const searchIconColor = useColorModeValue("gray.700", "gray.200");
   const inputBg = useColorModeValue("white", "navy.800");
   return (
-   <></>
+    <InputGroup borderRadius='8px' w='200px' {...rest}>
+      <InputLeftElement
+        children={
+          <IconButton
+            bg='inherit'
+            borderRadius='inherit'
+            _hover='none'
+            _active={{
+              bg: "inherit",
+              transform: "none",
+              borderColor: "transparent",
+            }}
+            _focus={{
+              boxShadow: "none",
+            }}
+            icon={
+              <SearchIcon color={searchIconColor} w='15px' h='15px' />
+            }></IconButton>
+        }
+      />
+      <Input
+        variant='search'
+        fontSize='xs'
+        bg={inputBg}
+        placeholder='Type here...'
+      />
+    </InputGroup>
   );
 }
