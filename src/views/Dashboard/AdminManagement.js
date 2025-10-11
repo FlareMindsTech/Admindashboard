@@ -22,22 +22,25 @@ import {
   StatNumber,
   Table,
   Tbody,
-  Text,
+  Td,
   Th,
   Thead,
   Tr,
   useColorModeValue,
   useDisclosure,
+  useToast,
+  Heading,
+  Badge,
+  Text,
 } from "@chakra-ui/react";
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
 import CardHeader from "components/Card/CardHeader.js";
-import TablesTableRow from "components/Tables/TablesTableRow";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaUsers } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdAdminPanelSettings } from "react-icons/md";
-import axiosInstance from "views/utils/axiosInstance";
+import { adminAxiosInstance, getAllAdmins } from "views/utils/axiosInstance";
 
 function AdminManagement() {
   // Chakra color mode
@@ -45,8 +48,12 @@ function AdminManagement() {
   const iconTeal = useColorModeValue("teal.300", "teal.300");
   const iconBoxInside = useColorModeValue("white", "white");
   const bgButton = useColorModeValue("gray.100", "gray.100");
+  const tableHeaderBg = useColorModeValue("gray.100", "gray.700");
+  const borderColor = useColorModeValue("gray.200", "gray.600");
 
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const toast = useToast();
+  
   const [newAdmin, setNewAdmin] = useState({
     name: "",
     email: "",
@@ -54,35 +61,55 @@ function AdminManagement() {
     department: "",
     password: "",
   });
-  const [adminData, setAdminData] = useState([
-    {
-      id: 1, // Added ID for reliable deletion
-      name: "John Smith",
-      role: "Super Admin",
-      department: "IT",
-      status: "Active",
-      lastActive: "2023-10-11",
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      role: "Admin",
-      department: "HR",
-      status: "Active",
-      lastActive: "2023-10-10",
-    },
-    {
-      id: 3,
-      name: "Mike Wilson",
-      role: "Admin",
-      department: "Finance",
-      status: "Inactive",
-      lastActive: "2023-10-09",
-    },
-  ]);
+  
+  const [adminData, setAdminData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Fetch current user from localStorage
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (!storedUser || (storedUser.role !== "admin" && storedUser.role !== "super admin")) {
+      toast({
+        title: "Access Denied",
+        description: "Only admin or super admin users can access this page.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    setCurrentUser(storedUser);
+  }, [toast]);
+
+  // Fetch admins from backend
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      if (!currentUser) return;
+
+      try {
+        const data = await getAllAdmins();
+        console.log("Fetched admins:", data);
+        setAdminData(data.admins || []); // assuming API returns { admins: [...] }
+      } catch (err) {
+        console.error("Error fetching admins:", err);
+        setError(err.message || "Failed to load admin list.");
+        toast({
+          title: "Fetch Error",
+          description: err.message || "Failed to load admin list.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    };
+
+    if (currentUser) {
+      fetchAdmins();
+    }
+  }, [currentUser, toast]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -91,64 +118,135 @@ function AdminManagement() {
 
   // API call to create admin
   const handleSubmit = async () => {
+    // Frontend validation
+    if (!newAdmin.name || !newAdmin.email || !newAdmin.password) {
+      return toast({
+        title: "Validation Error",
+        description: "All fields are required",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newAdmin.email)) {
+      return toast({
+        title: "Validation Error",
+        description: "Invalid email format",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(newAdmin.password)) {
+      return toast({
+        title: "Validation Error",
+        description: "Password must be at least 8 characters, include uppercase, lowercase, and a number",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
     setLoading(true);
     setError("");
     setSuccess("");
+    
     try {
-      // Assuming the API returns the new admin object, including an 'id'
-      const res = await axiosInstance.post("/api/admins", newAdmin);
-      if (res.data && res.data.success) {
-        // Use a temporary ID for the demo if the API response is not complete
-        const newAdminWithId = {
-            ...res.data.admin,
-            id: res.data.admin.id || Date.now(),
-        }
-        setAdminData((prev) => [...prev, newAdminWithId]);
-        setSuccess("Admin created successfully!");
-        setNewAdmin({
-          name: "",
-          email: "",
-          role: "Admin",
-          department: "",
-          password: "",
-        });
-        onClose();
-      } else {
-        setError(res.data.message || "Failed to create admin.");
-      }
+      const res = await adminAxiosInstance.post("/admins/create", newAdmin);
+
+      toast({
+        title: "Admin Created",
+        description: `Admin ${res.data.admin.name} created successfully`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setAdminData((prev) => [...prev, res.data.admin]);
+      setNewAdmin({
+        name: "",
+        email: "",
+        role: "Admin",
+        department: "",
+        password: "",
+      });
+      setSuccess("Admin created successfully!");
+      onClose();
     } catch (err) {
-      setError(err.response?.data?.message || "API error. Try again.");
+      console.error(err);
+      const errorMessage = err.response?.data?.message || "API error. Try again.";
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
     setLoading(false);
   };
 
-  // --- NEW FUNCTION: API call to delete admin ---
+  // API call to delete admin
   const handleDeleteAdmin = async (adminId) => {
     if (!window.confirm("Are you sure you want to delete this administrator?")) {
-        return;
+      return;
     }
 
     setLoading(true);
     setError("");
     setSuccess("");
     try {
-      // Replace '/api/admins/:id' with your actual endpoint
-      const res = await axiosInstance.delete(`/api/admins/${adminId}`);
+      const res = await adminAxiosInstance.delete(`/admins/${adminId}`);
       
       if (res.status === 200 || res.data.success) {
-        // Remove the admin from the local state
-        setAdminData((prev) => prev.filter(admin => admin.id !== adminId));
+        setAdminData((prev) => prev.filter(admin => admin._id !== adminId));
         setSuccess("Admin deleted successfully!");
+        toast({
+          title: "Success",
+          description: "Admin deleted successfully!",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
       } else {
         setError(res.data.message || "Failed to delete admin.");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "API error. Try again.");
+      const errorMessage = err.response?.data?.message || "API error. Try again.";
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
     setLoading(false);
   };
-  // ---------------------------------------------
 
+  // Get status color
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Active": return "green";
+      case "Inactive": return "red";
+      case "Pending": return "yellow";
+      default: return "gray";
+    }
+  };
+
+  if (!currentUser) {
+    return (
+      <Flex justifyContent="center" alignItems="center" height="100vh">
+        <Text>Loading...</Text>
+      </Flex>
+    );
+  }
 
   return (
     <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
@@ -172,7 +270,6 @@ function AdminManagement() {
                 </StatLabel>
                 <Flex>
                   <StatNumber fontSize="lg" color={textColor}>
-                    {/* Updated to reflect actual data length */}
                     {adminData.length} 
                   </StatNumber>
                 </Flex>
@@ -197,7 +294,6 @@ function AdminManagement() {
                 </StatLabel>
                 <Flex>
                   <StatNumber fontSize="lg" color={textColor}>
-                    {/* Count only 'Active' status for demonstration */}
                     {adminData.filter(a => a.status === "Active").length}
                   </StatNumber>
                 </Flex>
@@ -227,7 +323,6 @@ function AdminManagement() {
                 </StatLabel>
                 <Flex>
                   <StatNumber fontSize="lg" color={textColor}>
-                    {/* Count only 'Super Admin' role for demonstration */}
                     {adminData.filter(a => a.role === "Super Admin").length}
                   </StatNumber>
                 </Flex>
@@ -250,13 +345,11 @@ function AdminManagement() {
       {success && <Text color="green.500" mb={4} p={3} border="1px" borderColor="green.200" borderRadius="md">{success}</Text>}
       
 
-      {/* Admin Table */}
-      <Card overflowX={{ sm: "scroll", xl: "hidden" }} pb="0px">
+      {/* Admin Table with new styling */}
+      <Card p={5} shadow="xl">
         <CardHeader p="6px 0px 22px 0px">
           <Flex justify="space-between" align="center">
-            <Text fontSize="xl" color={textColor} fontWeight="bold">
-              Administrators Table
-            </Text>
+            <Heading size="md">👤 Administrators Table</Heading>
             <Button
               colorScheme="blue"
               onClick={onOpen}
@@ -268,38 +361,59 @@ function AdminManagement() {
           </Flex>
         </CardHeader>
         <CardBody>
-          <Table variant="simple" color={textColor}>
-            <Thead>
-              <Tr my=".8rem" pl="0px" color="gray.400">
-                <Th pl="0px" color="gray.400">
-                  Name
-                </Th>
-                <Th color="gray.400">Role</Th>
-                <Th color="gray.400">Department</Th>
-                <Th color="gray.400">Status</Th>
-                <Th color="gray.400">Last Active</Th>
-                {/* Added column for Actions */}
-                <Th color="gray.400">Actions</Th> 
+          <Table variant="striped" colorScheme="blue">
+            <Thead bg={tableHeaderBg}>
+              <Tr>
+                <Th>ID</Th>
+                <Th>Name</Th>
+                <Th>Email</Th>
+                <Th>Role</Th>
+                <Th>Department</Th>
+                <Th>Status</Th>
+                <Th>Last Active</Th>
+                <Th>Actions</Th>
               </Tr>
             </Thead>
             <Tbody>
-              {adminData.map((row, index) => {
-                return (
-                  <TablesTableRow
-                    key={row.id} // Use ID as key
-                    id={row.id} // Pass ID for deletion
-                    name={row.name}
-                    role={row.role}
-                    department={row.department}
-                    status={row.status}
-                    lastActive={row.lastActive}
-                    // Pass the new handler to the row component
-                    onDelete={() => handleDeleteAdmin(row.id)} 
-                  />
-                );
-              })}
+              {adminData.map((admin, index) => (
+                <Tr key={admin._id || index}>
+                  <Td>{index + 1}</Td>
+                  <Td>{admin.name}</Td>
+                  <Td>{admin.email}</Td>
+                  <Td>{admin.role}</Td>
+                  <Td>{admin.department || "N/A"}</Td>
+                  <Td>
+                    <Badge colorScheme={getStatusColor(admin.status)}>
+                      {admin.status || "Active"}
+                    </Badge>
+                  </Td>
+                  <Td>{admin.lastActive || "2023-10-15"}</Td>
+                  <Td>
+                    <Button
+                      colorScheme="red"
+                      size="sm"
+                      onClick={() => handleDeleteAdmin(admin._id)}
+                      isLoading={loading}
+                    >
+                      Delete
+                    </Button>
+                  </Td>
+                </Tr>
+              ))}
             </Tbody>
           </Table>
+          
+          {adminData.length === 0 && !loading && (
+            <Text textAlign="center" py={4} color="gray.500">
+              No administrators found.
+            </Text>
+          )}
+          
+          {loading && (
+            <Text textAlign="center" py={4} color="gray.500">
+              Loading administrators...
+            </Text>
+          )}
         </CardBody>
       </Card>
 
@@ -364,7 +478,6 @@ function AdminManagement() {
                 value={newAdmin.password}
               />
             </FormControl>
-            {/* Removed redundant error/success display from modal, moved to main body */}
           </ModalBody>
 
           <ModalFooter>
@@ -396,4 +509,4 @@ function IconBox({ children, ...rest }) {
   );
 }
 
-export default AdminManagement; 
+export default AdminManagement;

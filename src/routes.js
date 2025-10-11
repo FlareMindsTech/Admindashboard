@@ -6,6 +6,7 @@ import Billing from "views/Dashboard/Billing.js";
 import Profile from "views/Dashboard/Profile.js";
 import SignIn from "views/Pages/SignIn.js";
 import SignUp from "views/Pages/SignUp.js";
+import AdminManagement from "views/Dashboard/AdminManagement.js"; // Only default import
 
 import {
   HomeIcon,
@@ -26,12 +27,20 @@ var dashRoutes = [
     layout: "/admin",
   },
   {
+    path: "/admin-management",
+    name: "Admin Management",
+    rtlName: "إدارة المسؤول",
+    icon: <StatsIcon color="inherit" />,
+    element: <AdminManagement />,     
+    layout: "/admin",
+  },
+  {
     path: "/tables",
-    name: "Tables",
+    name: "User Management",
     rtlName: "لوحة القيادة",
     icon: <StatsIcon color="inherit" />,
-    element: <Tables />,     
-    layout: "/admin",
+    element: <Dashboard />,     
+    layout: "/user",
   },
   {
     path: "/billing",
@@ -58,18 +67,10 @@ var dashRoutes = [
       },
       {
         path: "/signin",
-        name: "Sign In",
+        name: "Login",
         rtlName: "لوحة القيادة",
         icon: <DocumentIcon color="inherit" />,
         element: <SignIn />,    
-        layout: "/auth",
-      },
-      {
-        path: "/signup",
-        name: "Sign Up",
-        rtlName: "لوحة القيادة",
-        icon: <RocketIcon color="inherit" />,
-        element: <SignUp />,    
         layout: "/auth",
       },
     ],
