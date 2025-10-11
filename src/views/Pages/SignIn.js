@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import axios from "axios";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 import { InputGroup, InputRightElement } from "@chakra-ui/react";
-
 import axiosInstance from "views/utils/axiosInstance";
 import {
   Box,
@@ -15,7 +14,6 @@ import {
   useColorModeValue,
   useToast,
 } from "@chakra-ui/react";
-// Assuming signInImage is available at this path
 import signInImage from "assets/img/signInImage.png";
 
 function AdminLogin() {
@@ -28,13 +26,10 @@ function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-
-  // Backend validation regex (Kept as is for consistency)
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
 
   const handleLogin = async () => {
-    // --- Validation logic (kept as is) ---
     if (!email || !password) {
       toast({
         title: "Missing fields",
@@ -72,7 +67,6 @@ function AdminLogin() {
     setLoading(true);
 
     try {
-      // --- API Call (kept as is) ---
       const res = await axios.post(
         "https://boutique-ecommerce-1.onrender.com/api/admins/login",
         { email, password },
@@ -80,29 +74,11 @@ function AdminLogin() {
       );
 
       const { token, name, role } = res.data;
-
-      // ----------------------------------------------------------------
-      // 🔥 CRITICAL CHANGES START HERE: Store token and role separately
-      // ----------------------------------------------------------------
-      // 1. Store the JWT in the DEDICATED ADMIN KEY for adminAxiosInstance
-      localStorage.setItem("adminToken", token); 
-      
-      // 2. Store the role in the DEDICATED ROLE KEY for the frontend component checks
-      localStorage.setItem("userRole", role); 
-
-      // 3. Store the user details in an ADMIN-SPECIFIC KEY (Optional, but good practice)
-      localStorage.setItem(
-        "adminUser",
-        JSON.stringify({ name, email, role })
-      );
-      
-      // 4. (Cleanup) Remove potential old generic user/token to avoid conflicts
+      localStorage.setItem("adminToken", token);
+      localStorage.setItem("userRole", role);
+      localStorage.setItem("adminUser", JSON.stringify({ name, email, role }));
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      // ----------------------------------------------------------------
-
-      console.log("Admin Token stored:", localStorage.getItem("adminToken"));
-      console.log("User Role stored:", localStorage.getItem("userRole"));
 
       toast({
         title: "Login Successful",
@@ -112,12 +88,10 @@ function AdminLogin() {
         isClosable: true,
       });
 
-      // --- Redirection logic (kept as is) ---
       setTimeout(() => {
         if (role === "super admin" || role === "admin") {
           window.location.href = "/admin/dashboard";
         } else {
-          // Fallback, though API should only return admin/super admin roles here
           window.location.href = "/";
         }
       }, 500);
@@ -136,112 +110,100 @@ function AdminLogin() {
   };
 
   return (
-    <Flex position="relative" w="100%" h="100vh" overflowY="auto">
-      {/* Background Image Container */}
-      <Box
-        position="fixed" // Fixed to cover the whole viewport, regardless of scrolling
-        top="0"
-        left="0"
-        w="100%"
-        h="100%"
-        bgImage={`url(${signInImage})`}
-        bgSize="cover"
-        bgPosition="center"
-        zIndex="1" // Ensure background is behind the form
-      >
-        <Box w="100%" h="100%" bg="blue.500" opacity="0.75"></Box>
-      </Box>
-
-      {/* Login Form Container */}
-      <Flex
-        // minH removed, use h/w for content positioning
-        h={{ base: "auto", md: "100vh" }} // 'auto' on mobile, full height on desktop
-        w="100%"
-        maxW={{ base: "100%", md: "1044px" }} // Max width on desktop
-        mx="auto"
-        justifyContent="center"
-        alignItems={{ base: "flex-start", md: "center" }} // Center vertically on desktop
-        py={{ base: "40px", md: "0" }} // Add padding on top/bottom for mobile
-        position="relative" // Crucial: sets context for zIndex, allowing content to overlay fixed background
-        zIndex="2" // Ensure form is in front of the background
-      >
-        <Flex
-          direction="column"
-          // --- RESPONSIVE WIDTH ADJUSTMENTS ---
-          w={{ base: "90%", sm: "400px", md: "445px" }} // Narrower on small screens, fixed width on md+
-          // ------------------------------------
-          borderRadius="20px"
-          p={{ base: "20px", sm: "40px" }} // Reduced padding on smaller screens
-          bg={bgForm}
-          boxShadow={useColorModeValue(
-            "0px 8px 30px rgba(0, 0, 0, 0.1)",
-            "0px 8px 30px rgba(0, 0, 0, 0.4)"
-          )}
-          mt={{ base: "100px", md: "0" }} // Push the form down on mobile so it's not hidden behind a potential fixed header
-          mb={{ base: "100px", md: "0" }}
-        >
-          <Text
-            fontSize="2xl"
-            color={titleColor}
-            fontWeight="extrabold"
-            textAlign="center"
-            mb="28px"
-          >
-            Admin Login
-          </Text>
-
-          <FormControl mb="4">
-            <FormLabel fontSize="sm" fontWeight="semibold">
-              Email
-            </FormLabel>
-            <Input
-              type="email"
-              placeholder="Enter email"
-              mb="24px"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              size="lg" // Larger input size for better mobile tap target
-            />
-
-   <FormLabel fontSize="sm" fontWeight="semibold">
-  Password
-</FormLabel>
-<InputGroup size="lg">
-  <Input
-    type={showPassword ? "text" : "password"}
-    placeholder="Enter password"
-    mb="24px"
-    value={password}
-    onChange={(e) => setPassword(e.target.value)}
-  />
-  <InputRightElement width="3rem">
-    <Button
-      h="1.75rem"
-      size="sm"
-      bg="transparent"
-      _hover={{ bg: "transparent" }}
-      onClick={() => setShowPassword(!showPassword)}
+    <Flex
+      position="fixed"
+      top="0"
+      left="0"
+      w="100%"
+      h="100vh"
+      overflow="hidden" // ✅ Removes scrollbar
+      alignItems="center"
+      justifyContent="center"
+      bg={`url(${signInImage}) center/cover no-repeat`}
+      _before={{
+        content: `""`,
+        position: "absolute",
+        top: 0,
+        left: 0,
+        w: "100%",
+        h: "100%",
+        bg: "blue.500",
+        opacity: 0.75,
+        zIndex: 1,
+      }}
     >
-      {showPassword ? <ViewIcon /> : <ViewOffIcon />}
-    </Button>
-  </InputRightElement>
-</InputGroup>
+      <Flex
+        direction="column"
+        w={{ base: "90%", sm: "400px", md: "445px" }}
+        borderRadius="20px"
+        p={{ base: "20px", sm: "40px" }}
+        bg={bgForm}
+        boxShadow={useColorModeValue(
+          "0px 8px 30px rgba(0, 0, 0, 0.1)",
+          "0px 8px 30px rgba(0, 0, 0, 0.4)"
+        )}
+        zIndex="2"
+      >
+        <Text
+          fontSize="2xl"
+          color={titleColor}
+          fontWeight="extrabold"
+          textAlign="center"
+          mb="28px"
+        >
+          Admin Login
+        </Text>
 
+        <FormControl mb="4">
+          <FormLabel fontSize="sm" fontWeight="semibold">
+            Email
+          </FormLabel>
+          <Input
+            type="email"
+            placeholder="Enter email"
+            mb="24px"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            size="lg"
+          />
 
-            <Button
-              w="100%"
-              h="50px"
-              borderRadius="12px"
-              bg="blue.500"
-              color="white"
-              onClick={handleLogin}
-              isLoading={loading}
-              fontSize="md"
-            >
-              LOGIN
-            </Button>
-          </FormControl>
-        </Flex>
+          <FormLabel fontSize="sm" fontWeight="semibold">
+            Password
+          </FormLabel>
+          <InputGroup size="lg">
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter password"
+              mb="24px"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <InputRightElement width="3rem">
+              <Button
+                h="1.75rem"
+                size="sm"
+                bg="transparent"
+                _hover={{ bg: "transparent" }}
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <ViewIcon /> : <ViewOffIcon />}
+              </Button>
+            </InputRightElement>
+          </InputGroup>
+
+          <Button
+            w="100%"
+            h="50px"
+            borderRadius="12px"
+            bg="blue.500"
+            color="white"
+            onClick={handleLogin}
+            isLoading={loading}
+            fontSize="md"
+          >
+            LOGIN
+          </Button>
+        </FormControl>
       </Flex>
     </Flex>
   );
