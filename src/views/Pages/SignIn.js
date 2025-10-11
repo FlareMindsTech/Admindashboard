@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
+import { InputGroup, InputRightElement } from "@chakra-ui/react";
+
 import axiosInstance from "views/utils/axiosInstance";
 import {
   Box,
@@ -23,6 +26,8 @@ function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
 
   // Backend validation regex (Kept as is for consistency)
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -198,17 +203,30 @@ function AdminLogin() {
               size="lg" // Larger input size for better mobile tap target
             />
 
-            <FormLabel fontSize="sm" fontWeight="semibold">
-              Password
-            </FormLabel>
-            <Input
-              type="password"
-              placeholder="Enter password"
-              mb="24px"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              size="lg" // Larger input size for better mobile tap target
-            />
+   <FormLabel fontSize="sm" fontWeight="semibold">
+  Password
+</FormLabel>
+<InputGroup size="lg">
+  <Input
+    type={showPassword ? "text" : "password"}
+    placeholder="Enter password"
+    mb="24px"
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+  />
+  <InputRightElement width="3rem">
+    <Button
+      h="1.75rem"
+      size="sm"
+      bg="transparent"
+      _hover={{ bg: "transparent" }}
+      onClick={() => setShowPassword(!showPassword)}
+    >
+      {showPassword ? <ViewIcon /> : <ViewOffIcon />}
+    </Button>
+  </InputRightElement>
+</InputGroup>
+
 
             <Button
               w="100%"

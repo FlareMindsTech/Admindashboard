@@ -5,6 +5,6 @@
       "@components/*": ["components/*"],
       "@utils/*": ["utils/*"]
     }
-    // Explicit path mappings added to avoid complex union types
+  
   }
 }

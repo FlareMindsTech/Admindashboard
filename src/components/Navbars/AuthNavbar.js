@@ -61,9 +61,9 @@ export default function AuthNavbar(props) {
       color={mainText}
     >
       <Stack direction="row" spacing="12px" align="center" justify="center">
-        <ArgonLogoLight w="74px" h="27px" />
-        <Box w="1px" h="20px" bg={"white"} />
-        <ChakraLogoBlue w="82px" h="21px" />
+        {/* <ArgonLogoLight w="74px" h="27px" /> */}
+        {/* <Box w="1px" h="20px" bg={"white"} /> */}
+        {/* <ChakraLogoBlue w="82px" h="21px" /> */}
       </Stack>
       <Text fontSize="sm" mt="3px">
         {logoText}
@@ -74,51 +74,51 @@ export default function AuthNavbar(props) {
   hamburgerColor = { base: "white" };
 
   // ✅ Updated NavLink for v6
-  var linksAuth = (
-    <HStack display={{ sm: "none", lg: "flex" }}>
-      <NavLink
-        to="/admin/dashboard"
-        className={({ isActive }) => (isActive ? "active-link" : "")}
-      >
-        <Button
-          fontSize="sm"
-          color={navbarIcon}
-          variant="no-effects"
-          leftIcon={<HomeIcon color={navbarIcon} w="12px" h="12px" />}
-        >
-          <Text>Dashboard</Text>
-        </Button>
-      </NavLink>
+  // var linksAuth = (
+  //   <HStack display={{ sm: "none", lg: "flex" }}>
+  //     <NavLink
+  //       to="/admin/dashboard"
+  //       className={({ isActive }) => (isActive ? "active-link" : "")}
+  //     >
+  //       <Button
+  //         fontSize="sm"
+  //         color={navbarIcon}
+  //         variant="no-effects"
+  //         leftIcon={<HomeIcon color={navbarIcon} w="12px" h="12px" />}
+  //       >
+  //         <Text>Dashboard</Text>
+  //       </Button>
+  //     </NavLink>
 
-      <NavLink
-        to="/admin/profile"
-        className={({ isActive }) => (isActive ? "active-link" : "")}
-      >
-        <Button
-          fontSize="sm"
-          color={navbarIcon}
-          variant="no-effects"
-          leftIcon={<PersonIcon color={navbarIcon} w="12px" h="12px" />}
-        >
-          <Text>Profile</Text>
-        </Button>
-      </NavLink>
+  //     <NavLink
+  //       to="/admin/profile"
+  //       className={({ isActive }) => (isActive ? "active-link" : "")}
+  //     >
+  //       <Button
+  //         fontSize="sm"
+  //         color={navbarIcon}
+  //         variant="no-effects"
+  //         leftIcon={<PersonIcon color={navbarIcon} w="12px" h="12px" />}
+  //       >
+  //         <Text>Profile</Text>
+  //       </Button>
+  //     </NavLink>
 
-      <NavLink
-        to="/auth/signin"
-        className={({ isActive }) => (isActive ? "active-link" : "")}
-      >
-        <Button
-          fontSize="sm"
-          color={navbarIcon}
-          variant="no-effects"
-          leftIcon={<DocumentIcon color={navbarIcon} w="12px" h="12px" />}
-        >
-          <Text>Sign In </Text>
-        </Button>
-      </NavLink>
-    </HStack>
-  );
+  //     <NavLink
+  //       to="/auth/signin"
+  //       className={({ isActive }) => (isActive ? "active-link" : "")}
+  //     >
+  //       <Button
+  //         fontSize="sm"
+  //         color={navbarIcon}
+  //         variant="no-effects"
+  //         leftIcon={<DocumentIcon color={navbarIcon} w="12px" h="12px" />}
+  //       >
+  //         <Text>Sign In </Text>
+  //       </Button>
+  //     </NavLink>
+  //   </HStack>
+  // );
 
   return (
     <Flex
@@ -173,7 +173,7 @@ export default function AuthNavbar(props) {
             {...rest}
           />
         </Box>
-        {linksAuth}
+        {/* {linksAuth} */}
        
       </Flex>
     </Flex>
