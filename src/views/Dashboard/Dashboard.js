@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllCategories, createCategories } from "../utils/axiosInstance";
-// import { getAllProducts, createProduct } from "../utils/axiosInstance"; // <-- commented out
+// import { getAllProducts, createProduct } from "../utils/axiosInstance"; // commented out
 
 // Chakra imports
 import {
@@ -51,8 +51,8 @@ export default function Dashboard() {
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
-  const [newCategory, setNewCategory] = useState({ name: "", description: "" });
-  const [newProduct, setNewProduct] = useState({
+  const initialCategory = { name: "", description: "" };
+  const initialProduct = {
     name: "",
     price: "",
     stock: "",
@@ -62,7 +62,10 @@ export default function Dashboard() {
     description: "",
     imgUrls: [],
     imgFiles: [],
-  });
+  };
+
+  const [newCategory, setNewCategory] = useState(initialCategory);
+  const [newProduct, setNewProduct] = useState(initialProduct);
 
   // Fetch current user
   useEffect(() => {
@@ -81,15 +84,15 @@ export default function Dashboard() {
     setCurrentUser(storedUser);
   }, [navigate, toast]);
 
-  // Fetch categories and products
+  // Fetch categories
   useEffect(() => {
     const fetchData = async () => {
       try {
         const categoryData = await getAllCategories();
         setCategories(categoryData.categories || []);
 
-        // const productData = await getAllProducts(); // <-- commented out
-        // setProducts(productData.products || []); // <-- commented out
+        // const productData = await getAllProducts(); // commented out
+        // setProducts(productData.products || []); // commented out
       } catch (err) {
         console.error(err);
         toast({
@@ -111,18 +114,16 @@ export default function Dashboard() {
     setIsAddCategoryOpen(false);
     setIsAddProductOpen(false);
     setSelectedCategory(null);
-    setNewCategory({ name: "", description: "" });
-    setNewProduct({
-      name: "",
-      price: "",
-      stock: "",
-      color: "",
-      size: "",
-      variants: "",
-      description: "",
-      imgUrls: [],
-      imgFiles: [],
-    });
+    setNewCategory(initialCategory);
+    setNewProduct(initialProduct);
+  };
+
+  const handleResetCategory = () => {
+    setNewCategory(initialCategory);
+  };
+
+  const handleResetProduct = () => {
+    setNewProduct(initialProduct);
   };
 
   const handleSubmitCategory = async () => {
@@ -248,7 +249,9 @@ export default function Dashboard() {
             <Button colorScheme="blue" mr={3} onClick={handleSubmitCategory}>
               Submit
             </Button>
-            <Button onClick={handleBack}>Cancel</Button>
+            <Button colorScheme="red" onClick={handleResetCategory}>
+              Reset
+            </Button>
           </Flex>
         </Card>
       ) : isAddProductOpen ? (
@@ -351,7 +354,9 @@ export default function Dashboard() {
             <Button colorScheme="blue" mr={3} disabled>
               Submit
             </Button>
-            <Button onClick={handleBack}>Cancel</Button>
+            <Button colorScheme="red" onClick={handleResetProduct}>
+              Reset
+            </Button>
           </Flex>
         </Card>
       ) : (
