@@ -69,7 +69,7 @@ function AdminLogin() {
     try {
       // --- API Call (kept as is) ---
       const res = await axios.post(
-        `${axiosInstance}/api/admins/login`,
+        "https://boutique-ecommerce-1.onrender.com/api/admins/login",
         { email, password },
         { headers: { "Content-Type": "application/json" } }
       );

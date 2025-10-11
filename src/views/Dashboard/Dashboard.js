@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import axiosInstance from "../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
 // Chakra imports
 import {
@@ -151,11 +149,10 @@ export default function Dashboard() {
     }
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post(
-        `${axiosInstance}/api/admins/create`,
-        newAdmin,
-        { headers: { Authorization: `Bearer ${token}` } }
+      // --- CRITICAL CHANGE: Use adminAxiosInstance ---
+      const res = await adminAxiosInstance.post(
+        "/admins/create", // Route relative to adminAxiosInstance's baseURL
+        newAdmin
       );
 
       toast({
