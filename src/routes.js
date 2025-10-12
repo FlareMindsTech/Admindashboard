@@ -6,7 +6,8 @@ import Billing from "views/Dashboard/Billing.js";
 import Profile from "views/Dashboard/Profile.js";
 import SignIn from "views/Pages/SignIn.js";
 import SignUp from "views/Pages/SignUp.js";
-import AdminManagement from "views/Dashboard/AdminManagement.js"; // Only default import
+import AdminManagement from "views/Dashboard/AdminManagement.js"; 
+import UserManagement from "views/Dashboard/UserManagement.js"; 
 
 import {
   HomeIcon,
@@ -35,17 +36,20 @@ var dashRoutes = [
     layout: "/admin",
   },
   {
-    path: "/tables",
+    path: "/user-management",
     name: "User Management",
-    rtlName: "لوحة القيادة",
+    rtlName: "إدارة المستخدمين",
     icon: <StatsIcon color="inherit" />,
-    element: <Dashboard />,     
-    layout: "/user",
+    element: <UserManagement />,     
+    layout: "/admin",
   },
+  // REMOVED: AddAdminPage route
+  // REMOVED: EditAdminPage route
+  
   {
     path: "/billing",
     name: "Billing",
-    rtlName: "لوحة القيادة",
+    rtlName: "الفواتير",
     icon: <CreditIcon color="inherit" />,
     element: <Billing />,     
     layout: "/admin",
@@ -59,7 +63,7 @@ var dashRoutes = [
       {
         path: "/profile",
         name: "Profile",
-        rtlName: "لوحة القيادة",
+        rtlName: "الملف الشخصي",
         icon: <PersonIcon color="inherit" />,
         secondaryNavbar: true,
         element: <Profile />,   
@@ -68,7 +72,7 @@ var dashRoutes = [
       {
         path: "/signin",
         name: "Login",
-        rtlName: "لوحة القيادة",
+        rtlName: "تسجيل الدخول",
         icon: <DocumentIcon color="inherit" />,
         element: <SignIn />,    
         layout: "/auth",

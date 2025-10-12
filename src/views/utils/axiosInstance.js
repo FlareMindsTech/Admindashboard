@@ -94,6 +94,10 @@ export { adminAxiosInstance };
 // =========================================================
 // 4. API CALL FUNCTION (Example)
 // =========================================================
+
+// ===== Admin API functions =====
+
+// Get all admins
 export const getAllAdmins = async () => {
   try {
     const token = localStorage.getItem("token");
@@ -105,14 +109,119 @@ export const getAllAdmins = async () => {
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
   } catch (error) {
     console.error("Error fetching admins:", error);
+    throw error;
+  }
+};
+
+// Create a new admin
+export const createAdmin = async (adminData) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/admins/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token: token,
+      },
+      body: JSON.stringify(adminData),
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error creating admin:", error);
+    throw error;
+  }
+};
+
+// Update an existing admin
+export const updateAdmin = async (adminId, updatedData) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/admins/update/${adminId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        token: token,
+      },
+      body: JSON.stringify(updatedData),
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating admin:", error);
+    throw error;
+  }
+};
+
+
+//  USERS 
+
+// ===== User API functions =====
+
+// Get all users
+export const getAllUsers = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/users/all`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        token: token,
+      },
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    throw error;
+  }
+};
+
+// Create a new user
+export const createUser = async (userData) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/users/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token: token,
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error creating user:", error);
+    throw error;
+  }
+};
+
+// Update an existing user
+export const updateUser = async (userId, updatedData) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/users/update/${userId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        token: token,
+      },
+      body: JSON.stringify(updatedData),
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating user:", error);
     throw error;
   }
 };
