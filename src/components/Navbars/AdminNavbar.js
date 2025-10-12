@@ -130,18 +130,7 @@ export default function AdminNavbar(props) {
       >
         <Box mb={{ sm: "8px", md: "0px" }}>
           <Breadcrumb>
-            <BreadcrumbItem color={mainText}>
-              {/* ✅ Use RouterLink */}
-              <BreadcrumbLink as={RouterLink} to="/admin/dashboard" color={secondaryText}>
-                Pages
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-
-            <BreadcrumbItem color={mainText}>
-              <BreadcrumbLink as={RouterLink} to="#" color={mainText}>
-                {brandText}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
+            
           </Breadcrumb>
 
           {/* Navbar brand */}
