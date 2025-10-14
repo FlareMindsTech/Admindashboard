@@ -172,80 +172,133 @@ export const createCategories = async (categoryData) => {
 // =========================================================
 //5. API CALL FUNCTION (Example)
 // =========================================================
-// export const getAllProducts = async () => {
-//   try {
-//     const token = localStorage.getItem("token");
-//     if (!token) throw new Error("Token not found");
+export const getAllProducts = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/products/all`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        token: token, // send the stored token
+      },
+    });
 
-//     const response = await fetch(`${BASE_URL}/products/all`, {
-//       method: "GET",
-//       headers: {
-//         "Content-Type": "application/json",
-//         token,
-//       },
-//     });
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`); // throws for 4xx or 5xx
+    }
 
-//     const text = await response.text(); // get response as text first
-//     let data;
-//     try {
-//       data = JSON.parse(text); // try parsing JSON
-//     } catch {
-//       console.error("Non-JSON response:", text);
-//       throw new Error("Invalid JSON response from server");
-//     }
+    const data = await response.json();
+    return data; // should return { products: [...] }
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    throw error;
+  }
+};
 
-//     if (!response.ok) {
-//       throw new Error(data.message || `Error: ${response.status}`);
-//     }
+// 🟢 Create a new product
+const uploadImage = async (file) => {
+  const token = localStorage.getItem("token");
+  const formData = new FormData();
+  formData.append("file", file);
 
-//     return data; // { products: [...] }
-//   } catch (error) {
-//     console.error("Error fetching products:", error);
-//     throw error;
-//   }
-// };
+  const res = await fetch(`${BASE_URL}/admin/products/upload`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
 
+  // If server returns non-OK, log full response text
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("Error uploading image, backend response:", text);
+    throw new Error("Image upload failed");
+  }
 
-// export const createProduct = async (productData) => {
-//   try {
-//     const token = localStorage.getItem("token");
-//     if (!token) throw new Error("Token not found");
+  // Parse JSON returned by backend
+  const data = await res.json();
+  return data.url; // backend must return { url: "<image URL>" }
+};
 
-//     // Ensure categoryId is present
-//     if (!productData.categoryId) {
-//       throw new Error("Product must have a categoryId");
-//     }
+// Main function to create product
+export const createProducts = async (productData) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Authorization token not found.");
 
-//     // Optional: convert variants string to array if provided as comma-separated
-//     if (productData.variants && typeof productData.variants === "string") {
-//       productData.variants = productData.variants.split(",").map(v => v.trim());
-//     }
+    // Validate required fields
+    if (
+      !productData.name ||
+      !productData.category ||
+      !productData.price ||
+      !productData.stock
+    ) {
+      throw new Error("Please fill all required fields before submitting the product.");
+    }
 
-//     const response = await fetch(`${BASE_URL}/products/create`, {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//         token,
-//       },
-//       body: JSON.stringify(productData),
-//     });
+    console.log("🧾 Product data before uploading images:", productData);
 
-//     const text = await response.text();
-//     let data;
-//     try {
-//       data = JSON.parse(text);
-//     } catch {
-//       console.error("Non-JSON response:", text);
-//       throw new Error("Invalid JSON response from server");
-//     }
+    // Step 1: Upload images if any
+    let imageUrls = [];
+    if (productData.imgFiles && productData.imgFiles.length > 0) {
+      imageUrls = await Promise.all(
+        productData.imgFiles.map((file) => uploadImage(file))
+      );
+    }
 
-//     if (!response.ok) {
-//       throw new Error(data.message || `Error: ${response.status}`);
-//     }
+    console.log("🖼️ Uploaded image URLs:", imageUrls);
 
-//     return data; // { product: {...} }
-//   } catch (error) {
-//     console.error("Error creating product:", error);
-//     throw error;
-//   }
-// };
+    // Step 2: Prepare product JSON
+    const productPayload = {
+      name: productData.name.trim(),
+      description: productData.description?.trim() || "",
+      category: productData.category,
+      variants: [
+        {
+          color: productData.color || "default",
+          size: productData.size || "default",
+          price: Number(productData.price),
+          stock: Number(productData.stock),
+          sku:
+            productData.sku ||
+            `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        },
+      ],
+      images: imageUrls,
+    };
+
+    console.log("📡 Sending product JSON to API:", productPayload);
+
+    // Step 3: Create product
+    const res = await fetch(`${BASE_URL}/products/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token,
+      },
+      body: JSON.stringify(productPayload),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      let errorMessage = "Failed to create product.";
+
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorMessage;
+      } catch {
+        console.warn("Non-JSON error response from server:", errorText);
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const data = await res.json();
+    console.log("✅ Product created successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("❌ Error creating product:", error.message);
+    throw error;
+  }
+};
