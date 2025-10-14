@@ -6,6 +6,7 @@ import {
   Box,
   useColorMode,
 } from "@chakra-ui/react";
+import { Image } from "@chakra-ui/react";
 import Configurator from "components/Configurator/Configurator";
 import Footer from "components/Footer/Footer.js";
 import {
@@ -14,6 +15,9 @@ import {
   ChakraLogoDark,
   ChakraLogoLight,
 } from "components/Icons/Icons";
+import FlareLogo from "assets/img/Aadvi-logo.png"; 
+
+
 // Layout components
 import AdminNavbar from "components/Navbars/AdminNavbar.js";
 import Sidebar from "components/Sidebar/Sidebar.js";
@@ -126,24 +130,15 @@ export default function Dashboard(props) {
       <Sidebar
         routes={routes}
         logo={
-          <Stack direction="row" spacing="12px" align="center" justify="center">
-            {colorMode === "dark" ? (
-              <ArgonLogoLight w="74px" h="27px" />
-            ) : (
-              <ArgonLogoDark w="74px" h="27px" />
-            )}
-            <Box
-              w="1px"
-              h="20px"
-              bg={colorMode === "dark" ? "white" : "gray.700"}
-            />
-            {colorMode === "dark" ? (
-              <ChakraLogoLight w="82px" h="21px" />
-            ) : (
-              <ChakraLogoDark w="82px" h="21px" />
-            )}
-          </Stack>
-        }
+  <Stack direction="row" spacing="12px" align="center" justify="center">
+    <Image src={FlareLogo} alt="Flare Logo" w="100px" h="auto" />
+    <Box
+      w="1px"
+      h="20px"
+      // bg={colorMode === "dark" ? "white" : "gray.700"}
+    />
+  </Stack>
+}
         display="none"
         {...rest}
       />

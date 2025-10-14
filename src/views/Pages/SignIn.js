@@ -15,10 +15,10 @@ import {
   useToast,
 } from "@chakra-ui/react";
 // Assuming signInImage is available at this path
-import signInImage from "assets/img/signInImage.png"; 
+import signInImage from "assets/img/bg.jpg"; 
 
 function AdminLogin() {
-  const bgForm = useColorModeValue("white", "navy.800");
+  const bgForm = useColorModeValue("#E6E6FA", "navy.800");
   const titleColor = useColorModeValue("blue.600", "blue.300");
   const toast = useToast();
 
@@ -134,7 +134,7 @@ function AdminLogin() {
         left: 0,
         w: "100%",
         h: "100%",
-        bg: "blue.500",
+        bg: "purple.400",
         opacity: 0.75,
         zIndex: 1,
       }}
@@ -198,18 +198,23 @@ function AdminLogin() {
             </InputRightElement>
           </InputGroup>
 
-          <Button
-            w="100%"
-            h="50px"
-            borderRadius="12px"
-            bg="blue.500"
-            color="white"
-            onClick={handleLogin}
-            isLoading={loading}
-            fontSize="md"
-          >
-            LOGIN
-          </Button>
+  <Button
+  w="100%"
+  h="50px"
+  borderRadius="12px"
+  bg="purple.500"
+  color="white"
+  onClick={handleLogin}
+  isLoading={loading}
+  fontSize="md"
+  _hover={{ bg: "purple.600" }}   // darker on hover
+  _active={{ bg: "purple.700" }}  // darkest on click
+  transition="background 0.3s"    // smooth transition
+>
+  LOGIN
+</Button>
+
+
         </FormControl>
       </Flex>
     </Flex>
