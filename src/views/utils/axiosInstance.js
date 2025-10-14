@@ -94,6 +94,10 @@ export { adminAxiosInstance };
 // =========================================================
 // 4. API CALL FUNCTION (Example)
 // =========================================================
+
+// ===== Admin API functions =====
+
+// Get all admins
 export const getAllAdmins = async () => {
   try {
     const token = localStorage.getItem("token");
@@ -105,21 +109,14 @@ export const getAllAdmins = async () => {
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
   } catch (error) {
     console.error("Error fetching admins:", error);
     throw error;
   }
 };
-<<<<<<< HEAD
-
-
-=======
+<<<<<<<<< Temporary merge branch 1
 // =========================================================
 //5. API CALL FUNCTION (Example)
 // =========================================================
@@ -169,6 +166,24 @@ export const createCategories = async (categoryData) => {
     return data; // should return the created category
   } catch (error) {
     console.error("Error creating category:", error);
+  }}
+// Create a new admin
+export const createAdmin = async (adminData) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/admins/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token: token,
+      },
+      body: JSON.stringify(adminData),
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error creating admin:", error);
     throw error;
   }
 };
@@ -253,4 +268,7 @@ export const createCategories = async (categoryData) => {
 //     throw error;
 //   }
 // };
->>>>>>> b70623bc293993af1fc81a8e82d612506a8e73b7
+=========
+
+
+>>>>>>>>> Temporary merge branch 2
