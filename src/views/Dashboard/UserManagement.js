@@ -25,6 +25,7 @@ import {
   Badge,
   Text,
   Spinner,
+  Avatar,
 } from "@chakra-ui/react";
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
@@ -37,17 +38,18 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaSearch,
+  FaUserPlus,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
-import { MdAdminPanelSettings } from "react-icons/md";
+import { MdAdminPanelSettings, MdPerson } from "react-icons/md";
 import {
-  getAllAdmins,
-  createAdmin,
-  updateAdmin,
+  getAllUsers,
+  createUser,
+  updateUser,
 } from "views/utils/axiosInstance";
 
-// Main Admin Management Component
-function AdminManagement() {
+// Main User Management Component
+function UserManagement() {
   // Chakra color mode
   const textColor = useColorModeValue("gray.700", "white");
   const iconTeal = useColorModeValue("teal.300", "teal.300");
@@ -57,7 +59,7 @@ function AdminManagement() {
 
   const toast = useToast();
 
-  const [adminData, setAdminData] = useState([]);
+  const [userData, setUserData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [tableLoading, setTableLoading] = useState(false);
@@ -70,14 +72,18 @@ function AdminManagement() {
 
   // View state - 'list', 'add', 'edit'
   const [currentView, setCurrentView] = useState("list");
-  const [editingAdmin, setEditingAdmin] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
 
   // Form state
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
     email: "",
-    role: "admin",
     password: "",
+    confirmPassword: "",
+    profileImage: "",
+    role: "user"
   });
 
   // Pagination state
@@ -109,33 +115,33 @@ function AdminManagement() {
     setCurrentUser(storedUser);
   }, [toast]);
 
-  // Fetch admins from backend
+  // Fetch users from backend
   useEffect(() => {
-    const fetchAdmins = async () => {
+    const fetchUsers = async () => {
       if (!currentUser) return;
 
       setLoading(true);
       setTableLoading(true);
       setDataLoaded(false);
       try {
-        const response = await getAllAdmins();
-        console.log("Fetched admins response:", response);
+        const response = await getAllUsers();
+        console.log("Fetched users response:", response);
         
         // Handle different response formats
-        const admins = response.data?.admins || response.data || response?.admins || response || [];
+        const users = response.data?.users || response.data || response?.users || response || [];
 
-        // Sort admins in descending order (newest first)
-        const sortedAdmins = admins.sort(
+        // Sort users in descending order (newest first)
+        const sortedUsers = users.sort(
           (a, b) =>
             new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id)
         );
 
-        setAdminData(sortedAdmins);
-        setFilteredData(sortedAdmins);
+        setUserData(sortedUsers);
+        setFilteredData(sortedUsers);
         setDataLoaded(true);
       } catch (err) {
-        console.error("Error fetching admins:", err);
-        const errorMessage = err.response?.data?.message || err.message || "Failed to load admin list.";
+        console.error("Error fetching users:", err);
+        const errorMessage = err.response?.data?.message || err.message || "Failed to load user list.";
         setError(errorMessage);
         setDataLoaded(true);
         toast({
@@ -152,7 +158,7 @@ function AdminManagement() {
     };
 
     if (currentUser) {
-      fetchAdmins();
+      fetchUsers();
     }
   }, [currentUser, toast]);
 
@@ -164,32 +170,32 @@ function AdminManagement() {
     setCurrentPage(1); // Reset to first page when filter changes
 
     const timer = setTimeout(() => {
-      let filtered = adminData;
+      let filtered = userData;
 
       // Apply role/status filter
       switch (activeFilter) {
-        case "super":
-          filtered = adminData.filter((admin) => admin.role === "super admin");
-          break;
         case "active":
-          filtered = adminData.filter((admin) => admin.status === "active");
+          filtered = userData.filter((user) => user.status === "active");
           break;
-        case "admins":
-          filtered = adminData.filter((admin) => admin.role === "admin");
+        case "inactive":
+          filtered = userData.filter((user) => user.status === "inactive");
+          break;
+        case "verified":
+          filtered = userData.filter((user) => user.isVerified === true);
           break;
         default:
-          filtered = adminData;
+          filtered = userData;
       }
 
       // Apply search filter
       if (searchTerm.trim() !== "") {
         filtered = filtered.filter(
-          (admin) =>
-            admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            admin.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            admin.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (admin.status &&
-              admin.status.toLowerCase().includes(searchTerm.toLowerCase()))
+          (user) =>
+            `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (user.role && user.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (user.status && user.status.toLowerCase().includes(searchTerm.toLowerCase()))
         );
       }
 
@@ -198,7 +204,7 @@ function AdminManagement() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [activeFilter, adminData, dataLoaded, searchTerm]);
+  }, [activeFilter, userData, dataLoaded, searchTerm]);
 
   // Handle input change for form
   const handleInputChange = (e) => {
@@ -216,29 +222,37 @@ function AdminManagement() {
     setSearchTerm("");
   };
 
-  // Handle add admin - show add form
-  const handleAddAdmin = () => {
+  // Handle add user - show add form
+  const handleAddUser = () => {
     setFormData({
-      name: "",
+      firstName: "",
+      lastName: "",
+      phone: "",
       email: "",
-      role: "admin",
       password: "",
+      confirmPassword: "",
+      profileImage: "",
+      role: "user"
     });
-    setEditingAdmin(null);
+    setEditingUser(null);
     setCurrentView("add");
     setError("");
     setSuccess("");
   };
 
-  // Handle edit admin - show edit form
-  const handleEditAdmin = (admin) => {
+  // Handle edit user - show edit form
+  const handleEditUser = (user) => {
     setFormData({
-      name: admin.name,
-      email: admin.email,
-      role: admin.role,
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      phone: user.phone || "",
+      email: user.email || "",
       password: "", // Don't pre-fill password for security
+      confirmPassword: "", // Don't pre-fill confirm password
+      profileImage: user.profileImage || "",
+      role: user.role || "user"
     });
-    setEditingAdmin(admin);
+    setEditingUser(user);
     setCurrentView("edit");
     setError("");
     setSuccess("");
@@ -247,7 +261,7 @@ function AdminManagement() {
   // Handle back to list
   const handleBackToList = () => {
     setCurrentView("list");
-    setEditingAdmin(null);
+    setEditingUser(null);
     setError("");
     setSuccess("");
   };
@@ -255,21 +269,32 @@ function AdminManagement() {
   // Handle form submit
   const handleSubmit = async () => {
     // Frontend validation
-    if (!formData.name || !formData.email) {
+    if (!formData.firstName || !formData.lastName || !formData.email) {
       return toast({
         title: "Validation Error",
-        description: "Name and email are required",
+        description: "First name, last name, and email are required",
         status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
 
-    // For new admin, password is required
+    // For new user, password is required
     if (currentView === "add" && !formData.password) {
       return toast({
         title: "Validation Error",
-        description: "Password is required for new admin",
+        description: "Password is required for new user",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
+    // Check password confirmation for new users
+    if (currentView === "add" && formData.password !== formData.confirmPassword) {
+      return toast({
+        title: "Validation Error",
+        description: "Password and confirm password do not match",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -287,7 +312,7 @@ function AdminManagement() {
       });
     }
 
-    // For new admin, validate password strength
+    // For new user, validate password strength
     if (currentView === "add") {
       const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
       if (!passwordRegex.test(formData.password)) {
@@ -309,71 +334,94 @@ function AdminManagement() {
     try {
       let response;
 
+      // Prepare data for API with exact structure
+      const userDataToSend = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        email: formData.email,
+        role: formData.role,
+        profileImage: formData.profileImage || "",
+        ...(formData.password && { password: formData.password })
+      };
+
       if (currentView === "add") {
-        // Create new admin using the API function
-        response = await createAdmin(formData);
-        console.log("Create admin response:", response);
+        // Create new user using the API function
+        response = await createUser(userDataToSend);
+        console.log("Create user response:", response);
 
-        // Extract admin data from response
-        const newAdmin = response.data?.admin || response.data || response;
+        // Extract user data from response
+        const newUser = response.data || response;
 
         toast({
-          title: "Admin Created",
-          description: `Admin ${newAdmin.name} created successfully`,
+          title: "User Created",
+          description: `User ${newUser.firstName} ${newUser.lastName} created successfully`,
           status: "success",
           duration: 3000,
           isClosable: true,
         });
 
-        // Add new admin to the beginning of the list (newest first)
-        const updatedAdmins = [newAdmin, ...adminData];
-        setAdminData(updatedAdmins);
+        // Add new user to the beginning of the list (newest first)
+        const updatedUsers = [newUser, ...userData];
+        setUserData(updatedUsers);
+        setFilteredData(updatedUsers);
 
-        // Update filtered data based on current filter and search
-        applyFiltersAndSearch(updatedAdmins);
-
-        setSuccess("Admin created successfully!");
+        setSuccess("User created successfully!");
+        
+        // Reset form and go back to list immediately
+        setFormData({
+          firstName: "",
+          lastName: "",
+          phone: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+          profileImage: "",
+          role: "user"
+        });
+        setEditingUser(null);
+        setCurrentView("list");
+        
       } else {
-        // Update existing admin using the API function
-        response = await updateAdmin(editingAdmin._id, formData);
-        console.log("Update admin response:", response);
+        // Update existing user using the API function
+        response = await updateUser(editingUser._id, userDataToSend);
+        console.log("Update user response:", response);
 
-        // Extract admin data from response
-        const updatedAdmin = response.data?.admin || response.data || response;
+        // Extract user data from response
+        const updatedUser = response.data || response;
 
         toast({
-          title: "Admin Updated",
-          description: `Admin ${updatedAdmin.name} updated successfully`,
+          title: "User Updated",
+          description: `User ${updatedUser.firstName} ${updatedUser.lastName} updated successfully`,
           status: "success",
           duration: 3000,
           isClosable: true,
         });
 
-        // Update admin in the list
-        const updatedAdmins = adminData.map((admin) =>
-          admin._id === editingAdmin._id ? { ...admin, ...updatedAdmin } : admin
+        // Update user in the list
+        const updatedUsers = userData.map((user) =>
+          user._id === editingUser._id ? { ...user, ...updatedUser } : user
         );
-        setAdminData(updatedAdmins);
+        setUserData(updatedUsers);
+        setFilteredData(updatedUsers);
 
-        // Update filtered data
-        applyFiltersAndSearch(updatedAdmins);
-
-        setSuccess("Admin updated successfully!");
+        setSuccess("User updated successfully!");
+        
+        // Reset form and go back to list immediately
+        setFormData({
+          firstName: "",
+          lastName: "",
+          phone: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+          profileImage: "",
+          role: "user"
+        });
+        setEditingUser(null);
+        setCurrentView("list");
       }
 
-      // Reset form and go back to list
-      setFormData({
-        name: "",
-        email: "",
-        role: "admin",
-        password: "",
-      });
-      setEditingAdmin(null);
-
-      // Wait a bit before going back to list to show success message
-      setTimeout(() => {
-        setCurrentView("list");
-      }, 1500);
     } catch (err) {
       console.error("API Error:", err);
       const errorMessage =
@@ -390,39 +438,16 @@ function AdminManagement() {
     setLoading(false);
   };
 
-  // Helper function to apply filters and search
-  const applyFiltersAndSearch = (admins) => {
-    let filtered = admins;
-
-    // Apply role/status filter
-    switch (activeFilter) {
-      case "super":
-        filtered = admins.filter((admin) => admin.role === "super admin");
-        break;
-      case "active":
-        filtered = admins.filter((admin) => admin.status === "active");
-        break;
-      case "admins":
-        filtered = admins.filter((admin) => admin.role === "admin");
-        break;
-      default:
-        filtered = admins;
+  // Auto-hide success/error messages after 3 seconds
+  useEffect(() => {
+    if (success || error) {
+      const timer = setTimeout(() => {
+        setSuccess("");
+        setError("");
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-
-    // Apply search filter
-    if (searchTerm.trim() !== "") {
-      filtered = filtered.filter(
-        (admin) =>
-          admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          admin.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          admin.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (admin.status &&
-            admin.status.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-
-    setFilteredData(filtered);
-  };
+  }, [success, error]);
 
   // Get status color with background
   const getStatusColor = (status) => {
@@ -431,8 +456,19 @@ function AdminManagement() {
         return { color: "white", bg: "green.500" };
       case "inactive":
         return { color: "white", bg: "red.500" };
+      case "pending":
+        return { color: "white", bg: "yellow.500" };
       default:
-        return { color: "white", bg: "green.500" };
+        return { color: "white", bg: "gray.500" };
+    }
+  };
+
+  // Get verification badge
+  const getVerificationBadge = (isVerified) => {
+    if (isVerified) {
+      return { text: "Verified", color: "green" };
+    } else {
+      return { text: "Not Verified", color: "red" };
     }
   };
 
@@ -482,7 +518,7 @@ function AdminManagement() {
                 {/* Removed "Back to List" text, only icon */}
               </Button>
               <Heading size="md">
-                {currentView === "add" ? "Add New Admin" : "Edit Admin"}
+                {currentView === "add" ? "Add New User" : "Edit User"}
               </Heading>
             </Flex>
           </CardHeader>
@@ -512,58 +548,111 @@ function AdminManagement() {
                 {success}
               </Text>
             )}
-            <FormControl mb="24px">
-              <FormLabel htmlFor="name">Name</FormLabel>
-              <Input
-                id="name"
-                name="name"
-                placeholder="Admin Name"
-                onChange={handleInputChange}
-                value={formData.name}
-              />
-            </FormControl>
-            <FormControl mb="24px">
-              <FormLabel htmlFor="email">Email</FormLabel>
-              <Input
-                id="email"
-                name="email"
-                placeholder="Admin Email"
-                onChange={handleInputChange}
-                value={formData.email}
-              />
-            </FormControl>
+            
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+              <FormControl>
+                <FormLabel htmlFor="firstName">First Name</FormLabel>
+                <Input
+                  id="firstName"
+                  name="firstName"
+                  placeholder="First Name"
+                  onChange={handleInputChange}
+                  value={formData.firstName}
+                />
+              </FormControl>
+              
+              <FormControl>
+                <FormLabel htmlFor="lastName">Last Name</FormLabel>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  placeholder="Last Name"
+                  onChange={handleInputChange}
+                  value={formData.lastName}
+                />
+              </FormControl>
+            </SimpleGrid>
+
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+              <FormControl>
+                <FormLabel htmlFor="email">Email</FormLabel>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Email Address"
+                  onChange={handleInputChange}
+                  value={formData.email}
+                />
+              </FormControl>
+              
+              <FormControl>
+                <FormLabel htmlFor="phone">Phone</FormLabel>
+                <Input
+                  id="phone"
+                  name="phone"
+                  placeholder="Phone Number"
+                  onChange={handleInputChange}
+                  value={formData.phone}
+                />
+              </FormControl>
+            </SimpleGrid>
+
             <FormControl mb="24px">
               <FormLabel htmlFor="role">Role</FormLabel>
-              <Input
+              <Select
                 id="role"
                 name="role"
-                value="admin"
-                isReadOnly
-                bg="gray.50"
-                color="gray.600"
-                cursor="not-allowed" // Cursor not allowed
-                _hover={{ cursor: "not-allowed" }} // Hover cursor not allowed
-              />
-            </FormControl>
-            <FormControl mb="24px">
-              <FormLabel htmlFor="password">
-                {currentView === "add"
-                  ? "Password"
-                  : "Password (leave blank to keep current)"}
-              </FormLabel>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder={
-                  currentView === "add"
-                    ? "Admin Password"
-                    : "New Password (optional)"
-                }
                 onChange={handleInputChange}
-                value={formData.password}
+                value={formData.role}
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+                <option value="super admin">Super Admin</option>
+              </Select>
+            </FormControl>
+
+            <FormControl mb="24px">
+              <FormLabel htmlFor="profileImage">Profile Image URL</FormLabel>
+              <Input
+                id="profileImage"
+                name="profileImage"
+                placeholder="Profile Image URL"
+                onChange={handleInputChange}
+                value={formData.profileImage}
               />
             </FormControl>
+
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+              <FormControl>
+                <FormLabel htmlFor="password">
+                  {currentView === "add" ? "Password" : "New Password (optional)"}
+                </FormLabel>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder={currentView === "add" ? "Password" : "New Password"}
+                  onChange={handleInputChange}
+                  value={formData.password}
+                />
+              </FormControl>
+              
+              {currentView === "add" && (
+                <FormControl>
+                  <FormLabel htmlFor="confirmPassword">Confirm Password</FormLabel>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    placeholder="Confirm Password"
+                    onChange={handleInputChange}
+                    value={formData.confirmPassword}
+                  />
+                </FormControl>
+              )}
+            </SimpleGrid>
+
             <Flex justify="flex-end" mt={6}>
               <Button variant="outline" mr={3} onClick={handleBackToList}>
                 Cancel
@@ -573,7 +662,7 @@ function AdminManagement() {
                 onClick={handleSubmit}
                 isLoading={loading}
               >
-                {currentView === "add" ? "Create Admin" : "Update Admin"}
+                {currentView === "add" ? "Create User" : "Update User"}
               </Button>
             </Flex>
           </CardBody>
@@ -584,19 +673,55 @@ function AdminManagement() {
 
   // Render List View
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
+    <Flex 
+      flexDirection="column" 
+      pt={{ base: "120px", md: "75px" }}
+      overflow="hidden"
+      height="100vh"
+    >
+      {/* Success/Error Message Display - Auto hides after 3 seconds */}
+      {(error || success) && (
+        <Box mb={4} mx={4}>
+          {error && (
+            <Text
+              color="red.500"
+              p={3}
+              border="1px"
+              borderColor="red.200"
+              borderRadius="md"
+              bg="red.50"
+            >
+              {error}
+            </Text>
+          )}
+          {success && (
+            <Text
+              color="green.500"
+              p={3}
+              border="1px"
+              borderColor="green.200"
+              borderRadius="md"
+              bg="green.50"
+            >
+              {success}
+            </Text>
+          )}
+        </Box>
+      )}
+
       {/* Statistics Cards */}
       <Grid
         templateColumns={{ sm: "1fr", md: "1fr 1fr 1fr" }}
         gap="24px"
         mb="24px"
+        mx={4}
       >
-        {/* Super Admins Card */}
+        {/* Total Users Card */}
         <Card
           minH="83px"
           cursor="pointer"
-          onClick={() => handleCardClick("super")}
-          border={activeFilter === "super" ? "2px solid" : "none"}
+          onClick={() => handleCardClick("all")}
+          border={activeFilter === "all" ? "2px solid" : "none"}
           borderColor="blue.500"
           transition="all 0.2s"
           _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
@@ -610,17 +735,17 @@ function AdminManagement() {
                   fontWeight="bold"
                   pb="2px"
                 >
-                  Super Admins
+                  Total Users
                 </StatLabel>
                 <Flex>
                   <StatNumber fontSize="lg" color={textColor}>
-                    {adminData.filter((a) => a.role === "super admin").length}
+                    {userData.length}
                   </StatNumber>
                 </Flex>
               </Stat>
               <IconBox as="box" h={"45px"} w={"45px"} bg="blue.300">
                 <Icon
-                  as={MdAdminPanelSettings}
+                  as={FaUsers}
                   h={"24px"}
                   w={"24px"}
                   color={iconBoxInside}
@@ -630,7 +755,7 @@ function AdminManagement() {
           </CardBody>
         </Card>
 
-        {/* Active Status Card */}
+        {/* Active Users Card */}
         <Card
           minH="83px"
           cursor="pointer"
@@ -649,11 +774,11 @@ function AdminManagement() {
                   fontWeight="bold"
                   pb="2px"
                 >
-                  Active Status
+                  Active Users
                 </StatLabel>
                 <Flex>
                   <StatNumber fontSize="lg" color={textColor}>
-                    {adminData.filter((a) => a.status === "active").length}
+                    {userData.filter((a) => a.status === "active").length}
                   </StatNumber>
                 </Flex>
               </Stat>
@@ -669,12 +794,12 @@ function AdminManagement() {
           </CardBody>
         </Card>
 
-        {/* Admins Only Card */}
+        {/* Verified Users Card */}
         <Card
           minH="83px"
           cursor="pointer"
-          onClick={() => handleCardClick("admins")}
-          border={activeFilter === "admins" ? "2px solid" : "none"}
+          onClick={() => handleCardClick("verified")}
+          border={activeFilter === "verified" ? "2px solid" : "none"}
           borderColor="teal.500"
           transition="all 0.2s"
           _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
@@ -688,17 +813,17 @@ function AdminManagement() {
                   fontWeight="bold"
                   pb="2px"
                 >
-                  Admins Only
+                  Verified Users
                 </StatLabel>
                 <Flex>
                   <StatNumber fontSize="lg" color={textColor}>
-                    {adminData.filter((a) => a.role === "admin").length}
+                    {userData.filter((a) => a.isVerified === true).length}
                   </StatNumber>
                 </Flex>
               </Stat>
               <IconBox as="box" h={"45px"} w={"45px"} bg={iconTeal}>
                 <Icon
-                  as={FaUsers}
+                  as={MdPerson}
                   h={"24px"}
                   w={"24px"}
                   color={iconBoxInside}
@@ -709,39 +834,13 @@ function AdminManagement() {
         </Card>
       </Grid>
 
-      {/* Success/Error Message Display */}
-      {error && (
-        <Text
-          color="red.500"
-          mb={4}
-          p={3}
-          border="1px"
-          borderColor="red.200"
-          borderRadius="md"
-        >
-          {error}
-        </Text>
-      )}
-      {success && (
-        <Text
-          color="green.500"
-          mb={4}
-          p={3}
-          border="1px"
-          borderColor="green.200"
-          borderRadius="md"
-        >
-          {success}
-        </Text>
-      )}
-
       {/* Active Filter Display */}
-      <Flex justify="space-between" align="center" mb={4}>
+      <Flex justify="space-between" align="center" mb={4} mx={4}>
         <Text fontSize="lg" fontWeight="bold" color={textColor}>
-          {activeFilter === "super" && "Super Admins"}
-          {activeFilter === "active" && "Active Admins"}
-          {activeFilter === "admins" && "Admins Only"}
-          {activeFilter === "all" && "All Administrators"}
+          {activeFilter === "active" && "Active Users"}
+          {activeFilter === "inactive" && "Inactive Users"}
+          {activeFilter === "verified" && "Verified Users"}
+          {activeFilter === "all" && "All Users"}
         </Text>
         {activeFilter !== "all" && (
           <Button
@@ -754,19 +853,19 @@ function AdminManagement() {
         )}
       </Flex>
 
-      {/* Admin Table with new styling */}
-      <Card p={5} shadow="xl">
+      {/* User Table with new styling */}
+      <Card mx={4} mb={4} shadow="xl" flex="1" overflow="hidden">
         <CardHeader p="6px 0px 22px 0px">
           <Flex justify="space-between" align="center" flexWrap="wrap" gap={4}>
             {/* Title */}
             <Heading size="md" flexShrink={0}>
-              👤 Administrators Table
+              👥 Users Table
             </Heading>
 
             {/* Search Bar */}
             <Flex align="center" flex="1" maxW="400px">
               <Input
-                placeholder="Search by name, email, role, or status..."
+                placeholder="Search by name, email, phone, or role..."
                 value={searchTerm}
                 onChange={handleSearchChange}
                 size="sm"
@@ -780,57 +879,88 @@ function AdminManagement() {
               )}
             </Flex>
 
-            {/* Add Admin Button */}
+            {/* Add User Button */}
             <Button
               colorScheme="blue"
-              onClick={handleAddAdmin}
+              onClick={handleAddUser}
               fontSize="sm"
               borderRadius="8px"
               flexShrink={0}
+              leftIcon={<FaUserPlus />}
             >
-              + Add Admin
+              Add User
             </Button>
           </Flex>
         </CardHeader>
-        <CardBody>
-          
+        <CardBody overflow="auto">
           {tableLoading ? (
             <Flex justify="center" align="center" py={10}>
               <Spinner size="xl" color="blue.500" />
-              <Text ml={4}>Loading administrators...</Text>
+              <Text ml={4}>Loading users...</Text>
             </Flex>
           ) : (
             <>
               {currentItems.length > 0 ? (
                 <>
                   <Table variant="striped" colorScheme="blue">
-                    <Thead bg={tableHeaderBg}>
+                    <Thead bg={tableHeaderBg} position="sticky" top={0} zIndex={1}>
                       <Tr>
-                        <Th>Name</Th>
-                        <Th>Email</Th>
+                        <Th>User</Th>
+                        <Th>Contact</Th>
                         <Th>Role</Th>
                         <Th>Status</Th>
+                        <Th>Verification</Th>
                         <Th>Actions</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
-                      {currentItems.map((admin, index) => {
-                        const statusColors = getStatusColor(admin.status);
+                      {currentItems.map((user, index) => {
+                        const statusColors = getStatusColor(user.status);
+                        const verification = getVerificationBadge(user.isVerified);
                         return (
-                          <Tr key={admin._id || index}>
-                            <Td>{admin.name}</Td>
-                            <Td>{admin.email}</Td>
-                            <Td>{admin.role}</Td>
+                          <Tr key={user._id || index}>
+                            <Td>
+                              <Flex align="center">
+                                <Avatar
+                                  size="sm"
+                                  name={`${user.firstName} ${user.lastName}`}
+                                  src={user.profileImage}
+                                  mr={3}
+                                />
+                                <Box>
+                                  <Text fontWeight="bold">{`${user.firstName} ${user.lastName}`}</Text>
+                                </Box>
+                              </Flex>
+                            </Td>
+                            <Td>
+                              <Box>
+                                <Text>{user.email}</Text>
+                                <Text fontSize="sm" color="gray.600">
+                                  {user.phone || "No phone"}
+                                </Text>
+                              </Box>
+                            </Td>
                             <Td>
                               <Badge
                                 colorScheme={
-                                  statusColors.bg.includes("green")
-                                    ? "green"
-                                    : statusColors.bg.includes("red")
-                                    ? "red"
-                                    : statusColors.bg.includes("yellow")
-                                    ? "yellow"
-                                    : "gray"
+                                  user.role === "super admin" ? "purple" :
+                                  user.role === "admin" ? "blue" : "gray"
+                                }
+                                px={3}
+                                py={1}
+                                borderRadius="full"
+                                fontSize="sm"
+                                fontWeight="bold"
+                              >
+                                {user.role || "user"}
+                              </Badge>
+                            </Td>
+                            <Td>
+                              <Badge
+                                colorScheme={
+                                  statusColors.bg.includes("green") ? "green" :
+                                  statusColors.bg.includes("red") ? "red" :
+                                  statusColors.bg.includes("yellow") ? "yellow" : "gray"
                                 }
                                 bg={statusColors.bg}
                                 color={statusColors.color}
@@ -840,7 +970,19 @@ function AdminManagement() {
                                 fontSize="sm"
                                 fontWeight="bold"
                               >
-                                {admin.status || "active"}
+                                {user.status || "active"}
+                              </Badge>
+                            </Td>
+                            <Td>
+                              <Badge
+                                colorScheme={verification.color}
+                                px={3}
+                                py={1}
+                                borderRadius="full"
+                                fontSize="sm"
+                                fontWeight="bold"
+                              >
+                                {verification.text}
                               </Badge>
                             </Td>
                             <Td>
@@ -848,7 +990,7 @@ function AdminManagement() {
                                 colorScheme="blue"
                                 size="sm"
                                 leftIcon={<FaEdit />}
-                                onClick={() => handleEditAdmin(admin)}
+                                onClick={() => handleEditUser(user)}
                               >
                                 Edit
                               </Button>
@@ -874,7 +1016,7 @@ function AdminManagement() {
                         {Math.min(indexOfLastItem, filteredData.length)} of{" "}
                         {filteredData.length} entries
                         {searchTerm &&
-                          ` (filtered from ${adminData.length} total)`}
+                          ` (filtered from ${userData.length} total)`}
                       </Text>
                       <Flex align="center" gap={2}>
                         <Button
@@ -923,12 +1065,12 @@ function AdminManagement() {
               ) : (
                 <Text textAlign="center" py={10} color="gray.500" fontSize="lg">
                   {dataLoaded
-                    ? adminData.length === 0
-                      ? "No administrators found."
+                    ? userData.length === 0
+                      ? "No users found."
                       : searchTerm
-                      ? "No administrators match your search."
-                      : "No administrators match the selected filter."
-                    : "Loading administrators..."}
+                      ? "No users match your search."
+                      : "No users match the selected filter."
+                    : "Loading users..."}
                 </Text>
               )}
             </>
@@ -954,4 +1096,4 @@ function IconBox({ children, ...rest }) {
   );
 }
 
-export default AdminManagement;
+export default UserManagement;
