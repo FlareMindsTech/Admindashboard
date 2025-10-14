@@ -116,5 +116,141 @@ export const getAllAdmins = async () => {
     throw error;
   }
 };
+<<<<<<< HEAD
 
 
+=======
+// =========================================================
+//5. API CALL FUNCTION (Example)
+// =========================================================
+
+export const getAllCategories = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/categories/all`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        token: token, // send the stored token
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data; // should return { categories: [...] }
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    throw error;
+  }
+};
+
+
+export const createCategories = async (categoryData) => {
+  try {
+    const token = localStorage.getItem("token"); // get token from localStorage
+    const response = await fetch(`${BASE_URL}/categories/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token: token, // send the stored token
+      },
+      body: JSON.stringify(categoryData), // send category data as JSON
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data; // should return the created category
+  } catch (error) {
+    console.error("Error creating category:", error);
+    throw error;
+  }
+};
+
+// =========================================================
+//5. API CALL FUNCTION (Example)
+// =========================================================
+// export const getAllProducts = async () => {
+//   try {
+//     const token = localStorage.getItem("token");
+//     if (!token) throw new Error("Token not found");
+
+//     const response = await fetch(`${BASE_URL}/products/all`, {
+//       method: "GET",
+//       headers: {
+//         "Content-Type": "application/json",
+//         token,
+//       },
+//     });
+
+//     const text = await response.text(); // get response as text first
+//     let data;
+//     try {
+//       data = JSON.parse(text); // try parsing JSON
+//     } catch {
+//       console.error("Non-JSON response:", text);
+//       throw new Error("Invalid JSON response from server");
+//     }
+
+//     if (!response.ok) {
+//       throw new Error(data.message || `Error: ${response.status}`);
+//     }
+
+//     return data; // { products: [...] }
+//   } catch (error) {
+//     console.error("Error fetching products:", error);
+//     throw error;
+//   }
+// };
+
+
+// export const createProduct = async (productData) => {
+//   try {
+//     const token = localStorage.getItem("token");
+//     if (!token) throw new Error("Token not found");
+
+//     // Ensure categoryId is present
+//     if (!productData.categoryId) {
+//       throw new Error("Product must have a categoryId");
+//     }
+
+//     // Optional: convert variants string to array if provided as comma-separated
+//     if (productData.variants && typeof productData.variants === "string") {
+//       productData.variants = productData.variants.split(",").map(v => v.trim());
+//     }
+
+//     const response = await fetch(`${BASE_URL}/products/create`, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         token,
+//       },
+//       body: JSON.stringify(productData),
+//     });
+
+//     const text = await response.text();
+//     let data;
+//     try {
+//       data = JSON.parse(text);
+//     } catch {
+//       console.error("Non-JSON response:", text);
+//       throw new Error("Invalid JSON response from server");
+//     }
+
+//     if (!response.ok) {
+//       throw new Error(data.message || `Error: ${response.status}`);
+//     }
+
+//     return data; // { product: {...} }
+//   } catch (error) {
+//     console.error("Error creating product:", error);
+//     throw error;
+//   }
+// };
+>>>>>>> b70623bc293993af1fc81a8e82d612506a8e73b7
