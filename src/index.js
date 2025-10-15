@@ -4,6 +4,7 @@ import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import AuthLayout from "layouts/Auth.js";
 import AdminLayout from "layouts/Admin.js";
+import Profile from "views/Dashboard/Profile.js";
 
 import { ChakraProvider } from "@chakra-ui/react";
 // Custom Chakra theme
@@ -22,6 +23,7 @@ ReactDOM.render(
 
         {/* Default redirect */}
         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+        
 
         {/* Catch-all 404 */}
         <Route path="*" element={<Navigate to="/auth/signin" replace />} />

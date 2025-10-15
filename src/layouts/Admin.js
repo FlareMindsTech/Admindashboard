@@ -32,6 +32,7 @@ import PanelContainer from "components/Layout/PanelContainer";
 import PanelContent from "components/Layout/PanelContent";
 import bgAdmin from "assets/img/admin-background.png";
 
+
 export default function Dashboard(props) {
   const { ...rest } = props;
   // states and functions

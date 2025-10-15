@@ -116,15 +116,13 @@ export const getAllAdmins = async () => {
     throw error;
   }
 };
-<<<<<<<<< Temporary merge branch 1
-// =========================================================
+
 //5. API CALL FUNCTION (Example)
 // =========================================================
-
-export const getAllCategories = async () => {
+export const getAllProducts = async () => {
   try {
     const token = localStorage.getItem("token");
-    const response = await fetch(`${BASE_URL}/categories/all`, {
+    const response = await fetch(`${BASE_URL}/products/all`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -133,18 +131,210 @@ export const getAllCategories = async () => {
     });
 
     if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+      throw new Error(`Error: ${response.status}`); // throws for 4xx or 5xx
     }
 
     const data = await response.json();
-    return data; // should return { categories: [...] }
+    return data; // should return { products: [...] }
   } catch (error) {
-    console.error("Error fetching categories:", error);
+    console.error("Error fetching products:", error);
+    throw error;
+  }
+};
+
+// 🟢 Create a new product
+const uploadImage = async (file) => {
+  const token = localStorage.getItem("token");
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${BASE_URL}/admin/products/upload`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  // If server returns non-OK, log full response text
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("Error uploading image, backend response:", text);
+    throw new Error("Image upload failed");
+  }
+
+  // Parse JSON returned by backend
+  const data = await res.json();
+  return data.url; // backend must return { url: "<image URL>" }
+};
+
+// Main function to create product
+export const createProducts = async (productData) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Authorization token not found.");
+
+   
+    if (
+      !productData.name ||
+      !productData.category ||
+      !productData.price ||
+      !productData.stock
+    ) {
+      throw new Error("Please fill all required fields before submitting the product.");
+    }
+
+    console.log("🧾 Product data before uploading images:", productData);
+
+
+    let imageUrls = [];
+    if (productData.imgFiles && productData.imgFiles.length > 0) {
+      imageUrls = await Promise.all(
+        productData.imgFiles.map((file) => uploadImage(file))
+      );
+    }
+
+    console.log(" Uploaded image URLs:", imageUrls);
+
+    // Step 2: Prepare product JSON
+    const productPayload = {
+      name: productData.name.trim(),
+      description: productData.description?.trim() || "",
+      category: productData.category,
+      variants: [
+        {
+          color: productData.color || "default",
+          size: productData.size || "default",
+          price: Number(productData.price),
+          stock: Number(productData.stock),
+          sku:
+            productData.sku ||
+            `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        },
+      ],
+      images: imageUrls,
+    };
+
+    console.log(" Sending product JSON to API:", productPayload);
+
+    // Step 3: Create product
+    const res = await fetch(`${BASE_URL}/products/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token,
+      },
+      body: JSON.stringify(productPayload),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      let errorMessage = "Failed to create product.";
+
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorMessage;
+      } catch {
+        console.warn("Non-JSON error response from server:", errorText);
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const data = await res.json();
+    console.log("✅ Product created successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("Error creating product:", error.message);
+    throw error;
+  }
+};
+export const updateAdmin = async (adminId, updatedData) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/admins/update/${adminId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        token: token,
+      },
+      body: JSON.stringify(updatedData),
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating admin:", error);
     throw error;
   }
 };
 
 
+//  USERS 
+
+// ===== User API functions =====
+
+// Get all users
+export const getAllUsers = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/users/all`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        token: token,
+      },
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    throw error;
+  }
+};
+
+// Create a new user
+export const createUser = async (userData) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/users/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token: token,
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error creating user:", error);
+    throw error;
+  }
+};
+
+// Update an existing user
+export const updateUser = async (userId, updatedData) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/users/update/${userId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        token: token,
+      },
+      body: JSON.stringify(updatedData),
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating user:", error);
+    throw error;
+  }
+};
 export const createCategories = async (categoryData) => {
   try {
     const token = localStorage.getItem("token"); // get token from localStorage
@@ -187,88 +377,25 @@ export const createAdmin = async (adminData) => {
     throw error;
   }
 };
+export const getAllCategories = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/categories/all`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        token: token, // send the stored token
+      },
+    });
 
-// =========================================================
-//5. API CALL FUNCTION (Example)
-// =========================================================
-// export const getAllProducts = async () => {
-//   try {
-//     const token = localStorage.getItem("token");
-//     if (!token) throw new Error("Token not found");
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
 
-//     const response = await fetch(`${BASE_URL}/products/all`, {
-//       method: "GET",
-//       headers: {
-//         "Content-Type": "application/json",
-//         token,
-//       },
-//     });
-
-//     const text = await response.text(); // get response as text first
-//     let data;
-//     try {
-//       data = JSON.parse(text); // try parsing JSON
-//     } catch {
-//       console.error("Non-JSON response:", text);
-//       throw new Error("Invalid JSON response from server");
-//     }
-
-//     if (!response.ok) {
-//       throw new Error(data.message || `Error: ${response.status}`);
-//     }
-
-//     return data; // { products: [...] }
-//   } catch (error) {
-//     console.error("Error fetching products:", error);
-//     throw error;
-//   }
-// };
-
-
-// export const createProduct = async (productData) => {
-//   try {
-//     const token = localStorage.getItem("token");
-//     if (!token) throw new Error("Token not found");
-
-//     // Ensure categoryId is present
-//     if (!productData.categoryId) {
-//       throw new Error("Product must have a categoryId");
-//     }
-
-//     // Optional: convert variants string to array if provided as comma-separated
-//     if (productData.variants && typeof productData.variants === "string") {
-//       productData.variants = productData.variants.split(",").map(v => v.trim());
-//     }
-
-//     const response = await fetch(`${BASE_URL}/products/create`, {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//         token,
-//       },
-//       body: JSON.stringify(productData),
-//     });
-
-//     const text = await response.text();
-//     let data;
-//     try {
-//       data = JSON.parse(text);
-//     } catch {
-//       console.error("Non-JSON response:", text);
-//       throw new Error("Invalid JSON response from server");
-//     }
-
-//     if (!response.ok) {
-//       throw new Error(data.message || `Error: ${response.status}`);
-//     }
-
-//     return data; // { product: {...} }
-//   } catch (error) {
-//     console.error("Error creating product:", error);
-//     throw error;
-//   }
-// };
-=========
-
-
->>>>>>>>> Temporary merge branch 2
+    const data = await response.json();
+    return data; // should return { categories: [...] }
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    throw error;
+  }
+};

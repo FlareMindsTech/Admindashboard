@@ -9,6 +9,8 @@ import SignUp from "views/Pages/SignUp.js";
 import AdminManagement from "views/Dashboard/AdminManagement.js"; 
 import UserManagement from "views/Dashboard/UserManagement.js"; 
 
+
+
 import {
   HomeIcon,
   StatsIcon,
@@ -62,15 +64,21 @@ var dashRoutes = [
     rtlName: "صفحات",
     state: "pageCollapse",
     views: [
-      {
-        path: "/profile",
-        name: "Profile",
-        rtlName: "الملف الشخصي",
-        icon: <PersonIcon color="inherit" />,
-        secondaryNavbar: true,
-        element: <Profile />,
-        layout: "/admin",
-      },
+      // {
+      //   path: "/profile",
+      //   name: "profiles",
+      //   rtlName: "الملف الشخصي",
+      //   icon: <PersonIcon color="inherit" />,
+      //   secondaryNavbar: true,
+      //   element: <Profile />,
+      //   layout: "/admin",
+      // },
+        {
+    path: "/profile",
+    name: "Profile",
+    element: <Profile />,
+    layout: "/admin",
+  },
       {
         path: "/signin",
         name: "Login",
@@ -79,8 +87,10 @@ var dashRoutes = [
         element: <SignIn />,
         layout: "/auth",
       },
+      
     ],
   },
 ];
+
 
 export default dashRoutes;
