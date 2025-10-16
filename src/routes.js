@@ -18,6 +18,7 @@ import {
   RocketIcon,
 } from "components/Icons/Icons";
 import { MdCategory } from "react-icons/md"; // ✅ for category icon
+import ProductManagement from "views/Dashboard/ProductManagement";
 
 var dashRoutes = [
   {
@@ -26,6 +27,14 @@ var dashRoutes = [
     rtlName: "لوحة القيادة",
     icon: <HomeIcon color="inherit" />,
     element: <Dashboard />,
+    layout: "/admin",
+  },
+   {
+    path: "/ProductManagement",
+    name: "Product Management",
+    rtlName: "إدارة المستخدمين",
+    icon: <StatsIcon color="inherit" />,
+    element: <ProductManagement />,     
     layout: "/admin",
   },
   {
