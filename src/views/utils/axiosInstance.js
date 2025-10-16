@@ -116,78 +116,7 @@ export const getAllAdmins = async () => {
     throw error;
   }
 };
-// =========================================================
-//5. API CALL FUNCTION (Example)
-// =========================================================
 
-export const getAllCategories = async () => {
-  try {
-    const token = localStorage.getItem("token");
-    const response = await fetch(`${BASE_URL}/categories/all`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        token: token, // send the stored token
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data; // should return { categories: [...] }
-  } catch (error) {
-    console.error("Error fetching categories:", error);
-    throw error;
-  }
-};
-
-
-export const createCategories = async (categoryData) => {
-  try {
-    const token = localStorage.getItem("token"); // get token from localStorage
-    const response = await fetch(`${BASE_URL}/categories/create`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        token: token, // send the stored token
-      },
-      body: JSON.stringify(categoryData), // send category data as JSON
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data; // should return the created category
-  } catch (error) {
-    console.error("Error creating category:", error);
-  }}
-// Create a new admin
-export const createAdmin = async (adminData) => {
-  try {
-    const token = localStorage.getItem("token");
-    const response = await fetch(`${BASE_URL}/admins/create`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        token: token,
-      },
-      body: JSON.stringify(adminData),
-    });
-
-    if (!response.ok) throw new Error(`Error: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error("Error creating admin:", error);
-    throw error;
-  }
-};
-
-// =========================================================
 //5. API CALL FUNCTION (Example)
 // =========================================================
 export const getAllProducts = async () => {
@@ -406,6 +335,67 @@ export const updateUser = async (userId, updatedData) => {
     throw error;
   }
 };
+export const createCategories = async (categoryData) => {
+  try {
+    const token = localStorage.getItem("token"); // get token from localStorage
+    const response = await fetch(`${BASE_URL}/categories/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token: token, // send the stored token
+      },
+      body: JSON.stringify(categoryData), // send category data as JSON
+    });
 
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Error: ${response.status}`);
+    }
 
- 
+    const data = await response.json();
+    return data; // should return the created category
+  } catch (error) {
+    console.error("Error creating category:", error);
+  }}
+// Create a new admin
+export const createAdmin = async (adminData) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/admins/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token: token,
+      },
+      body: JSON.stringify(adminData),
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error creating admin:", error);
+    throw error;
+  }
+};
+export const getAllCategories = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/categories/all`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        token: token, // send the stored token
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data; // should return { categories: [...] }
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    throw error;
+  }
+};

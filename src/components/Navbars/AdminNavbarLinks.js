@@ -65,7 +65,7 @@ export default function HeaderLinks(props) {
       {/* ✅ Updated NavLink usage */}
       <Button
         as={NavLink}
-        to="auth/profile.js"
+        to="/admin/profile"
         ms="0px"
         px="0px"
         me={{ sm: "2px", md: "16px" }}

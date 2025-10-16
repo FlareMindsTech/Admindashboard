@@ -8,6 +8,8 @@ import SignIn from "views/Pages/SignIn.js";
 import SignUp from "views/Pages/SignUp.js";
 import AdminManagement from "views/Dashboard/AdminManagement.js"; 
 import UserManagement from "views/Dashboard/UserManagement.js"; 
+import { MdLogout } from "react-icons/md";
+
 
 import {
   HomeIcon,
@@ -62,25 +64,33 @@ var dashRoutes = [
     rtlName: "صفحات",
     state: "pageCollapse",
     views: [
-      {
-        path: "/profile",
-        name: "Profile",
-        rtlName: "الملف الشخصي",
-        icon: <PersonIcon color="inherit" />,
-        secondaryNavbar: true,
-        element: <Profile />,
-        layout: "/admin",
-      },
+      // {
+      //   path: "/profile",
+      //   name: "profiles",
+      //   rtlName: "الملف الشخصي",
+      //   icon: <PersonIcon color="inherit" />,
+      //   secondaryNavbar: true,
+      //   element: <Profile />,
+      //   layout: "/admin",
+      // },
+        {
+    path: "/profile",
+    name: "Profile",
+    element: <Profile />,
+    layout: "/admin",
+  },
       {
         path: "/signin",
-        name: "Login",
+        name: "Logout",
         rtlName: "تسجيل الدخول",
-        icon: <DocumentIcon color="inherit" />,
+        icon: <MdLogout color="inherit" />,
         element: <SignIn />,
         layout: "/auth",
       },
+      
     ],
   },
 ];
+
 
 export default dashRoutes;
