@@ -117,7 +117,44 @@ export const getAllAdmins = async () => {
   }
 };
 
-//5. API CALL FUNCTION (Example)
+
+
+
+
+//update category
+  export const updateCategories = async (categoryId, updatedData) => {
+  try {
+    const token = localStorage.getItem("token"); // Get token from localStorage
+
+    const response = await fetch(`${BASE_URL}/categories/update/${categoryId}`, {
+      method: "PUT", // Update request
+      headers: {
+        "Content-Type": "application/json",
+        token: token, // Include JWT token for authorization
+      },
+      body: JSON.stringify(updatedData), // Send updated category data as JSON
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data; // Return the updated category details
+  } catch (error) {
+    console.error("Error updating category:", error);
+    throw error;
+  }
+};
+// =========================================================
+//6. API CALL FUNCTION (Example)
+// =========================================================
+// Create a new admin
+
+
+// =========================================================
+//7. API CALL FUNCTION (Example)
 // =========================================================
 export const getAllProducts = async () => {
   try {
@@ -142,16 +179,42 @@ export const getAllProducts = async () => {
   }
 };
 
-// 🟢 Create a new product
-const uploadImage = async (file) => {
+//create product
+export const createProducts = async (productData) => {
+  try {
+    const token = localStorage.getItem("token"); // get token from localStorage
+
+    const response = await fetch(`${BASE_URL}/products/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token: token, // send token in headers
+      },
+      body: JSON.stringify(productData), // send product data as JSON
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data; // returns created product details
+  } catch (error) {
+    console.error("Error creating product:", error);
+  }
+};
+
+//image upload
+export const uploadImage = async (file) => {
   const token = localStorage.getItem("token");
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch(`${BASE_URL}/admin/products/upload`, {
+  const res = await fetch(`${BASE_URL}/products/upload`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
+      token: token,
     },
     body: formData,
   });
@@ -168,87 +231,56 @@ const uploadImage = async (file) => {
   return data.url; // backend must return { url: "<image URL>" }
 };
 
-// Main function to create product
-export const createProducts = async (productData) => {
+
+//update product
+export const updateProducts = async (productId, updatedData) => {
   try {
     const token = localStorage.getItem("token");
-    if (!token) throw new Error("Authorization token not found.");
-
-   
-    if (
-      !productData.name ||
-      !productData.category ||
-      !productData.price ||
-      !productData.stock
-    ) {
-      throw new Error("Please fill all required fields before submitting the product.");
-    }
-
-    console.log("🧾 Product data before uploading images:", productData);
-
-
-    let imageUrls = [];
-    if (productData.imgFiles && productData.imgFiles.length > 0) {
-      imageUrls = await Promise.all(
-        productData.imgFiles.map((file) => uploadImage(file))
-      );
-    }
-
-    console.log(" Uploaded image URLs:", imageUrls);
-
-    // Step 2: Prepare product JSON
-    const productPayload = {
-      name: productData.name.trim(),
-      description: productData.description?.trim() || "",
-      category: productData.category,
-      variants: [
-        {
-          color: productData.color || "default",
-          size: productData.size || "default",
-          price: Number(productData.price),
-          stock: Number(productData.stock),
-          sku:
-            productData.sku ||
-            `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        },
-      ],
-      images: imageUrls,
-    };
-
-    console.log(" Sending product JSON to API:", productPayload);
-
-    // Step 3: Create product
-    const res = await fetch(`${BASE_URL}/products/create`, {
-      method: "POST",
+    const response = await fetch(`${BASE_URL}/products/update/${productId}`, {
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        token,
+        token: token, // send the stored token
       },
-      body: JSON.stringify(productPayload),
+      body: JSON.stringify(updatedData),
     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      let errorMessage = "Failed to create product.";
-
-      try {
-        const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.message || errorMessage;
-      } catch {
-        console.warn("Non-JSON error response from server:", errorText);
-      }
-
-      throw new Error(errorMessage);
+    if (!response.ok) {
+      throw new Error(`Error updating product: ${response.status}`);
     }
 
-    const data = await res.json();
-    console.log("✅ Product created successfully:", data);
-    return data;
+    const data = await response.json();
+    return data; // updated product object
   } catch (error) {
-    console.error("Error creating product:", error.message);
+    console.error("Error updating product:", error);
     throw error;
   }
 };
+
+// Delete a product
+export const deleteProducts = async (productId) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/products/delete/${productId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        token: token, // send the stored token
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error deleting product: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data; // maybe a success message
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    throw error;
+  }
+};
+
 export const updateAdmin = async (adminId, updatedData) => {
   try {
     const token = localStorage.getItem("token");
