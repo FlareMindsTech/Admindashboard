@@ -671,7 +671,7 @@ function AdminManagement() {
 
         {/* Admins Only Card */}
         <Card
-          minH="83px"
+          minH="100px"
           cursor="pointer"
           onClick={() => handleCardClick("admins")}
           border={activeFilter === "admins" ? "2px solid" : "none"}
@@ -803,61 +803,76 @@ function AdminManagement() {
             <>
               {currentItems.length > 0 ? (
                 <>
-                  <Table variant="striped" colorScheme="blue">
-                    <Thead bg={tableHeaderBg}>
-                      <Tr>
-                        <Th>Name</Th>
-                        <Th>Email</Th>
-                        <Th>Role</Th>
-                        <Th>Status</Th>
-                        <Th>Actions</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {currentItems.map((admin, index) => {
-                        const statusColors = getStatusColor(admin.status);
-                        return (
-                          <Tr key={admin._id || index}>
-                            <Td>{admin.name}</Td>
-                            <Td>{admin.email}</Td>
-                            <Td>{admin.role}</Td>
-                            <Td>
-                              <Badge
-                                colorScheme={
-                                  statusColors.bg.includes("green")
-                                    ? "green"
-                                    : statusColors.bg.includes("red")
-                                    ? "red"
-                                    : statusColors.bg.includes("yellow")
-                                    ? "yellow"
-                                    : "gray"
-                                }
-                                bg={statusColors.bg}
-                                color={statusColors.color}
-                                px={3}
-                                py={1}
-                                borderRadius="full"
-                                fontSize="sm"
-                                fontWeight="bold"
-                              >
-                                {admin.status || "active"}
-                              </Badge>
-                            </Td>
-                            <Td>
-                              <Button
-                                colorScheme="blue"
-                                size="sm"
-                                leftIcon={<FaEdit />}
-                                onClick={() => handleEditAdmin(admin)}
-                              >
-                                Edit
-                              </Button>
-                            </Td>
-                          </Tr>
-                        );
-                      })}
-                    </Tbody>
-                  </Table>
+                  {/* Responsive Table Container with Scroll */}
+                  <Box 
+                    overflowX="auto" 
+                    overflowY="auto" 
+                    maxH="600px" 
+                    border="1px solid" 
+                    borderColor="gray.200" 
+                    borderRadius="md"
+                  >
+                    <Table 
+                      variant="striped" 
+                      colorScheme="blue" 
+                      minWidth="600px" // Minimum width to ensure proper table layout
+                      size="sm"
+                    >
+                      <Thead bg={tableHeaderBg} position="sticky" top={0} zIndex={1}>
+                        <Tr>
+                          <Th whiteSpace="nowrap">Name</Th>
+                          <Th whiteSpace="nowrap">Email</Th>
+                          <Th whiteSpace="nowrap">Role</Th>
+                          <Th whiteSpace="nowrap">Status</Th>
+                          <Th whiteSpace="nowrap">Actions</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {currentItems.map((admin, index) => {
+                          const statusColors = getStatusColor(admin.status);
+                          return (
+                            <Tr key={admin._id || index}>
+                              <Td whiteSpace="nowrap">{admin.name}</Td>
+                              <Td whiteSpace="nowrap">{admin.email}</Td>
+                              <Td whiteSpace="nowrap">{admin.role}</Td>
+                              <Td whiteSpace="nowrap">
+                                <Badge
+                                  colorScheme={
+                                    statusColors.bg.includes("green")
+                                      ? "green"
+                                      : statusColors.bg.includes("red")
+                                      ? "red"
+                                      : statusColors.bg.includes("yellow")
+                                      ? "yellow"
+                                      : "gray"
+                                  }
+                                  bg={statusColors.bg}
+                                  color={statusColors.color}
+                                  px={3}
+                                  py={1}
+                                  borderRadius="full"
+                                  fontSize="sm"
+                                  fontWeight="bold"
+                                >
+                                  {admin.status || "active"}
+                                </Badge>
+                              </Td>
+                              <Td whiteSpace="nowrap">
+                                <Button
+                                  colorScheme="blue"
+                                  size="sm"
+                                  leftIcon={<FaEdit />}
+                                  onClick={() => handleEditAdmin(admin)}
+                                >
+                                  Edit
+                                </Button>
+                              </Td>
+                            </Tr>
+                          );
+                        })}
+                      </Tbody>
+                    </Table>
+                  </Box>
 
                   {/* Pagination */}
                   {totalPages > 1 && (

@@ -1,57 +1,38 @@
-// Chakra Icons
-import { BellIcon } from "@chakra-ui/icons";
-
 // Chakra Imports
 import {
   Box,
   Button,
   Flex,
   Menu,
-  MenuButton,
   MenuItem,
   MenuList,
-  Stack,
-  
   Text,
   useColorMode,
-  useColorModeValue
+  useColorModeValue,
 } from "@chakra-ui/react";
-// Assets
+import { BellIcon } from "@chakra-ui/icons";
+import React from "react";
+import { NavLink } from "react-router-dom";
 import avatar1 from "assets/img/avatars/avatar1.png";
 import avatar2 from "assets/img/avatars/avatar2.png";
 import avatar3 from "assets/img/avatars/avatar3.png";
-// Custom Icons
 import {
-  ArgonLogoDark,
-  ArgonLogoLight,
-  ChakraLogoDark,
-  ChakraLogoLight,
   ProfileIcon,
-  SettingsIcon
 } from "components/Icons/Icons";
-// Custom Components
 import { ItemContent } from "components/Menu/ItemContent";
-import { SearchBar } from "components/Navbars/SearchBar/SearchBar";
 import { SidebarResponsive } from "components/Sidebar/Sidebar";
-import React from "react";
-import { NavLink } from "react-router-dom";  // ✅ Still valid in v6
 import routes from "routes.js";
 
 export default function HeaderLinks(props) {
-  const { variant, children, fixed, scrolled, secondary, onOpen, ...rest } =
-    props;
-
+  const { fixed, scrolled, secondary, onOpen, ...rest } = props;
   const { colorMode } = useColorMode();
 
-  // Chakra Color Mode
   let navbarIcon =
     fixed && scrolled
       ? useColorModeValue("gray.700", "gray.200")
       : useColorModeValue("white", "gray.200");
   let menuBg = useColorModeValue("white", "navy.800");
-  if (secondary) {
-    navbarIcon = "white";
-  }
+  if (secondary) navbarIcon = "white";
 
   return (
     <Flex
@@ -60,58 +41,31 @@ export default function HeaderLinks(props) {
       alignItems="center"
       flexDirection="row"
     >
-      {/* <SearchBar me="18px" /> */}
 
-      {/* ✅ Updated NavLink usage */}
+      {/* ✅ Profile Button */}
       <Button
         as={NavLink}
-        to="auth/profile.js"
-        ms="0px"
-        px="0px"
-        me={{ sm: "2px", md: "16px" }}
+        to="/auth/profile"
         color={navbarIcon}
         variant="no-effects"
-        rightIcon={
-          document.documentElement.dir ? (
-            ""
-          ) : (
-            <ProfileIcon color={navbarIcon} w="22px" h="22px" me="0px" />
-          )
-        }
-        leftIcon={
-          document.documentElement.dir ? (
-            <ProfileIcon color={navbarIcon} w="22px" h="22px" me="0px" />
-          ) : (
-            ""
-          )
-        }
+        me={{ sm: "2px", md: "16px" }}
+        rightIcon={<ProfileIcon color={navbarIcon} w="22px" h="22px" />}
       >
-        <Text display={{ sm: "none", md: "flex" }}>profile</Text>
+        <Text display={{ sm: "none", md: "flex" }}>Profile</Text>
       </Button>
-<SidebarResponsive 
-hamburgerColor={"white"}
-//  logo={ <Stack direction="row" spacing="12px" align="center" justify="center"> 
-//  {/* {colorMode === "dark" ? ( <ArgonLogoLight w="74px" h="27px" /> ) : ( <ArgonLogoDark w="74px" h="27px" /> )}  */}
-//  <Box w="1px" h="20px" bg={colorMode === "dark" ? "white" : "gray.700"} />
-//   {/* {colorMode === "dark" ? ( <ChakraLogoLight w="82px" h="21px" /> ) : ( <ChakraLogoDark w="82px" h="21px" /> )} */}
-//    </Stack> } 
-   colorMode={colorMode} secondary={props.secondary} routes={routes} {...rest} />
 
+      {/* ✅ Sidebar trigger visible on mobile */}
+      <SidebarResponsive
+        hamburgerColor="white"
+        routes={routes}
+        colorMode={colorMode}
+        secondary={secondary}
+        onOpen={onOpen} // ✅ linked to AdminNavbar hamburger
+        {...rest}
+      />
 
-      {/* <SettingsIcon
-        cursor="pointer"
-        ms={{ base: "16px", xl: "0px" }}
-        me="16px"
-        onClick={props.onOpen}
-        color={navbarIcon}
-        w="18px"
-        h="18px"
-      /> */}
-
+      {/* ✅ Notification Menu */}
       <Menu>
-        {/* <MenuButton>
-          <BellIcon color={navbarIcon} w="18px" h="18px" />
-        </MenuButton> */}
         <MenuList p="16px 8px" bg={menuBg}>
           <Flex flexDirection="column">
             <MenuItem borderRadius="8px" mb="10px">
@@ -135,8 +89,7 @@ hamburgerColor={"white"}
             <MenuItem borderRadius="8px">
               <ItemContent
                 time="3 days ago"
-                info="Payment succesfully completed!"
-                boldInfo=""
+                info="Payment successfully completed!"
                 aName="Kara"
                 aSrc={avatar3}
               />

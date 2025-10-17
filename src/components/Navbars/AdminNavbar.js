@@ -1,168 +1,99 @@
 // Chakra Imports
 import {
   Box,
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
   Flex,
-  useColorModeValue
+  useColorModeValue,
 } from "@chakra-ui/react";
 import React, { useEffect, useState } from "react";
-import { Link as RouterLink } from "react-router-dom";  // ✅ v6 Link
+import { Link as RouterLink } from "react-router-dom";
 import AdminNavbarLinks from "./AdminNavbarLinks";
 
 export default function AdminNavbar(props) {
   const [scrolled, setScrolled] = useState(false);
+  // 💡 FIX: Added 'onOpen' to props destructuring
+  const { fixed, secondary, brandText, onOpen } = props; 
 
   useEffect(() => {
+    const changeNavbar = () => setScrolled(window.scrollY > 1);
     window.addEventListener("scroll", changeNavbar);
+    return () => window.removeEventListener("scroll", changeNavbar);
+  }, []);
 
-    return () => {
-      window.removeEventListener("scroll", changeNavbar);
-    };
-  });
-
-  const {
-    variant,
-    children,
-    fixed,
-    secondary,
-    brandText,
-    onOpen,
-    ...rest
-  } = props;
-
-  let mainText =
-    fixed && scrolled
-      ? useColorModeValue("gray.700", "gray.200")
-      : useColorModeValue("white", "gray.200");
-  let secondaryText =
-    fixed && scrolled
-      ? useColorModeValue("gray.700", "gray.200")
-      : useColorModeValue("white", "gray.200");
-
-  let navbarPosition = "absolute";
-  let navbarFilter = "none";
-  let navbarBackdrop = "none";
+  // 🎨 Colors and styles
+  let mainText = useColorModeValue("gray.700", "gray.200");
+  let navbarPosition = "fixed";
   let navbarShadow = "none";
-  let navbarBg = "none";
+  let navbarBg = "#7b2cbf"; // purple
   let navbarBorder = "transparent";
-  let secondaryMargin = "0px";
-  let paddingX = "15px";
+  let paddingX = "35px";
 
-  if (props.fixed === true)
+  // 🧭 Scroll + Fixed Navbar
+  if (fixed === true) {
     if (scrolled === true) {
-      navbarPosition = "fixed";
-      navbarShadow = useColorModeValue(
-        "0px 7px 23px rgba(0, 0, 0, 0.05)",
-        "none"
-      );
-      navbarBg = useColorModeValue(
-        "linear-gradient(112.83deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.8) 110.84%)",
-        "linear-gradient(112.83deg, rgba(255, 255, 255, 0.21) 0%, rgba(255, 255, 255, 0) 110.84%)"
-      );
-      navbarBorder = useColorModeValue(
-        "#FFFFFF",
-        "rgba(255, 255, 255, 0.31)"
-      );
-      navbarFilter = useColorModeValue(
-        "none",
-        "drop-shadow(0px 7px 23px rgba(0, 0, 0, 0.05))"
-      );
+      navbarBg = useColorModeValue("white", "gray.800");
+      navbarShadow = useColorModeValue("0px 7px 23px rgba(0, 0, 0, 0.1)", "none");
+      navbarBorder = useColorModeValue("#E2E8F0", "rgba(255,255,255,0.1)");
+    } else {
+      navbarBg = useColorModeValue("#7b2cbf", "gray.800"); // keep purple at top
+      navbarShadow = useColorModeValue("0px 4px 20px rgba(0, 0, 0, 0.05)", "none");
     }
-  if (props.secondary) {
-    navbarBackdrop = "none";
+  }
+
+  // 💡 Transparent mode for overlay
+  if (secondary) {
     navbarPosition = "absolute";
     mainText = "white";
-    secondaryText = "white";
-    secondaryMargin = "22px";
+    navbarBg = "transparent";
     paddingX = "30px";
   }
 
-  const changeNavbar = () => {
-    if (window.scrollY > 1) {
-      setScrolled(true);
-    } else {
-      setScrolled(false);
-    }
-  };
-
   return (
     <Flex
+      as="nav"
       position={navbarPosition}
-      boxShadow={navbarShadow}
+      align="center"
+      justify="space-between"
+      w="100%"
+      minH={{base:"100px", md:"100px", lg:"130px"}}
+      px={paddingX}
+      top="0"
       bg={navbarBg}
       borderColor={navbarBorder}
-      filter={navbarFilter}
-      backdropFilter={navbarBackdrop}
       borderWidth="1.5px"
       borderStyle="solid"
-      transition="all 0.25s linear"
-      alignItems={{ xl: "center" }}
-      borderRadius="16px"
-      display="flex"
-      minH="75px"
-      justifyContent={{ xl: "center" }}
-      lineHeight="25.6px"
-      mx="auto"
-      mt={secondaryMargin}
-      pb="8px"
-      left={document.documentElement.dir === "rtl" ? "30px" : ""}
-      right={document.documentElement.dir === "rtl" ? "" : "30px"}
-      px={{
-        sm: paddingX,
-        md: "30px",
-      }}
-      ps={{
-        xl: "12px",
-      }}
-      pt="8px"
-      top="18px"
-      w={{ sm: "calc(100vw - 30px)", xl: "calc(100vw - 75px - 275px)" }}
+      boxShadow={navbarShadow}
+      transition="all 0.25s ease-in-out"
+      // zIndex="1"
+      zIndex={{ base: "1", md: "-1"}}
     >
-      <Flex
-        w="100%"
-        flexDirection={{
-          sm: "column",
-          md: "row",
+      {/* ✅ Left side: Page Title only */}
+      <Box
+        as={RouterLink}
+        to="/admin/dashboard"
+        color="white"
+        fontWeight="bold"
+        fontSize={{ base: "md", md: "lg" }}
+        _hover={{
+          color: useColorModeValue("gray.100", "gray.300"),
+          textDecoration: "none",
         }}
-        alignItems={{ xl: "center" }}
+        transform={{ base: "translateX(0)", md: "translateX(300%)" }}
       >
-        <Box mb={{ sm: "8px", md: "0px" }}>
-          <Breadcrumb>
-            
-          </Breadcrumb>
+        {brandText}
+      </Box>
 
-          {/* Navbar brand */}
-          <Box
-            as={RouterLink}
-            to="/admin/dashboard"
-            color={mainText}
-            bg="inherit"
-            borderRadius="inherit"
-            fontWeight="bold"
-            _hover={{ color: mainText }}
-            _active={{
-              bg: "inherit",
-              transform: "none",
-              borderColor: "transparent",
-            }}
-            _focus={{
-              boxShadow: "none",
-            }}
-          >
-            {brandText}
-          </Box>
-        </Box>
-        <Box ms="auto" w={{ sm: "100%", md: "unset" }}>
-          <AdminNavbarLinks
-            onOpen={props.onOpen}
-            logoText={props.logoText}
-            secondary={props.secondary}
-            fixed={props.fixed}
-            scrolled={scrolled}
-          />
-        </Box>
+      {/* ✅ Right side: Profile & links */}
+      <Flex align="center">
+        <AdminNavbarLinks
+          // 💡 FIX: Passed the 'onOpen' function to the links component
+          onOpen={onOpen}
+          size="xl"  
+          drawerProps={{ width: "400px" }}
+          logoText={props.logoText}
+          secondary={secondary}
+          fixed={fixed}
+          scrolled={scrolled}
+        />
       </Flex>
     </Flex>
   );
