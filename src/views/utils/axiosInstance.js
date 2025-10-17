@@ -268,6 +268,8 @@ export const createAdmin = async (adminData) => {
 //   }
 // };
 // Update an existing admin
+
+
 export const updateAdmin = async (adminId, updatedData) => {
   try {
     const token = localStorage.getItem("token");
