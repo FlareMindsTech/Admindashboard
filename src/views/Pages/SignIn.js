@@ -74,9 +74,9 @@ function AdminLogin() {
 
       const { token, name, role } = res.data;
 
-      // ✅ Store token in sessionStorage
-      sessionStorage.setItem("token", token);
-      sessionStorage.setItem("user", JSON.stringify({ name, email, role }));
+      // ✅ Store token and user info in localStorage
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify({ name, email, role }));
 
       toast({
         title: "Login Successful",
@@ -86,7 +86,7 @@ function AdminLogin() {
         isClosable: true,
       });
 
-      // Redirect using hash router
+      // Redirect to dashboard using hash router
       window.location.href = "#/admin/dashboard";
     } catch (err) {
       console.error("Login error:", err);

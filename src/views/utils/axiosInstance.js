@@ -431,3 +431,26 @@ export const getAllCategories = async () => {
     throw error;
   }
 };
+
+export const updateAdminProfile = async ({ id, name, email, password, role }) => {
+  try {
+    const body = { name, email };
+    if (password) body.password = password; // only include if defined
+    if (role) body.role = role;             // only include if defined
+
+    const response = await axios.put(
+      `${BASE_URL}/admins/update/${id}`,
+      body,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Failed to update admin profile:", error);
+    throw error;
+  }
+};

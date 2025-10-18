@@ -150,7 +150,7 @@ function Sidebar(props) {
             </Stack>
           </Scrollbars>
           <Box textAlign="center" py="12px" fontSize="13px" color="#888">
-             © 2025 Flaremind ❤️
+             © 2025 FlareMinds ❤️
           </Box>
         </Box>
       </Box>
