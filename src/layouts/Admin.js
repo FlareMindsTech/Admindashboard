@@ -30,7 +30,7 @@ import FixedPlugin from "components/FixedPlugin/FixedPlugin";
 import MainPanel from "components/Layout/MainPanel";
 import PanelContainer from "components/Layout/PanelContainer";
 import PanelContent from "components/Layout/PanelContent";
-import bgAdmin from "assets/img/admin-background.png";
+// import bgAdmin from "assets/img/admin-background.png";
 
 
 export default function Dashboard(props) {
@@ -122,9 +122,9 @@ export default function Dashboard(props) {
       <Box
         minH="15vh"
         w="100%"
-        position="absolute"
-        bgImage={colorMode === "light" ? bgAdmin : "none"}
-        bg={colorMode === "light" ? bgAdmin : "navy.900"}
+        position="fixed"
+        // bgImage={colorMode === "light" ? bgAdmin : "none"}
+        // bg={colorMode === "light" ? bgAdmin : "navy.900"}
         bgSize="cover"
         top="0"
       />

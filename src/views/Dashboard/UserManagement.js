@@ -38,13 +38,11 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaSearch,
-  FaUserPlus,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdAdminPanelSettings, MdPerson } from "react-icons/md";
 import {
   getAllUsers,
-  createUser,
   updateUser,
 } from "views/utils/axiosInstance";
 
@@ -70,7 +68,7 @@ function UserManagement() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState(""); // Search filter state
 
-  // View state - 'list', 'add', 'edit'
+  // View state - 'list', 'edit'
   const [currentView, setCurrentView] = useState("list");
   const [editingUser, setEditingUser] = useState(null);
 
@@ -81,7 +79,6 @@ function UserManagement() {
     phone: "",
     email: "",
     password: "",
-    confirmPassword: "",
     profileImage: "",
     role: "user"
   });
@@ -222,24 +219,6 @@ function UserManagement() {
     setSearchTerm("");
   };
 
-  // Handle add user - show add form
-  const handleAddUser = () => {
-    setFormData({
-      firstName: "",
-      lastName: "",
-      phone: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      profileImage: "",
-      role: "user"
-    });
-    setEditingUser(null);
-    setCurrentView("add");
-    setError("");
-    setSuccess("");
-  };
-
   // Handle edit user - show edit form
   const handleEditUser = (user) => {
     setFormData({
@@ -248,7 +227,6 @@ function UserManagement() {
       phone: user.phone || "",
       email: user.email || "",
       password: "", // Don't pre-fill password for security
-      confirmPassword: "", // Don't pre-fill confirm password
       profileImage: user.profileImage || "",
       role: user.role || "user"
     });
@@ -279,28 +257,6 @@ function UserManagement() {
       });
     }
 
-    // For new user, password is required
-    if (currentView === "add" && !formData.password) {
-      return toast({
-        title: "Validation Error",
-        description: "Password is required for new user",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-
-    // Check password confirmation for new users
-    if (currentView === "add" && formData.password !== formData.confirmPassword) {
-      return toast({
-        title: "Validation Error",
-        description: "Password and confirm password do not match",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       return toast({
@@ -312,8 +268,8 @@ function UserManagement() {
       });
     }
 
-    // For new user, validate password strength
-    if (currentView === "add") {
+    // Validate password strength if provided
+    if (formData.password) {
       const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
       if (!passwordRegex.test(formData.password)) {
         return toast({
@@ -332,8 +288,6 @@ function UserManagement() {
     setSuccess("");
 
     try {
-      let response;
-
       // Prepare data for API with exact structure
       const userDataToSend = {
         firstName: formData.firstName,
@@ -345,82 +299,42 @@ function UserManagement() {
         ...(formData.password && { password: formData.password })
       };
 
-      if (currentView === "add") {
-        // Create new user using the API function
-        response = await createUser(userDataToSend);
-        console.log("Create user response:", response);
+      // Update existing user using the API function
+      const response = await updateUser(editingUser._id, userDataToSend);
+      console.log("Update user response:", response);
 
-        // Extract user data from response
-        const newUser = response.data || response;
+      // Extract user data from response
+      const updatedUser = response.data || response;
 
-        toast({
-          title: "User Created",
-          description: `User ${newUser.firstName} ${newUser.lastName} created successfully`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
+      toast({
+        title: "User Updated",
+        description: `User ${updatedUser.firstName} ${updatedUser.lastName} updated successfully`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
 
-        // Add new user to the beginning of the list (newest first)
-        const updatedUsers = [newUser, ...userData];
-        setUserData(updatedUsers);
-        setFilteredData(updatedUsers);
+      // Update user in the list
+      const updatedUsers = userData.map((user) =>
+        user._id === editingUser._id ? { ...user, ...updatedUser } : user
+      );
+      setUserData(updatedUsers);
+      setFilteredData(updatedUsers);
 
-        setSuccess("User created successfully!");
-        
-        // Reset form and go back to list immediately
-        setFormData({
-          firstName: "",
-          lastName: "",
-          phone: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-          profileImage: "",
-          role: "user"
-        });
-        setEditingUser(null);
-        setCurrentView("list");
-        
-      } else {
-        // Update existing user using the API function
-        response = await updateUser(editingUser._id, userDataToSend);
-        console.log("Update user response:", response);
-
-        // Extract user data from response
-        const updatedUser = response.data || response;
-
-        toast({
-          title: "User Updated",
-          description: `User ${updatedUser.firstName} ${updatedUser.lastName} updated successfully`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-
-        // Update user in the list
-        const updatedUsers = userData.map((user) =>
-          user._id === editingUser._id ? { ...user, ...updatedUser } : user
-        );
-        setUserData(updatedUsers);
-        setFilteredData(updatedUsers);
-
-        setSuccess("User updated successfully!");
-        
-        // Reset form and go back to list immediately
-        setFormData({
-          firstName: "",
-          lastName: "",
-          phone: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-          profileImage: "",
-          role: "user"
-        });
-        setEditingUser(null);
-        setCurrentView("list");
-      }
+      setSuccess("User updated successfully!");
+      
+      // Reset form and go back to list immediately
+      setFormData({
+        firstName: "",
+        lastName: "",
+        phone: "",
+        email: "",
+        password: "",
+        profileImage: "",
+        role: "user"
+      });
+      setEditingUser(null);
+      setCurrentView("list");
 
     } catch (err) {
       console.error("API Error:", err);
@@ -502,8 +416,8 @@ function UserManagement() {
     );
   }
 
-  // Render Form View (Add/Edit)
-  if (currentView === "add" || currentView === "edit") {
+  // Render Form View (Edit)
+  if (currentView === "edit") {
     return (
       <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
         <Card>
@@ -518,7 +432,7 @@ function UserManagement() {
                 {/* Removed "Back to List" text, only icon */}
               </Button>
               <Heading size="md">
-                {currentView === "add" ? "Add New User" : "Edit User"}
+                Edit User
               </Heading>
             </Flex>
           </CardHeader>
@@ -623,35 +537,17 @@ function UserManagement() {
               />
             </FormControl>
 
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
-              <FormControl>
-                <FormLabel htmlFor="password">
-                  {currentView === "add" ? "Password" : "New Password (optional)"}
-                </FormLabel>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder={currentView === "add" ? "Password" : "New Password"}
-                  onChange={handleInputChange}
-                  value={formData.password}
-                />
-              </FormControl>
-              
-              {currentView === "add" && (
-                <FormControl>
-                  <FormLabel htmlFor="confirmPassword">Confirm Password</FormLabel>
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    placeholder="Confirm Password"
-                    onChange={handleInputChange}
-                    value={formData.confirmPassword}
-                  />
-                </FormControl>
-              )}
-            </SimpleGrid>
+            <FormControl mb="24px">
+              <FormLabel htmlFor="password">New Password (optional)</FormLabel>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="New Password"
+                onChange={handleInputChange}
+                value={formData.password}
+              />
+            </FormControl>
 
             <Flex justify="flex-end" mt={6}>
               <Button variant="outline" mr={3} onClick={handleBackToList}>
@@ -662,7 +558,7 @@ function UserManagement() {
                 onClick={handleSubmit}
                 isLoading={loading}
               >
-                {currentView === "add" ? "Create User" : "Update User"}
+                Update User
               </Button>
             </Flex>
           </CardBody>
@@ -673,48 +569,12 @@ function UserManagement() {
 
   // Render List View
   return (
-    <Flex 
-      flexDirection="column" 
-      pt={{ base: "120px", md: "75px" }}
-      overflow="hidden"
-      height="100vh"
-    >
-      {/* Success/Error Message Display - Auto hides after 3 seconds */}
-      {(error || success) && (
-        <Box mb={4} mx={4}>
-          {error && (
-            <Text
-              color="red.500"
-              p={3}
-              border="1px"
-              borderColor="red.200"
-              borderRadius="md"
-              bg="red.50"
-            >
-              {error}
-            </Text>
-          )}
-          {success && (
-            <Text
-              color="green.500"
-              p={3}
-              border="1px"
-              borderColor="green.200"
-              borderRadius="md"
-              bg="green.50"
-            >
-              {success}
-            </Text>
-          )}
-        </Box>
-      )}
-
+    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
       {/* Statistics Cards */}
       <Grid
         templateColumns={{ sm: "1fr", md: "1fr 1fr 1fr" }}
         gap="24px"
         mb="24px"
-        mx={4}
       >
         {/* Total Users Card */}
         <Card
@@ -834,8 +694,34 @@ function UserManagement() {
         </Card>
       </Grid>
 
+      {/* Success/Error Message Display */}
+      {error && (
+        <Text
+          color="red.500"
+          mb={4}
+          p={3}
+          border="1px"
+          borderColor="red.200"
+          borderRadius="md"
+        >
+          {error}
+        </Text>
+      )}
+      {success && (
+        <Text
+          color="green.500"
+          mb={4}
+          p={3}
+          border="1px"
+          borderColor="green.200"
+          borderRadius="md"
+        >
+          {success}
+        </Text>
+      )}
+
       {/* Active Filter Display */}
-      <Flex justify="space-between" align="center" mb={4} mx={4}>
+      <Flex justify="space-between" align="center" mb={4}>
         <Text fontSize="lg" fontWeight="bold" color={textColor}>
           {activeFilter === "active" && "Active Users"}
           {activeFilter === "inactive" && "Inactive Users"}
@@ -854,7 +740,7 @@ function UserManagement() {
       </Flex>
 
       {/* User Table with new styling */}
-      <Card mx={4} mb={4} shadow="xl" flex="1" overflow="hidden">
+      <Card p={5} shadow="xl">
         <CardHeader p="6px 0px 22px 0px">
           <Flex justify="space-between" align="center" flexWrap="wrap" gap={4}>
             {/* Title */}
@@ -878,21 +764,10 @@ function UserManagement() {
                 </Button>
               )}
             </Flex>
-
-            {/* Add User Button */}
-            <Button
-              colorScheme="blue"
-              onClick={handleAddUser}
-              fontSize="sm"
-              borderRadius="8px"
-              flexShrink={0}
-              leftIcon={<FaUserPlus />}
-            >
-              Add User
-            </Button>
           </Flex>
         </CardHeader>
-        <CardBody overflow="auto">
+        <CardBody>
+          
           {tableLoading ? (
             <Flex justify="center" align="center" py={10}>
               <Spinner size="xl" color="blue.500" />
@@ -902,104 +777,119 @@ function UserManagement() {
             <>
               {currentItems.length > 0 ? (
                 <>
-                  <Table variant="striped" colorScheme="blue">
-                    <Thead bg={tableHeaderBg} position="sticky" top={0} zIndex={1}>
-                      <Tr>
-                        <Th>User</Th>
-                        <Th>Contact</Th>
-                        <Th>Role</Th>
-                        <Th>Status</Th>
-                        <Th>Verification</Th>
-                        <Th>Actions</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {currentItems.map((user, index) => {
-                        const statusColors = getStatusColor(user.status);
-                        const verification = getVerificationBadge(user.isVerified);
-                        return (
-                          <Tr key={user._id || index}>
-                            <Td>
-                              <Flex align="center">
-                                <Avatar
-                                  size="sm"
-                                  name={`${user.firstName} ${user.lastName}`}
-                                  src={user.profileImage}
-                                  mr={3}
-                                />
+                  {/* Responsive Table Container with Scroll */}
+                  <Box 
+                    overflowX="auto" 
+                    overflowY="auto" 
+                    maxH="600px" 
+                    border="1px solid" 
+                    borderColor="gray.200" 
+                    borderRadius="md"
+                  >
+                    <Table 
+                      variant="striped" 
+                      colorScheme="blue" 
+                      minWidth="800px" // Minimum width to ensure proper table layout
+                      size="sm"
+                    >
+                      <Thead bg={tableHeaderBg} position="sticky" top={0} zIndex={1}>
+                        <Tr>
+                          <Th whiteSpace="nowrap">User</Th>
+                          <Th whiteSpace="nowrap">Contact</Th>
+                          <Th whiteSpace="nowrap">Role</Th>
+                          <Th whiteSpace="nowrap">Status</Th>
+                          <Th whiteSpace="nowrap">Verification</Th>
+                          <Th whiteSpace="nowrap">Actions</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {currentItems.map((user, index) => {
+                          const statusColors = getStatusColor(user.status);
+                          const verification = getVerificationBadge(user.isVerified);
+                          return (
+                            <Tr key={user._id || index}>
+                              <Td whiteSpace="nowrap">
+                                <Flex align="center">
+                                  <Avatar
+                                    size="sm"
+                                    name={`${user.firstName} ${user.lastName}`}
+                                    src={user.profileImage}
+                                    mr={3}
+                                  />
+                                  <Box>
+                                    <Text fontWeight="bold">{`${user.firstName} ${user.lastName}`}</Text>
+                                  </Box>
+                                </Flex>
+                              </Td>
+                              <Td whiteSpace="nowrap">
                                 <Box>
-                                  <Text fontWeight="bold">{`${user.firstName} ${user.lastName}`}</Text>
+                                  <Text fontSize="sm">{user.email}</Text>
+                                  <Text fontSize="xs" color="gray.600">
+                                    {user.phone || "No phone"}
+                                  </Text>
                                 </Box>
-                              </Flex>
-                            </Td>
-                            <Td>
-                              <Box>
-                                <Text>{user.email}</Text>
-                                <Text fontSize="sm" color="gray.600">
-                                  {user.phone || "No phone"}
-                                </Text>
-                              </Box>
-                            </Td>
-                            <Td>
-                              <Badge
-                                colorScheme={
-                                  user.role === "super admin" ? "purple" :
-                                  user.role === "admin" ? "blue" : "gray"
-                                }
-                                px={3}
-                                py={1}
-                                borderRadius="full"
-                                fontSize="sm"
-                                fontWeight="bold"
-                              >
-                                {user.role || "user"}
-                              </Badge>
-                            </Td>
-                            <Td>
-                              <Badge
-                                colorScheme={
-                                  statusColors.bg.includes("green") ? "green" :
-                                  statusColors.bg.includes("red") ? "red" :
-                                  statusColors.bg.includes("yellow") ? "yellow" : "gray"
-                                }
-                                bg={statusColors.bg}
-                                color={statusColors.color}
-                                px={3}
-                                py={1}
-                                borderRadius="full"
-                                fontSize="sm"
-                                fontWeight="bold"
-                              >
-                                {user.status || "active"}
-                              </Badge>
-                            </Td>
-                            <Td>
-                              <Badge
-                                colorScheme={verification.color}
-                                px={3}
-                                py={1}
-                                borderRadius="full"
-                                fontSize="sm"
-                                fontWeight="bold"
-                              >
-                                {verification.text}
-                              </Badge>
-                            </Td>
-                            <Td>
-                              <Button
-                                colorScheme="blue"
-                                size="sm"
-                                leftIcon={<FaEdit />}
-                                onClick={() => handleEditUser(user)}
-                              >
-                                Edit
-                              </Button>
-                            </Td>
-                          </Tr>
-                        );
-                      })}
-                    </Tbody>
-                  </Table>
+                              </Td>
+                              <Td whiteSpace="nowrap">
+                                <Badge
+                                  colorScheme={
+                                    user.role === "super admin" ? "purple" :
+                                    user.role === "admin" ? "blue" : "gray"
+                                  }
+                                  px={3}
+                                  py={1}
+                                  borderRadius="full"
+                                  fontSize="sm"
+                                  fontWeight="bold"
+                                >
+                                  {user.role || "user"}
+                                </Badge>
+                              </Td>
+                              <Td whiteSpace="nowrap">
+                                <Badge
+                                  colorScheme={
+                                    statusColors.bg.includes("green") ? "green" :
+                                    statusColors.bg.includes("red") ? "red" :
+                                    statusColors.bg.includes("yellow") ? "yellow" : "gray"
+                                  }
+                                  bg={statusColors.bg}
+                                  color={statusColors.color}
+                                  px={3}
+                                  py={1}
+                                  borderRadius="full"
+                                  fontSize="sm"
+                                  fontWeight="bold"
+                                >
+                                  {user.status || "active"}
+                                </Badge>
+                              </Td>
+                              <Td whiteSpace="nowrap">
+                                <Badge
+                                  colorScheme={verification.color}
+                                  px={3}
+                                  py={1}
+                                  borderRadius="full"
+                                  fontSize="sm"
+                                  fontWeight="bold"
+                                >
+                                  {verification.text}
+                                </Badge>
+                              </Td>
+                              <Td whiteSpace="nowrap">
+                                <Button
+                                  colorScheme="blue"
+                                  size="sm"
+                                  leftIcon={<FaEdit />}
+                                  onClick={() => handleEditUser(user)}
+                                >
+                                  Edit
+                                </Button>
+                              </Td>
+                            </Tr>
+                          );
+                        })}
+                      </Tbody>
+                    </Table>
+                  </Box>
 
                   {/* Pagination */}
                   {totalPages > 1 && (

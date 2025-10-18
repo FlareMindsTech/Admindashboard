@@ -59,14 +59,14 @@ var dashRoutes = [
   // REMOVED: AddAdminPage route
   // REMOVED: EditAdminPage route
   
-  {
-    path: "/billing",
-    name: "Billing",
-    rtlName: "الفواتير",
-    icon: <CreditIcon color="inherit" />,
-    element: <Billing />,
-    layout: "/admin",
-  },
+  // {  
+  //   path: "/billing",
+  //   name: "Billing",
+  //   rtlName: "الفواتير",
+  //   icon: <CreditIcon color="inherit" />,
+  //   element: <Billing />,
+  //   layout: "/admin",
+  // },
   {
     name: "ACCOUNT PAGES",
     category: "account",
