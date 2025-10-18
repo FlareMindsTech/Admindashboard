@@ -1,21 +1,19 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
-import { InputGroup, InputRightElement } from "@chakra-ui/react";
-import axiosInstance from "views/utils/axiosInstance";
 import {
-  Box,
   Flex,
   Button,
   FormControl,
   FormLabel,
   Input,
+  InputGroup,
+  InputRightElement,
   Text,
   useColorModeValue,
   useToast,
 } from "@chakra-ui/react";
-// Assuming signInImage is available at this path
-import signInImage from "assets/img/bg.jpg"; 
+import axios from "axios";
+import signInImage from "assets/img/bg.jpg";
 
 function AdminLogin() {
   const bgForm = useColorModeValue("#E6E6FA", "navy.800");
@@ -76,14 +74,9 @@ function AdminLogin() {
 
       const { token, name, role } = res.data;
 
+      // ✅ Store token and user info in localStorage
       localStorage.setItem("token", token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify({ name, email, role })
-      );
-
-      console.log("Token stored:", localStorage.getItem("token"));
-      console.log("User stored:", localStorage.getItem("user"));
+      localStorage.setItem("user", JSON.stringify({ name, email, role }));
 
       toast({
         title: "Login Successful",
@@ -93,15 +86,8 @@ function AdminLogin() {
         isClosable: true,
       });
 
-      setTimeout(() => {
-        if (role === "super admin" || role === "admin") {
-          // Changed to client-side router navigation if available, 
-          // but sticking to window.location.href as in your original code
-          window.location.href = "/admin/dashboard"; 
-        } else {
-          window.location.href = "/";
-        }
-      }, 500);
+      // Redirect to dashboard using hash router
+      window.location.href = "#/admin/dashboard";
     } catch (err) {
       console.error("Login error:", err);
       toast({
@@ -123,7 +109,6 @@ function AdminLogin() {
       left="0"
       w="100%"
       h="100vh"
-      overflow="hidden" // ✅ Removes scrollbar
       alignItems="center"
       justifyContent="center"
       bg={`url(${signInImage}) center/cover no-repeat`}
@@ -198,23 +183,21 @@ function AdminLogin() {
             </InputRightElement>
           </InputGroup>
 
-  <Button
-  w="100%"
-  h="50px"
-  borderRadius="12px"
-  bg="purple.500"
-  color="white"
-  onClick={handleLogin}
-  isLoading={loading}
-  fontSize="md"
-  _hover={{ bg: "purple.600" }}   // darker on hover
-  _active={{ bg: "purple.700" }}  // darkest on click
-  transition="background 0.3s"    // smooth transition
->
-  LOGIN
-</Button>
-
-
+          <Button
+            w="100%"
+            h="50px"
+            borderRadius="12px"
+            bg="purple.500"
+            color="white"
+            onClick={handleLogin}
+            isLoading={loading}
+            fontSize="md"
+            _hover={{ bg: "purple.600" }}
+            _active={{ bg: "purple.700" }}
+            transition="background 0.3s"
+          >
+            LOGIN
+          </Button>
         </FormControl>
       </Flex>
     </Flex>

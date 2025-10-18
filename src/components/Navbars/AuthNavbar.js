@@ -16,7 +16,7 @@ import {
   ArgonLogoLight,
   ChakraLogoBlue,
   ChakraLogoDark,
-  ChakraLogoLight,
+  hakraLogoLight,
   DocumentIcon,
   HomeIcon,
   PersonIcon,
