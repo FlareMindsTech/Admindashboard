@@ -38,6 +38,7 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaSearch,
+  FaUserPlus,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdAdminPanelSettings, MdPerson } from "react-icons/md";
@@ -96,6 +97,22 @@ function UserManagement() {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const handleAddUser = () => {
+    setFormData({
+      firstName: "",
+      lastName: "",
+      phone: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      profileImage: "",
+      role: "user"
+    });
+    setEditingUser(null);
+    setCurrentView("add");
+    setError("");
+    setSuccess("");
+  };
 
   // Fetch current user from localStorage
   useEffect(() => {
@@ -834,12 +851,12 @@ function UserManagement() {
                 _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
                 bg="white"
               />
-              <Icon as={FaSearch} color="gray.400" />
+              <Icon as={FaSearch} color="gray.400" />  
               {searchTerm && (
                 <Button 
                   size="sm" 
                   ml={2} 
-                  onClick={handleClearSearch}
+                  onClick={handleClearSearch}j
                   bg="white"
                   color={customColor}
                   border="1px"
