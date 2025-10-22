@@ -702,7 +702,7 @@ function AdminManagement() {
 
         {/* Admins Only Card */}
         <Card
-          minH="83px"
+          minH="100px"
           cursor="pointer"
           onClick={() => handleCardClick("admins")}
           border={activeFilter === "admins" ? "2px solid" : "1px solid"}

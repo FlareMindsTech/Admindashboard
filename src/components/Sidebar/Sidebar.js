@@ -14,7 +14,7 @@ import {
   useColorMode,
   useColorModeValue,
   useDisclosure,
-} from "@chakra-ui/react";
+} from "@chakra-ui/react";  
 import IconBox from "components/Icons/IconBox";
 import {
   renderThumbDark,
@@ -126,16 +126,14 @@ function Sidebar(props) {
           w="260px"
           maxW="260px"
           ms={{ sm: "16px" }}
-          my={{ sm: "16px" }}
-          h="calc(100vh - 32px)"
+          my={{ sm: "50px" }}
+          h="calc(80vh - 32px)"
           ps="20px"
           pe="20px"
           m={sidebarMargins}
-          filter="drop-shadow(0px 5px 14px rgba(0, 0, 0, 0.05))"
+          filter="drop-shadow(1px 5px 14px rgba(0, 0, 0, 0.05))"
           borderRadius={sidebarRadius}
-          display="flex"
-          flexDirection="column"
-          justifyContent="space-between"
+          zIndex="99"
         >
           <Scrollbars
             autoHide

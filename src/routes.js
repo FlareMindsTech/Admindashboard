@@ -18,7 +18,8 @@ import {
   DocumentIcon,
   RocketIcon,
 } from "components/Icons/Icons";
-import { MdCategory } from "react-icons/md"; // for category icon
+import { MdCategory } from "react-icons/md"; 
+import ProductManagement from "views/Dashboard/ProductManagement";// for category icon
 
 const ICON_COLOR = "#7b2cbf"; // ✅ updated color
 
@@ -29,6 +30,14 @@ var dashRoutes = [
     rtlName: "لوحة القيادة",
     icon: <HomeIcon color={ICON_COLOR} />,
     element: <Dashboard />,
+    layout: "/admin",
+  },
+   {
+    path: "/ProductManagement",
+    name: "Product Management",
+    rtlName: "إدارة المستخدمين",
+    icon: <StatsIcon color="inherit" />,
+    element: <ProductManagement />,     
     layout: "/admin",
   },
   {

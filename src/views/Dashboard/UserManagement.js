@@ -44,7 +44,6 @@ import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdAdminPanelSettings, MdPerson } from "react-icons/md";
 import {
   getAllUsers,
-  createUser,
   updateUser,
 } from "views/utils/axiosInstance";
 
@@ -74,7 +73,7 @@ function UserManagement() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState(""); // Search filter state
 
-  // View state - 'list', 'add', 'edit'
+  // View state - 'list', 'edit'
   const [currentView, setCurrentView] = useState("list");
   const [editingUser, setEditingUser] = useState(null);
 
@@ -85,7 +84,6 @@ function UserManagement() {
     phone: "",
     email: "",
     password: "",
-    confirmPassword: "",
     profileImage: "",
     role: "user"
   });
@@ -99,6 +97,22 @@ function UserManagement() {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const handleAddUser = () => {
+    setFormData({
+      firstName: "",
+      lastName: "",
+      phone: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      profileImage: "",
+      role: "user"
+    });
+    setEditingUser(null);
+    setCurrentView("add");
+    setError("");
+    setSuccess("");
+  };
 
   // Fetch current user from localStorage
   useEffect(() => {
@@ -226,24 +240,6 @@ function UserManagement() {
     setSearchTerm("");
   };
 
-  // Handle add user - show add form
-  const handleAddUser = () => {
-    setFormData({
-      firstName: "",
-      lastName: "",
-      phone: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      profileImage: "",
-      role: "user"
-    });
-    setEditingUser(null);
-    setCurrentView("add");
-    setError("");
-    setSuccess("");
-  };
-
   // Handle edit user - show edit form
   const handleEditUser = (user) => {
     setFormData({
@@ -252,7 +248,6 @@ function UserManagement() {
       phone: user.phone || "",
       email: user.email || "",
       password: "", // Don't pre-fill password for security
-      confirmPassword: "", // Don't pre-fill confirm password
       profileImage: user.profileImage || "",
       role: user.role || "user"
     });
@@ -283,28 +278,6 @@ function UserManagement() {
       });
     }
 
-    // For new user, password is required
-    if (currentView === "add" && !formData.password) {
-      return toast({
-        title: "Validation Error",
-        description: "Password is required for new user",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-
-    // Check password confirmation for new users
-    if (currentView === "add" && formData.password !== formData.confirmPassword) {
-      return toast({
-        title: "Validation Error",
-        description: "Password and confirm password do not match",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       return toast({
@@ -316,8 +289,8 @@ function UserManagement() {
       });
     }
 
-    // For new user, validate password strength
-    if (currentView === "add") {
+    // Validate password strength if provided
+    if (formData.password) {
       const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
       if (!passwordRegex.test(formData.password)) {
         return toast({
@@ -336,8 +309,6 @@ function UserManagement() {
     setSuccess("");
 
     try {
-      let response;
-
       // Prepare data for API with exact structure
       const userDataToSend = {
         firstName: formData.firstName,
@@ -349,82 +320,42 @@ function UserManagement() {
         ...(formData.password && { password: formData.password })
       };
 
-      if (currentView === "add") {
-        // Create new user using the API function
-        response = await createUser(userDataToSend);
-        console.log("Create user response:", response);
+      // Update existing user using the API function
+      const response = await updateUser(editingUser._id, userDataToSend);
+      console.log("Update user response:", response);
 
-        // Extract user data from response
-        const newUser = response.data || response;
+      // Extract user data from response
+      const updatedUser = response.data || response;
 
-        toast({
-          title: "User Created",
-          description: `User ${newUser.firstName} ${newUser.lastName} created successfully`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
+      toast({
+        title: "User Updated",
+        description: `User ${updatedUser.firstName} ${updatedUser.lastName} updated successfully`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
 
-        // Add new user to the beginning of the list (newest first)
-        const updatedUsers = [newUser, ...userData];
-        setUserData(updatedUsers);
-        setFilteredData(updatedUsers);
+      // Update user in the list
+      const updatedUsers = userData.map((user) =>
+        user._id === editingUser._id ? { ...user, ...updatedUser } : user
+      );
+      setUserData(updatedUsers);
+      setFilteredData(updatedUsers);
 
-        setSuccess("User created successfully!");
-        
-        // Reset form and go back to list immediately
-        setFormData({
-          firstName: "",
-          lastName: "",
-          phone: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-          profileImage: "",
-          role: "user"
-        });
-        setEditingUser(null);
-        setCurrentView("list");
-        
-      } else {
-        // Update existing user using the API function
-        response = await updateUser(editingUser._id, userDataToSend);
-        console.log("Update user response:", response);
-
-        // Extract user data from response
-        const updatedUser = response.data || response;
-
-        toast({
-          title: "User Updated",
-          description: `User ${updatedUser.firstName} ${updatedUser.lastName} updated successfully`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-
-        // Update user in the list
-        const updatedUsers = userData.map((user) =>
-          user._id === editingUser._id ? { ...user, ...updatedUser } : user
-        );
-        setUserData(updatedUsers);
-        setFilteredData(updatedUsers);
-
-        setSuccess("User updated successfully!");
-        
-        // Reset form and go back to list immediately
-        setFormData({
-          firstName: "",
-          lastName: "",
-          phone: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-          profileImage: "",
-          role: "user"
-        });
-        setEditingUser(null);
-        setCurrentView("list");
-      }
+      setSuccess("User updated successfully!");
+      
+      // Reset form and go back to list immediately
+      setFormData({
+        firstName: "",
+        lastName: "",
+        phone: "",
+        email: "",
+        password: "",
+        profileImage: "",
+        role: "user"
+      });
+      setEditingUser(null);
+      setCurrentView("list");
 
     } catch (err) {
       console.error("API Error:", err);
@@ -506,8 +437,8 @@ function UserManagement() {
     );
   }
 
-  // Render Form View (Add/Edit)
-  if (currentView === "add" || currentView === "edit") {
+  // Render Form View (Edit)
+  if (currentView === "edit") {
     return (
       <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
         <Card bg="white" shadow="xl">
@@ -523,8 +454,8 @@ function UserManagement() {
               >
                 {/* Removed "Back to List" text, only icon */}
               </Button>
-              <Heading size="md" color="gray.700">
-                {currentView === "add" ? "Add New User" : "Edit User"}
+              <Heading size="md">
+                Edit User
               </Heading>
             </Flex>
           </CardHeader>
@@ -710,7 +641,7 @@ function UserManagement() {
                 onClick={handleSubmit}
                 isLoading={loading}
               >
-                {currentView === "add" ? "Create User" : "Update User"}
+                Update User
               </Button>
             </Flex>
           </CardBody>
@@ -721,48 +652,12 @@ function UserManagement() {
 
   // Render List View
   return (
-    <Flex 
-      flexDirection="column" 
-      pt={{ base: "120px", md: "75px" }}
-      overflow="hidden"
-      height="100vh"
-    >
-      {/* Success/Error Message Display - Auto hides after 3 seconds */}
-      {(error || success) && (
-        <Box mb={4} mx={4}>
-          {error && (
-            <Text
-              color="red.500"
-              p={3}
-              border="1px"
-              borderColor="red.200"
-              borderRadius="md"
-              bg="red.50"
-            >
-              {error}
-            </Text>
-          )}
-          {success && (
-            <Text
-              color="green.500"
-              p={3}
-              border="1px"
-              borderColor="green.200"
-              borderRadius="md"
-              bg="green.50"
-            >
-              {success}
-            </Text>
-          )}
-        </Box>
-      )}
-
+    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
       {/* Statistics Cards */}
       <Grid
         templateColumns={{ sm: "1fr", md: "1fr 1fr 1fr" }}
         gap="24px"
         mb="24px"
-        mx={4}
       >
         {/* Total Users Card */}
         <Card
@@ -885,8 +780,34 @@ function UserManagement() {
         </Card>
       </Grid>
 
+      {/* Success/Error Message Display */}
+      {error && (
+        <Text
+          color="red.500"
+          mb={4}
+          p={3}
+          border="1px"
+          borderColor="red.200"
+          borderRadius="md"
+        >
+          {error}
+        </Text>
+      )}
+      {success && (
+        <Text
+          color="green.500"
+          mb={4}
+          p={3}
+          border="1px"
+          borderColor="green.200"
+          borderRadius="md"
+        >
+          {success}
+        </Text>
+      )}
+
       {/* Active Filter Display */}
-      <Flex justify="space-between" align="center" mb={4} mx={4}>
+      <Flex justify="space-between" align="center" mb={4}>
         <Text fontSize="lg" fontWeight="bold" color={textColor}>
           {activeFilter === "active" && "Active Users"}
           {activeFilter === "inactive" && "Inactive Users"}
@@ -930,12 +851,12 @@ function UserManagement() {
                 _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
                 bg="white"
               />
-              <Icon as={FaSearch} color="gray.400" />
+              <Icon as={FaSearch} color="gray.400" />  
               {searchTerm && (
                 <Button 
                   size="sm" 
                   ml={2} 
-                  onClick={handleClearSearch}
+                  onClick={handleClearSearch}j
                   bg="white"
                   color={customColor}
                   border="1px"
@@ -1004,7 +925,10 @@ function UserManagement() {
                                   mr={3}
                                 />
                                 <Box>
-                                  <Text fontWeight="bold">{`${user.firstName} ${user.lastName}`}</Text>
+                                  <Text fontSize="sm">{user.email}</Text>
+                                  <Text fontSize="xs" color="gray.600">
+                                    {user.phone || "No phone"}
+                                  </Text>
                                 </Box>
                               </Flex>
                             </Td>

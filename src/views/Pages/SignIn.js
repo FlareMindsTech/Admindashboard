@@ -74,7 +74,11 @@ function AdminLogin() {
 
       const { token, name, role } = res.data;
 
+<<<<<<< HEAD
       // ✅ Store token and user info in localStorage
+=======
+      // ✅ Store token and user info in localStorage     
+>>>>>>> 2430c8c452f0affd59e2f1136dcf118136162ee4
       sessionStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify({ name, email, role }));
 
