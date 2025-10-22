@@ -430,6 +430,3 @@ export const updateUser = async (userId, updatedData) => {
     throw error;
   }
 };
-
-
- 

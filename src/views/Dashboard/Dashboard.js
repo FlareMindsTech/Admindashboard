@@ -30,6 +30,9 @@ import {
   ModalFooter,
   Image,
   Spinner,
+  SimpleGrid,
+  Tag,
+  Stack,
 } from "@chakra-ui/react";
 import Card from "components/Card/Card.js";
 import {
@@ -38,6 +41,10 @@ import {
   FaCheckCircle,
   FaPlusCircle,
   FaEdit,
+  FaRupeeSign,
+  FaBox,
+  FaPalette,
+  FaRuler,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdCategory } from "react-icons/md";
@@ -52,7 +59,9 @@ export default function DashboardManagement() {
   const [products, setProducts] = useState([]);
   const [currentView, setCurrentView] = useState("categories");
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
@@ -128,9 +137,16 @@ export default function DashboardManagement() {
     setIsViewModalOpen(true);
   };
 
+  const handleViewProduct = (product) => {
+    setSelectedProduct(product);
+    setIsProductModalOpen(true);
+  };
+
   const closeModal = () => {
     setIsViewModalOpen(false);
+    setIsProductModalOpen(false);
     setSelectedCategory(null);
+    setSelectedProduct(null);
   };
 
   return (
@@ -268,7 +284,7 @@ export default function DashboardManagement() {
                   <Th>Category</Th>
                   <Th>Price</Th>
                   <Th>Stock</Th>
-                  
+                  <Th>Action</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -276,10 +292,20 @@ export default function DashboardManagement() {
                   products.map((prod, idx) => (
                     <Tr key={prod._id || idx}>
                       <Td>{idx + 1}</Td>
-                      <Td>{prod.name}</Td>
+                      <Td fontWeight="bold">{prod.name}</Td>
                       <Td>{prod.category?.name || "N/A"}</Td>
-                      <Td>₹{prod.variants?.[0]?.price || "-"}</Td>
-                      <Td>{prod.variants?.[0]?.stock || "-"}</Td>
+                      <Td>₹{prod.variants?.[0]?.price || prod.price || "-"}</Td>
+                      <Td>{prod.variants?.[0]?.stock || prod.stock || "-"}</Td>
+                      <Td>
+                        <Button
+                          size="sm"
+                          colorScheme="blue"
+                          leftIcon={<FaEye />}
+                          onClick={() => handleViewProduct(prod)}
+                        >
+                          View
+                        </Button>
+                      </Td>
                     </Tr>
                   ))
                 ) : (
@@ -381,32 +407,202 @@ export default function DashboardManagement() {
                   </Flex>
                 </Flex>
 
-                <Flex mt={4} justify="flex-start" gap={4}>
-                  <Flex
-                    align="center"
-                    bg={useColorModeValue("gray.100", "gray.700")}
-                    p={2}
-                    borderRadius="md"
-                    cursor="pointer"
-                  >
-                    <FaPlusCircle color="#3182CE" />
-                    <Text ml={2} fontSize="sm">
-                      Add Product
+                
+              </Box>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={closeModal} colorScheme="blue">
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* ✅ Modal Popup for Product View */}
+      <Modal
+        isOpen={isProductModalOpen}
+        onClose={closeModal}
+        size="2xl"
+        isCentered
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Product Details</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {selectedProduct && (
+              <Box
+                p={6}
+                borderRadius="lg"
+                bg={useColorModeValue("white", "gray.800")}
+                boxShadow="lg"
+              >
+                {/* Product Header */}
+                <Flex align="center" mb={6} justify="space-between">
+                  <Flex align="center">
+                    <IoCheckmarkDoneCircleSharp size={28} color="#3182CE" />
+                    <Text
+                      fontSize="2xl"
+                      fontWeight="bold"
+                      ml={3}
+                      color={useColorModeValue("gray.700", "white")}
+                    >
+                      {selectedProduct.name}
                     </Text>
                   </Flex>
-                  <Flex
-                    align="center"
-                    bg={useColorModeValue("gray.100", "gray.700")}
-                    p={2}
-                    borderRadius="md"
-                    cursor="pointer"
+                  <Badge
+                    colorScheme={
+                      selectedProduct.status === "Active" ? "green" : 
+                      selectedProduct.status === "Out of Stock" ? "red" : "blue"
+                    }
+                    fontSize="sm"
+                    px={3}
+                    py={1}
+                    borderRadius="full"
                   >
-                    <FaEdit color="#DD6B20" />
-                    <Text ml={2} fontSize="sm">
-                      Edit Category
-                    </Text>
-                  </Flex>
+                    {selectedProduct.status || "Active"}
+                  </Badge>
                 </Flex>
+
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                  {/* Product Images */}
+                  <Box>
+                    <Text fontSize="sm" color="gray.500" mb={2}>
+                      Product Images
+                    </Text>
+                    {selectedProduct.images && selectedProduct.images.length > 0 ? (
+                      <Flex gap={3} flexWrap="wrap">
+                        {selectedProduct.images.slice(0, 3).map((img, idx) => (
+                          <Box
+                            key={idx}
+                            w="100px"
+                            h="100px"
+                            border="1px solid"
+                            borderColor="gray.300"
+                            borderRadius="md"
+                            overflow="hidden"
+                          >
+                            <Image
+                              src={img}
+                              alt={`Product ${idx + 1}`}
+                              objectFit="cover"
+                              w="100%"
+                              h="100%"
+                              onError={(e) => {
+                                e.target.src = "https://via.placeholder.com/100x100?text=Image";
+                              }}
+                            />
+                          </Box>
+                        ))}
+                      </Flex>
+                    ) : (
+                      <Text fontSize="sm" color="gray.500">
+                        No images available
+                      </Text>
+                    )}
+                  </Box>
+
+                  {/* Product Details */}
+                  <Box>
+                    <Text fontSize="sm" color="gray.500" mb={2}>
+                      Basic Information
+                    </Text>
+                    <Stack spacing={3}>
+                      <Flex align="center">
+                        <FaRupeeSign size={16} color="#319795" />
+                        <Text ml={2} fontSize="md" fontWeight="medium">
+                          Price: ₹{selectedProduct.variants?.[0]?.price || selectedProduct.price || "N/A"}
+                        </Text>
+                      </Flex>
+                      <Flex align="center">
+                        <FaBox size={16} color="#3182CE" />
+                        <Text ml={2} fontSize="md" fontWeight="medium">
+                          Stock: {selectedProduct.variants?.[0]?.stock || selectedProduct.stock || "N/A"}
+                        </Text>
+                      </Flex>
+                      <Flex align="center">
+                        <MdCategory size={16} color="#805AD5" />
+                        <Text ml={2} fontSize="md" fontWeight="medium">
+                          Category: {selectedProduct.category?.name || "N/A"}
+                        </Text>
+                      </Flex>
+                    </Stack>
+                  </Box>
+                </SimpleGrid>
+
+                {/* Variants Information */}
+                {(selectedProduct.variants && selectedProduct.variants.length > 0) && (
+                  <Box mt={6}>
+                    <Text fontSize="sm" color="gray.500" mb={3}>
+                      Product Variants
+                    </Text>
+                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+                      {selectedProduct.variants.map((variant, idx) => (
+                        <Box
+                          key={idx}
+                          p={3}
+                          border="1px solid"
+                          borderColor="gray.200"
+                          borderRadius="md"
+                          bg={useColorModeValue("gray.50", "gray.700")}
+                        >
+                          <Flex justify="space-between" align="center" mb={2}>
+                            <Text fontSize="sm" fontWeight="bold">
+                              Variant {idx + 1}
+                            </Text>
+                            <Tag size="sm" colorScheme="blue">
+                              {variant.sku || "No SKU"}
+                            </Tag>
+                          </Flex>
+                          <Stack spacing={1}>
+                            <Flex align="center">
+                              <FaPalette size={12} color="#D69E2E" />
+                              <Text ml={2} fontSize="sm">
+                                Color: {variant.color || "N/A"}
+                              </Text>
+                            </Flex>
+                            <Flex align="center">
+                              <FaRuler size={12} color="#38A169" />
+                              <Text ml={2} fontSize="sm">
+                                Size: {variant.size || "N/A"}
+                              </Text>
+                            </Flex>
+                            <Flex align="center">
+                              <FaRupeeSign size={12} color="#319795" />
+                              <Text ml={2} fontSize="sm">
+                                Price: ₹{variant.price || "N/A"}
+                              </Text>
+                            </Flex>
+                            <Flex align="center">
+                              <FaBox size={12} color="#3182CE" />
+                              <Text ml={2} fontSize="sm">
+                                Stock: {variant.stock || "N/A"}
+                              </Text>
+                            </Flex>
+                          </Stack>
+                        </Box>
+                      ))}
+                    </SimpleGrid>
+                  </Box>
+                )}
+
+                {/* Product Description */}
+                <Box mt={6}>
+                  <Text fontSize="sm" color="gray.500" mb={2}>
+                    Description
+                  </Text>
+                  <Text
+                    fontSize="md"
+                    color={useColorModeValue("gray.600", "gray.300")}
+                    p={3}
+                    bg={useColorModeValue("gray.50", "gray.700")}
+                    borderRadius="md"
+                  >
+                    {selectedProduct.description || "No description available."}
+                  </Text>
+                </Box>
+
               </Box>
             )}
           </ModalBody>
