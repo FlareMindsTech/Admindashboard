@@ -16,7 +16,7 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -39,7 +39,7 @@ const adminAxiosInstance = axios.create({
 // --- Interceptor for Admin Authentication (using 'adminToken') ---
 adminAxiosInstance.interceptors.request.use(
   (config) => {
-    const adminToken = localStorage.getItem("adminToken");
+    const adminToken = sessionStorage.getItem("adminToken");
     if (adminToken) {
       config.headers.Authorization = `Bearer ${adminToken}`;
     }
@@ -56,11 +56,11 @@ const unauthorizedResponseHandler = (error) => {
     console.warn("⚠️ Unauthorized (401). Clearing auth data...");
 
     // Clear tokens
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("adminToken");
-    localStorage.removeItem("adminUser");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("userRole");
+    sessionStorage.removeItem("adminToken");
+    sessionStorage.removeItem("adminUser");
 
     // Optional: redirect to login page if needed
     // window.location.href = "/admin/login";
@@ -78,7 +78,7 @@ adminAxiosInstance.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       console.error("Admin Unauthorized (401): Token expired or invalid.");
-      localStorage.removeItem("adminToken");
+      sessionStorage.removeItem("adminToken");
       // Optional: window.location.href = "/auth/signin";
     }
     return Promise.reject(error);
@@ -100,7 +100,7 @@ export { adminAxiosInstance };
 // Get all admins
 export const getAllAdmins = async () => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/admins/all`, {
       method: "GET",
       headers: {
@@ -124,7 +124,7 @@ export const getAllAdmins = async () => {
 //update category
   export const updateCategories = async (categoryId, updatedData) => {
   try {
-    const token = localStorage.getItem("token"); // Get token from localStorage
+    const token = sessionStorage.getItem("token"); // Get token from sessionStorage
 
     const response = await fetch(`${BASE_URL}/categories/update/${categoryId}`, {
       method: "PUT", // Update request
@@ -158,7 +158,7 @@ export const getAllAdmins = async () => {
 // =========================================================
 export const getAllProducts = async () => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/products/all`, {
       method: "GET",
       headers: {
@@ -182,7 +182,7 @@ export const getAllProducts = async () => {
 //create product
 export const createProducts = async (productData) => {
   try {
-    const token = localStorage.getItem("token"); // get token from localStorage
+    const token = sessionStorage.getItem("token"); // get token from sessionStorage
 
     const response = await fetch(`${BASE_URL}/products/create`, {
       method: "POST",
@@ -207,7 +207,7 @@ export const createProducts = async (productData) => {
 
 //image upload
 export const uploadImage = async (file) => {
-  const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
   const formData = new FormData();
   formData.append("file", file);
 
@@ -235,7 +235,7 @@ export const uploadImage = async (file) => {
 //update product
 export const updateProducts = async (productId, updatedData) => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/products/update/${productId}`, {
       method: "PUT",
       headers: {
@@ -260,7 +260,7 @@ export const updateProducts = async (productId, updatedData) => {
 // Delete a product
 export const deleteProducts = async (productId) => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/products/delete/${productId}`, {
       method: "DELETE",
       headers: {
@@ -283,7 +283,7 @@ export const deleteProducts = async (productId) => {
 
 export const updateAdmin = async (adminId, updatedData) => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/admins/update/${adminId}`, {
       method: "PUT",
       headers: {
@@ -309,7 +309,7 @@ export const updateAdmin = async (adminId, updatedData) => {
 // Get all users
 export const getAllUsers = async () => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/users/all`, {
       method: "GET",
       headers: {
@@ -329,7 +329,7 @@ export const getAllUsers = async () => {
 // Create a new user
 export const createUser = async (userData) => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/users/register`, {
       method: "POST",
       headers: {
@@ -350,7 +350,7 @@ export const createUser = async (userData) => {
 // Update an existing user
 export const updateUser = async (userId, updatedData) => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/users/update/${userId}`, {
       method: "PUT",
       headers: {
@@ -369,7 +369,7 @@ export const updateUser = async (userId, updatedData) => {
 };
 export const createCategories = async (categoryData) => {
   try {
-    const token = localStorage.getItem("token"); // get token from localStorage
+    const token = sessionStorage.getItem("token"); // get token from sessionStorage
     const response = await fetch(`${BASE_URL}/categories/create`, {
       method: "POST",
       headers: {
@@ -392,7 +392,7 @@ export const createCategories = async (categoryData) => {
 // Create a new admin
 export const createAdmin = async (adminData) => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/admins/create`, {
       method: "POST",
       headers: {
@@ -411,7 +411,7 @@ export const createAdmin = async (adminData) => {
 };
 export const getAllCategories = async () => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/categories/all`, {
       method: "GET",
       headers: {
@@ -443,7 +443,7 @@ export const updateAdminProfile = async ({ id, name, email, password, role }) =>
       body,
       {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
         },
       }
     );
