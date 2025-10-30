@@ -55,6 +55,10 @@ function AdminManagement() {
   const bgButton = useColorModeValue("gray.100", "gray.100");
   const tableHeaderBg = useColorModeValue("gray.100", "gray.700");
 
+  // Custom color theme
+   const customColor = "#7b2cbf";
+  const customHoverColor = "#5a189a";
+
   const toast = useToast();
 
   const [adminData, setAdminData] = useState([]);
@@ -89,6 +93,18 @@ function AdminManagement() {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+  // Get status color with background
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "active":
+        return { color: "white", bg: "#9d4edd" };
+      case "inactive":
+        return { color: "white", bg: "red.500" };
+      default:
+        return { color: "white", bg: "#9d4edd" };
+    }
+  };
 
   // Fetch current user from localStorage
   useEffect(() => {
@@ -424,18 +440,6 @@ function AdminManagement() {
     setFilteredData(filtered);
   };
 
-  // Get status color with background
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case "active":
-        return { color: "white", bg: "green.500" };
-      case "inactive":
-        return { color: "white", bg: "red.500" };
-      default:
-        return { color: "white", bg: "green.500" };
-    }
-  };
-
   // Card click handlers
   const handleCardClick = (filterType) => {
     setActiveFilter(filterType);
@@ -461,7 +465,7 @@ function AdminManagement() {
   if (!currentUser) {
     return (
       <Flex justifyContent="center" alignItems="center" height="100vh">
-        <Spinner size="xl" color="blue.500" />
+        <Spinner size="xl" color={customColor} />
       </Flex>
     );
   }
@@ -470,23 +474,25 @@ function AdminManagement() {
   if (currentView === "add" || currentView === "edit") {
     return (
       <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
-        <Card>
-          <CardHeader>
+        <Card bg="white" shadow="xl">
+          <CardHeader bg="white">
             <Flex align="center" mb={4}>
               <Button
-                variant="outline"
+                variant="ghost"
                 leftIcon={<FaArrowLeft />}
                 onClick={handleBackToList}
                 mr={4}
+                color={customColor}
+                _hover={{ bg: `${customColor}10` }}
               >
                 {/* Removed "Back to List" text, only icon */}
               </Button>
-              <Heading size="md">
+              <Heading size="md" color="gray.700">
                 {currentView === "add" ? "Add New Admin" : "Edit Admin"}
               </Heading>
             </Flex>
           </CardHeader>
-          <CardBody>
+          <CardBody bg="white">
             {/* Success/Error Message Display */}
             {error && (
               <Text
@@ -496,6 +502,7 @@ function AdminManagement() {
                 border="1px"
                 borderColor="red.200"
                 borderRadius="md"
+                bg="red.50"
               >
                 {error}
               </Text>
@@ -508,32 +515,41 @@ function AdminManagement() {
                 border="1px"
                 borderColor="green.200"
                 borderRadius="md"
+                bg="green.50"
               >
                 {success}
               </Text>
             )}
             <FormControl mb="24px">
-              <FormLabel htmlFor="name">Name</FormLabel>
+              <FormLabel htmlFor="name" color="gray.700">Name</FormLabel>
               <Input
                 id="name"
                 name="name"
                 placeholder="Admin Name"
                 onChange={handleInputChange}
                 value={formData.name}
+                borderColor={`${customColor}50`}
+                _hover={{ borderColor: customColor }}
+                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                bg="white"
               />
             </FormControl>
             <FormControl mb="24px">
-              <FormLabel htmlFor="email">Email</FormLabel>
+              <FormLabel htmlFor="email" color="gray.700">Email</FormLabel>
               <Input
                 id="email"
                 name="email"
                 placeholder="Admin Email"
                 onChange={handleInputChange}
                 value={formData.email}
+                borderColor={`${customColor}50`}
+                _hover={{ borderColor: customColor }}
+                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                bg="white"
               />
             </FormControl>
             <FormControl mb="24px">
-              <FormLabel htmlFor="role">Role</FormLabel>
+              <FormLabel htmlFor="role" color="gray.700">Role</FormLabel>
               <Input
                 id="role"
                 name="role"
@@ -541,12 +557,13 @@ function AdminManagement() {
                 isReadOnly
                 bg="gray.50"
                 color="gray.600"
-                cursor="not-allowed" // Cursor not allowed
-                _hover={{ cursor: "not-allowed" }} // Hover cursor not allowed
+                cursor="not-allowed"
+                _hover={{ cursor: "not-allowed" }}
+                borderColor="gray.300"
               />
             </FormControl>
             <FormControl mb="24px">
-              <FormLabel htmlFor="password">
+              <FormLabel htmlFor="password" color="gray.700">
                 {currentView === "add"
                   ? "Password"
                   : "Password (leave blank to keep current)"}
@@ -562,14 +579,26 @@ function AdminManagement() {
                 }
                 onChange={handleInputChange}
                 value={formData.password}
+                borderColor={`${customColor}50`}
+                _hover={{ borderColor: customColor }}
+                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                bg="white"
               />
             </FormControl>
             <Flex justify="flex-end" mt={6}>
-              <Button variant="outline" mr={3} onClick={handleBackToList}>
+              <Button 
+                variant="outline" 
+                mr={3} 
+                onClick={handleBackToList}
+                border="1px"
+                borderColor="gray.300"
+              >
                 Cancel
               </Button>
               <Button
-                colorScheme="blue"
+                bg={customColor}
+                _hover={{ bg: customHoverColor }}
+                color="white"
                 onClick={handleSubmit}
                 isLoading={loading}
               >
@@ -596,17 +625,18 @@ function AdminManagement() {
           minH="83px"
           cursor="pointer"
           onClick={() => handleCardClick("super")}
-          border={activeFilter === "super" ? "2px solid" : "none"}
-          borderColor="blue.500"
+          border={activeFilter === "super" ? "2px solid" : "1px solid"}
+          borderColor={activeFilter === "super" ? customColor : `${customColor}30`}
           transition="all 0.2s"
-          _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
+          bg="white"
+          _hover={{ transform: "translateY(-2px)", shadow: "lg", bg: `${customColor}05` }}
         >
           <CardBody>
             <Flex flexDirection="row" align="center" justify="center" w="100%">
               <Stat me="auto">
                 <StatLabel
                   fontSize="sm"
-                  color="gray.400"
+                  color="gray.600"
                   fontWeight="bold"
                   pb="2px"
                 >
@@ -618,12 +648,12 @@ function AdminManagement() {
                   </StatNumber>
                 </Flex>
               </Stat>
-              <IconBox as="box" h={"45px"} w={"45px"} bg="blue.300">
+              <IconBox as="box" h={"45px"} w={"45px"} bg={customColor}>
                 <Icon
                   as={MdAdminPanelSettings}
                   h={"24px"}
                   w={"24px"}
-                  color={iconBoxInside}
+                  color="white"
                 />
               </IconBox>
             </Flex>
@@ -635,17 +665,18 @@ function AdminManagement() {
           minH="83px"
           cursor="pointer"
           onClick={() => handleCardClick("active")}
-          border={activeFilter === "active" ? "2px solid" : "none"}
-          borderColor="green.500"
+          border={activeFilter === "active" ? "2px solid" : "1px solid"}
+          borderColor={activeFilter === "active" ? customColor : `${customColor}30`}
           transition="all 0.2s"
-          _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
+          bg="white"
+          _hover={{ transform: "translateY(-2px)", shadow: "lg", bg: `${customColor}05` }}
         >
           <CardBody>
             <Flex flexDirection="row" align="center" justify="center" w="100%">
               <Stat me="auto">
                 <StatLabel
                   fontSize="sm"
-                  color="gray.400"
+                  color="gray.600"
                   fontWeight="bold"
                   pb="2px"
                 >
@@ -657,12 +688,12 @@ function AdminManagement() {
                   </StatNumber>
                 </Flex>
               </Stat>
-              <IconBox as="box" h={"45px"} w={"45px"} bg="green.300">
+              <IconBox as="box" h={"45px"} w={"45px"} bg={customColor}>
                 <Icon
                   as={IoCheckmarkDoneCircleSharp}
                   h={"24px"}
                   w={"24px"}
-                  color={iconBoxInside}
+                  color="white"
                 />
               </IconBox>
             </Flex>
@@ -671,20 +702,21 @@ function AdminManagement() {
 
         {/* Admins Only Card */}
         <Card
-          minH="83px"
+          minH="100px"
           cursor="pointer"
           onClick={() => handleCardClick("admins")}
-          border={activeFilter === "admins" ? "2px solid" : "none"}
-          borderColor="teal.500"
+          border={activeFilter === "admins" ? "2px solid" : "1px solid"}
+          borderColor={activeFilter === "admins" ? customColor : `${customColor}30`}
           transition="all 0.2s"
-          _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
+          bg="white"
+          _hover={{ transform: "translateY(-2px)", shadow: "lg", bg: `${customColor}05` }}
         >
           <CardBody>
             <Flex flexDirection="row" align="center" justify="center" w="100%">
               <Stat me="auto">
                 <StatLabel
                   fontSize="sm"
-                  color="gray.400"
+                  color="gray.600"
                   fontWeight="bold"
                   pb="2px"
                 >
@@ -696,12 +728,12 @@ function AdminManagement() {
                   </StatNumber>
                 </Flex>
               </Stat>
-              <IconBox as="box" h={"45px"} w={"45px"} bg={iconTeal}>
+              <IconBox as="box" h={"45px"} w={"45px"} bg={customColor}>
                 <Icon
                   as={FaUsers}
                   h={"24px"}
                   w={"24px"}
-                  color={iconBoxInside}
+                  color="white"
                 />
               </IconBox>
             </Flex>
@@ -718,6 +750,7 @@ function AdminManagement() {
           border="1px"
           borderColor="red.200"
           borderRadius="md"
+          bg="red.50"
         >
           {error}
         </Text>
@@ -730,6 +763,7 @@ function AdminManagement() {
           border="1px"
           borderColor="green.200"
           borderRadius="md"
+          bg="green.50"
         >
           {success}
         </Text>
@@ -748,6 +782,10 @@ function AdminManagement() {
             size="sm"
             variant="outline"
             onClick={() => setActiveFilter("all")}
+            border="1px"
+            borderColor={customColor}
+            color={customColor}
+            _hover={{ bg: customColor, color: "white" }}
           >
             Show All
           </Button>
@@ -755,11 +793,11 @@ function AdminManagement() {
       </Flex>
 
       {/* Admin Table with new styling */}
-      <Card p={5} shadow="xl">
-        <CardHeader p="6px 0px 22px 0px">
+      <Card p={5} shadow="xl" bg="white">
+        <CardHeader p="6px 0px 22px 0px" bg="white">
           <Flex justify="space-between" align="center" flexWrap="wrap" gap={4}>
             {/* Title */}
-            <Heading size="md" flexShrink={0}>
+            <Heading size="md" flexShrink={0} color="gray.700">
               👤 Administrators Table
             </Heading>
 
@@ -771,10 +809,23 @@ function AdminManagement() {
                 onChange={handleSearchChange}
                 size="sm"
                 mr={2}
+                borderColor={`${customColor}50`}
+                _hover={{ borderColor: customColor }}
+                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                bg="white"
               />
               <Icon as={FaSearch} color="gray.400" />
               {searchTerm && (
-                <Button size="sm" ml={2} onClick={handleClearSearch}>
+                <Button 
+                  size="sm" 
+                  ml={2} 
+                  onClick={handleClearSearch}
+                  bg="white"
+                  color={customColor}
+                  border="1px"
+                  borderColor={customColor}
+                  _hover={{ bg: customColor, color: "white" }}
+                >
                   Clear
                 </Button>
               )}
@@ -782,7 +833,9 @@ function AdminManagement() {
 
             {/* Add Admin Button */}
             <Button
-              colorScheme="blue"
+              bg={customColor}
+              _hover={{ bg: customHoverColor }}
+              color="white"
               onClick={handleAddAdmin}
               fontSize="sm"
               borderRadius="8px"
@@ -792,46 +845,43 @@ function AdminManagement() {
             </Button>
           </Flex>
         </CardHeader>
-        <CardBody>
+        <CardBody bg="white">
           
           {tableLoading ? (
             <Flex justify="center" align="center" py={10}>
-              <Spinner size="xl" color="blue.500" />
+              <Spinner size="xl" color={customColor} />
               <Text ml={4}>Loading administrators...</Text>
             </Flex>
           ) : (
             <>
               {currentItems.length > 0 ? (
                 <>
-                  <Table variant="striped" colorScheme="blue">
-                    <Thead bg={tableHeaderBg}>
+                  <Table variant="simple" bg="white">
+                    <Thead bg={`${customColor}20`}>
                       <Tr>
-                        <Th>Name</Th>
-                        <Th>Email</Th>
-                        <Th>Role</Th>
-                        <Th>Status</Th>
-                        <Th>Actions</Th>
+                        <Th color="gray.700" borderColor={`${customColor}30`}>Name</Th>
+                        <Th color="gray.700" borderColor={`${customColor}30`}>Email</Th>
+                        <Th color="gray.700" borderColor={`${customColor}30`}>Role</Th>
+                        <Th color="gray.700" borderColor={`${customColor}30`}>Status</Th>
+                        <Th color="gray.700" borderColor={`${customColor}30`}>Actions</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
                       {currentItems.map((admin, index) => {
                         const statusColors = getStatusColor(admin.status);
                         return (
-                          <Tr key={admin._id || index}>
-                            <Td>{admin.name}</Td>
-                            <Td>{admin.email}</Td>
-                            <Td>{admin.role}</Td>
-                            <Td>
+                          <Tr 
+                            key={admin._id || index}
+                            bg="white"
+                            _hover={{ bg: `${customColor}10` }}
+                            borderBottom="1px"
+                            borderColor={`${customColor}20`}
+                          >
+                            <Td borderColor={`${customColor}20`}>{admin.name}</Td>
+                            <Td borderColor={`${customColor}20`}>{admin.email}</Td>
+                            <Td borderColor={`${customColor}20`}>{admin.role}</Td>
+                            <Td borderColor={`${customColor}20`}>
                               <Badge
-                                colorScheme={
-                                  statusColors.bg.includes("green")
-                                    ? "green"
-                                    : statusColors.bg.includes("red")
-                                    ? "red"
-                                    : statusColors.bg.includes("yellow")
-                                    ? "yellow"
-                                    : "gray"
-                                }
                                 bg={statusColors.bg}
                                 color={statusColors.color}
                                 px={3}
@@ -843,9 +893,13 @@ function AdminManagement() {
                                 {admin.status || "active"}
                               </Badge>
                             </Td>
-                            <Td>
+                            <Td borderColor={`${customColor}20`}>
                               <Button
-                                colorScheme="blue"
+                                bg="white"
+                                color={customColor}
+                                border="1px"
+                                borderColor={customColor}
+                                _hover={{ bg: customColor, color: "white" }}
                                 size="sm"
                                 leftIcon={<FaEdit />}
                                 onClick={() => handleEditAdmin(admin)}
@@ -867,7 +921,7 @@ function AdminManagement() {
                       mt={4}
                       pt={4}
                       borderTop="1px solid"
-                      borderColor="gray.200"
+                      borderColor={`${customColor}20`}
                     >
                       <Text fontSize="sm" color="gray.600">
                         Showing {indexOfFirstItem + 1} to{" "}
@@ -882,6 +936,12 @@ function AdminManagement() {
                           onClick={handlePrevPage}
                           isDisabled={currentPage === 1}
                           leftIcon={<FaChevronLeft />}
+                          bg="white"
+                          color={customColor}
+                          border="1px"
+                          borderColor={customColor}
+                          _hover={{ bg: customColor, color: "white" }}
+                          _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
                         >
                           Previous
                         </Button>
@@ -898,8 +958,13 @@ function AdminManagement() {
                               variant={
                                 currentPage === page ? "solid" : "outline"
                               }
-                              colorScheme={
-                                currentPage === page ? "blue" : "gray"
+                              bg={currentPage === page ? customColor : "white"}
+                              color={currentPage === page ? "white" : customColor}
+                              border="1px"
+                              borderColor={customColor}
+                              _hover={currentPage === page ? 
+                                { bg: customHoverColor } : 
+                                { bg: customColor, color: "white" }
                               }
                               onClick={() => handlePageClick(page)}
                             >
@@ -913,6 +978,12 @@ function AdminManagement() {
                           onClick={handleNextPage}
                           isDisabled={currentPage === totalPages}
                           rightIcon={<FaChevronRight />}
+                          bg="white"
+                          color={customColor}
+                          border="1px"
+                          borderColor={customColor}
+                          _hover={{ bg: customColor, color: "white" }}
+                          _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
                         >
                           Next
                         </Button>

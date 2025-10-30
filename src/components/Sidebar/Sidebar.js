@@ -1,6 +1,5 @@
 /* eslint-disable */
 import { HamburgerIcon } from "@chakra-ui/icons";
-// chakra imports
 import {
   Box,
   Button,
@@ -15,7 +14,7 @@ import {
   useColorMode,
   useColorModeValue,
   useDisclosure,
-} from "@chakra-ui/react";
+} from "@chakra-ui/react";  
 import IconBox from "components/Icons/IconBox";
 import {
   renderThumbDark,
@@ -31,25 +30,22 @@ import React from "react";
 import { Scrollbars } from "react-custom-scrollbars";
 import { NavLink } from "react-router-dom";
 
-// FUNCTIONS
 function Sidebar(props) {
   const { sidebarVariant, logo, routes } = props;
   const mainPanel = React.useRef();
-  let variantChange = "0.2s linear";
+  const variantChange = "0.2s linear";
 
-  // Chakra color mode values
-  let activeBg = useColorModeValue("white", "navy.700");
-  let inactiveBg = useColorModeValue("white", "navy.700");
-  let activeColor = useColorModeValue("gray.700", "white");
-  let inactiveColor = useColorModeValue("gray.400", "gray.400");
-  let sidebarActiveShadow = "0px 7px 11px rgba(0, 0, 0, 0.04)";
-  let sidebarBg = useColorModeValue("white", "navy.800");
-  let sidebarRadius = "20px";
-  let sidebarMargins = "0px";
+  const activeBg = useColorModeValue("white", "navy.700");
+  const inactiveBg = useColorModeValue("white", "navy.700");
+  const activeColor = useColorModeValue("gray.700", "white");
+  const inactiveColor = useColorModeValue("gray.400", "gray.400");
+  const sidebarActiveShadow = "0px 7px 11px rgba(0, 0, 0, 0.04)";
+  const sidebarBg = useColorModeValue("white", "navy.800");
+  const sidebarRadius = "20px";
+  const sidebarMargins = "0px";
 
-  // Generate sidebar links
-  const createLinks = (routes) => {
-    return routes.map((prop, key) => {
+  const createLinks = (routes) =>
+    routes.map((prop, key) => {
       if (prop.redirect) return null;
 
       if (prop.category) {
@@ -63,14 +59,14 @@ function Sidebar(props) {
               ps={{ sm: "10px", xl: "16px" }}
               py="12px"
             >
-              {document.documentElement.dir === "rtl"
-                ? prop.rtlName
-                : prop.name}
+              {document.documentElement.dir === "rtl" ? prop.rtlName : prop.name}
             </Text>
             {createLinks(prop.views)}
           </React.Fragment>
         );
       }
+
+      if (!prop.icon) return null;
 
       return (
         <NavLink to={prop.layout + prop.path} key={key}>
@@ -85,19 +81,12 @@ function Sidebar(props) {
               py="12px"
               borderRadius="15px"
               w="100%"
-              transition={variantChange}
               bg={isActive ? activeBg : "transparent"}
               color={isActive ? activeColor : inactiveColor}
               boxShadow={isActive ? sidebarActiveShadow : "none"}
               _hover="none"
-              _active={{
-                bg: "inherit",
-                transform: "none",
-                borderColor: "transparent",
-              }}
-              _focus={{
-                boxShadow: isActive ? sidebarActiveShadow : "none",
-              }}
+              _active={{ bg: "inherit", transform: "none", borderColor: "transparent" }}
+              _focus={{ boxShadow: "none" }}
             >
               <Flex>
                 <IconBox
@@ -116,9 +105,7 @@ function Sidebar(props) {
 </IconBox>
 
                 <Text my="auto" fontSize="sm">
-                  {document.documentElement.dir === "rtl"
-                    ? prop.rtlName
-                    : prop.name}
+                  {document.documentElement.dir === "rtl" ? prop.rtlName : prop.name}
                 </Text>
               </Flex>
             </Button>
@@ -126,17 +113,16 @@ function Sidebar(props) {
         </NavLink>
       );
     });
-  };
 
-  var links = <>{createLinks(routes)}</>;
-  var brand = (
-    <Box pt={"25px"} mb="12px">
+  const links = <>{createLinks(routes)}</>;
+
+  const brand = (
+    <Box pt="25px" mb="12px">
       {logo}
       <HSeparator my="26px" />
     </Box>
   );
 
-  // SIDEBAR
   return (
     <Box ref={mainPanel}>
       <Box display={{ sm: "none", xl: "block" }} position="fixed">
@@ -146,37 +132,30 @@ function Sidebar(props) {
           w="260px"
           maxW="260px"
           ms={{ sm: "16px" }}
-          my={{ sm: "16px" }}
-          h="calc(100vh - 32px)"
+          my={{ sm: "50px" }}
+          h="calc(80vh - 32px)"
           ps="20px"
           pe="20px"
           m={sidebarMargins}
-          filter="drop-shadow(0px 5px 14px rgba(0, 0, 0, 0.05))"
+          filter="drop-shadow(1px 5px 14px rgba(0, 0, 0, 0.05))"
           borderRadius={sidebarRadius}
+          zIndex="99"
         >
           <Scrollbars
             autoHide
-            renderTrackVertical={
-              document.documentElement.dir === "rtl"
-                ? renderTrackRTL
-                : renderTrack
-            }
-            renderThumbVertical={useColorModeValue(
-              renderThumbLight,
-              renderThumbDark
-            )}
-            renderView={
-              document.documentElement.dir === "rtl"
-                ? renderViewRTL
-                : renderView
-            }
+            renderTrackVertical={document.documentElement.dir === "rtl" ? renderTrackRTL : renderTrack}
+            renderThumbVertical={useColorModeValue(renderThumbLight, renderThumbDark)}
+            renderView={document.documentElement.dir === "rtl" ? renderViewRTL : renderView}
+            style={{ flex: "1 1 auto" }}
           >
             <Box>{brand}</Box>
             <Stack direction="column" mb="40px">
               <Box>{links}</Box>
             </Stack>
-            {/* <SidebarHelp sidebarVariant={sidebarVariant} /> */}
           </Scrollbars>
+          <Box textAlign="center" py="12px" fontSize="13px" color="#888">
+             © 2025 FlareMinds ❤️
+          </Box>
         </Box>
       </Box>
     </Box>
@@ -189,22 +168,19 @@ export function SidebarResponsive(props) {
   const mainPanel = React.useRef();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  // Chakra Color Mode
-  let activeBg = useColorModeValue("white", "navy.700");
-  let inactiveBg = useColorModeValue("white", "navy.700");
-  let activeColor = useColorModeValue("gray.700", "white");
-  let inactiveColor = useColorModeValue("gray.400", "white");
-  let sidebarActiveShadow = useColorModeValue(
+  const activeBg = useColorModeValue("white", "navy.700");
+  const inactiveBg = useColorModeValue("white", "navy.700");
+  const activeColor = useColorModeValue("gray.700", "white");
+  const inactiveColor = useColorModeValue("gray.400", "white");
+  const sidebarActiveShadow = useColorModeValue(
     "0px 7px 11px rgba(0, 0, 0, 0.04)",
     "none"
   );
-  let sidebarBackgroundColor = useColorModeValue("white", "navy.800");
+  const sidebarBackgroundColor = useColorModeValue("white", "navy.800");
 
-  // Generate links
-  const createLinks = (routes) => {
-    return routes.map((prop, key) => {
+  const createLinks = (routes) =>
+    routes.map((prop, key) => {
       if (prop.redirect) return null;
-
       if (prop.category) {
         return (
           <React.Fragment key={key}>
@@ -216,9 +192,7 @@ export function SidebarResponsive(props) {
               ps={{ sm: "10px", xl: "16px" }}
               py="12px"
             >
-              {document.documentElement.dir === "rtl"
-                ? prop.rtlName
-                : prop.name}
+              {document.documentElement.dir === "rtl" ? prop.rtlName : prop.name}
             </Text>
             {createLinks(prop.views)}
           </React.Fragment>
@@ -242,33 +216,21 @@ export function SidebarResponsive(props) {
               color={isActive ? activeColor : inactiveColor}
               boxShadow={isActive ? sidebarActiveShadow : "none"}
               _hover="none"
-              _active={{
-                bg: "inherit",
-                transform: "none",
-                borderColor: "transparent",
-              }}
-              _focus={{
-                boxShadow: "none",
-              }}
+              _active={{ bg: "inherit", transform: "none", borderColor: "transparent" }}
+              _focus={{ boxShadow: "none" }}
             >
               <Flex>
-                {typeof prop.icon === "string" ? (
-                  <Icon>{prop.icon}</Icon>
-                ) : (
-                  <IconBox
-                    bg={isActive ? "blue.500" : inactiveBg}
-                    color={isActive ? "white" : "blue.500"}
-                    h="30px"
-                    w="30px"
-                    me="12px"
-                  >
-                    {prop.icon}
-                  </IconBox>
-                )}
+                <IconBox
+                  bg={isActive ? "blue.500" : inactiveBg}
+                  color={isActive ? "white" : "blue.500"}
+                  h="30px"
+                  w="30px"
+                  me="12px"
+                >
+                  {prop.icon}
+                </IconBox>
                 <Text my="auto" fontSize="sm">
-                  {document.documentElement.dir === "rtl"
-                    ? prop.rtlName
-                    : prop.name}
+                  {document.documentElement.dir === "rtl" ? prop.rtlName : prop.name}
                 </Text>
               </Flex>
             </Button>
@@ -276,28 +238,19 @@ export function SidebarResponsive(props) {
         </NavLink>
       );
     });
-  };
 
-  var links = <>{createLinks(routes)}</>;
-  var brand = (
-    <Box pt={"35px"} mb="8px">
+  const links = <>{createLinks(routes)}</>;
+
+  const brand = (
+    <Box pt="35px" mb="8px">
       {logo}
       <HSeparator my="26px" />
     </Box>
   );
 
   return (
-    <Flex
-      display={{ sm: "flex", xl: "none" }}
-      ref={mainPanel}
-      alignItems="center"
-    >
-      <HamburgerIcon
-        color={hamburgerColor}
-        w="18px"
-        h="18px"
-        onClick={onOpen}
-      />
+    <Flex display={{ sm: "flex", xl: "none" }} ref={mainPanel} alignItems="center">
+      <HamburgerIcon color={hamburgerColor} w="18px" h="18px" onClick={onOpen} />
       <Drawer
         isOpen={isOpen}
         onClose={onClose}
@@ -312,17 +265,20 @@ export function SidebarResponsive(props) {
           borderRadius="16px"
           bg={sidebarBackgroundColor}
         >
-          <DrawerCloseButton
-            _focus={{ boxShadow: "none" }}
-            _hover={{ boxShadow: "none" }}
-          />
+          <DrawerCloseButton _focus={{ boxShadow: "none" }} _hover={{ boxShadow: "none" }} />
           <DrawerBody maxW="250px" px="1rem">
-            <Box maxW="100%" h="100vh">
-              <Box>{brand}</Box>
-              <Stack direction="column" mb="40px">
-                <Box>{links}</Box>
-              </Stack>
-              <SidebarHelp />
+            <Box maxW="100%" h="100vh" display="flex" flexDirection="column" justifyContent="space-between">
+              <Box>
+                <Box>{brand}</Box>
+                <Stack direction="column" mb="40px">
+                  <Box>{links}</Box>
+                </Stack>
+                <SidebarHelp />
+              </Box>
+
+              <Box textAlign="center" py="12px" fontSize="13px" color="#888">
+                2025 ❤️ Flaremind
+              </Box>
             </Box>
           </DrawerBody>
         </DrawerContent>
