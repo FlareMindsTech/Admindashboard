@@ -16,7 +16,7 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -39,7 +39,7 @@ const adminAxiosInstance = axios.create({
 // --- Interceptor for Admin Authentication (using 'adminToken') ---
 adminAxiosInstance.interceptors.request.use(
   (config) => {
-    const adminToken = localStorage.getItem("adminToken");
+    const adminToken = sessionStorage.getItem("adminToken");
     if (adminToken) {
       config.headers.Authorization = `Bearer ${adminToken}`;
     }
@@ -56,11 +56,11 @@ const unauthorizedResponseHandler = (error) => {
     console.warn("⚠️ Unauthorized (401). Clearing auth data...");
 
     // Clear tokens
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("adminToken");
-    localStorage.removeItem("adminUser");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("userRole");
+    sessionStorage.removeItem("adminToken");
+    sessionStorage.removeItem("adminUser");
 
     // Optional: redirect to login page if needed
     // window.location.href = "/admin/login";
@@ -78,7 +78,7 @@ adminAxiosInstance.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       console.error("Admin Unauthorized (401): Token expired or invalid.");
-      localStorage.removeItem("adminToken");
+      sessionStorage.removeItem("adminToken");
       // Optional: window.location.href = "/auth/signin";
     }
     return Promise.reject(error);
@@ -100,7 +100,7 @@ export { adminAxiosInstance };
 // Get all admins
 export const getAllAdmins = async () => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/admins/all`, {
       method: "GET",
       headers: {
@@ -169,7 +169,7 @@ export const createCategories = async (categoryData) => {
 //update category
   export const updateCategories = async (categoryId, updatedData) => {
   try {
-    const token = localStorage.getItem("token"); // Get token from localStorage
+    const token = sessionStorage.getItem("token"); // Get token from sessionStorage
 
     const response = await fetch(`${BASE_URL}/categories/update/${categoryId}`, {
       method: "PUT", // Update request
@@ -221,7 +221,7 @@ export const createAdmin = async (adminData) => {
 // =========================================================
 export const getAllProducts = async () => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/products/all`, {
       method: "GET",
       headers: {
@@ -245,7 +245,7 @@ export const getAllProducts = async () => {
 //create product
 export const createProducts = async (productData) => {
   try {
-    const token = localStorage.getItem("token"); // get token from localStorage
+    const token = sessionStorage.getItem("token"); // get token from sessionStorage
 
     const response = await fetch(`${BASE_URL}/products/create`, {
       method: "POST",
@@ -270,7 +270,7 @@ export const createProducts = async (productData) => {
 
 //image upload
 export const uploadImage = async (file) => {
-  const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
   const formData = new FormData();
   formData.append("file", file);
 
@@ -298,7 +298,7 @@ export const uploadImage = async (file) => {
 //update product
 export const updateProducts = async (productId, updatedData) => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/products/update/${productId}`, {
       method: "PUT",
       headers: {
@@ -323,7 +323,7 @@ export const updateProducts = async (productId, updatedData) => {
 // Delete a product
 export const deleteProducts = async (productId) => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/products/delete/${productId}`, {
       method: "DELETE",
       headers: {
@@ -346,7 +346,7 @@ export const deleteProducts = async (productId) => {
 
 export const updateAdmin = async (adminId, updatedData) => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/admins/update/${adminId}`, {
       method: "PUT",
       headers: {
@@ -372,7 +372,7 @@ export const updateAdmin = async (adminId, updatedData) => {
 // Get all users
 export const getAllUsers = async () => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/users/all`, {
       method: "GET",
       headers: {
@@ -392,7 +392,7 @@ export const getAllUsers = async () => {
 // Create a new user
 export const createUser = async (userData) => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/users/register`, {
       method: "POST",
       headers: {
@@ -413,7 +413,7 @@ export const createUser = async (userData) => {
 // Update an existing user
 export const updateUser = async (userId, updatedData) => {
   try {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const response = await fetch(`${BASE_URL}/users/update/${userId}`, {
       method: "PUT",
       headers: {
@@ -429,4 +429,95 @@ export const updateUser = async (userId, updatedData) => {
     console.error("Error updating user:", error);
     throw error;
   }
+<<<<<<<<< Temporary merge branch 1
 };
+export const createCategories = async (categoryData) => {
+  try {
+    const token = localStorage.getItem("token"); // get token from localStorage
+    const response = await fetch(`${BASE_URL}/categories/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token: token, // send the stored token
+      },
+      body: JSON.stringify(categoryData), // send category data as JSON
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data; // should return the created category
+  } catch (error) {
+    console.error("Error creating category:", error);
+  }}
+// Create a new admin
+export const createAdmin = async (adminData) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/admins/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token: token,
+      },
+      body: JSON.stringify(adminData),
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error creating admin:", error);
+    throw error;
+  }
+};
+export const getAllCategories = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${BASE_URL}/categories/all`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        token: token, // send the stored token
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data; // should return { categories: [...] }
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    throw error;
+  }
+};
+
+export const updateAdminProfile = async ({ id, name, email, password, role }) => {
+  try {
+    const body = { name, email };
+    if (password) body.password = password; // only include if defined
+    if (role) body.role = role;             // only include if defined
+
+    const response = await axios.put(
+      `${BASE_URL}/admins/update/${id}`,
+      body,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Failed to update admin profile:", error);
+    throw error;
+  }
+};
+=========
+};
+>>>>>>>>> Temporary merge branch 2
