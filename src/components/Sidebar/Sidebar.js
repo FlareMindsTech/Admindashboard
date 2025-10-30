@@ -101,7 +101,7 @@ function Sidebar(props) {
             >
               <Flex>
                 <IconBox
-  bg={isActive ? "#b47bff" : inactiveBg} // 💜 light purple when active
+  bg={isActive ? "#b47bff" : inactiveBg} 
   color={isActive ? "white" : "#9d4edd"} // lighter icon color for normal state
   h="30px"
   w="30px"
