@@ -76,14 +76,10 @@ function AdminLogin() {
 
       const { token, name, role } = res.data;
 
-      localStorage.setItem("token", token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify({ name, email, role })
-      );
 
-      console.log("Token stored:", localStorage.getItem("token"));
-      console.log("User stored:", localStorage.getItem("user"));
+
+      sessionStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify({ name, email, role }));
 
       toast({
         title: "Login Successful",

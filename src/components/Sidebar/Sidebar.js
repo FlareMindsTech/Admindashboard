@@ -100,20 +100,21 @@ function Sidebar(props) {
               }}
             >
               <Flex>
-                {typeof prop.icon === "string" ? (
-                  <Icon>{prop.icon}</Icon>
-                ) : (
-                  <IconBox
-                    bg={isActive ? "blue.500" : inactiveBg}
-                    color={isActive ? "white" : "blue.500"}
-                    h="30px"
-                    w="30px"
-                    me="12px"
-                    transition={variantChange}
-                  >
-                    {prop.icon}
-                  </IconBox>
-                )}
+                <IconBox
+  bg={isActive ? "#b47bff" : inactiveBg} // 💜 light purple when active
+  color={isActive ? "white" : "#9d4edd"} // lighter icon color for normal state
+  h="30px"
+  w="30px"
+  me="12px"
+  transition="all 0.2s ease-in-out"
+  _groupHover={{
+    bg: "#c88bff", // lighter purple on hover
+    color: "white",
+  }}
+>
+  {prop.icon}
+</IconBox>
+
                 <Text my="auto" fontSize="sm">
                   {document.documentElement.dir === "rtl"
                     ? prop.rtlName
