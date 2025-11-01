@@ -24,6 +24,7 @@ import {
   Heading,
   Badge,
   Text,
+  IconButton,
   Spinner,
 } from "@chakra-ui/react";
 import Card from "components/Card/Card.js";
@@ -56,7 +57,7 @@ function AdminManagement() {
   const tableHeaderBg = useColorModeValue("gray.100", "gray.700");
 
   // Custom color theme
-   const customColor = "#7b2cbf";
+  const customColor = "#7b2cbf";
   const customHoverColor = "#5a189a";
 
   const toast = useToast();
@@ -473,9 +474,9 @@ function AdminManagement() {
   // Render Form View (Add/Edit)
   if (currentView === "add" || currentView === "edit") {
     return (
-      <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
-        <Card bg="white" shadow="xl">
-          <CardHeader bg="white">
+      <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} height="100vh" overflow="hidden">
+        <Card bg="white" shadow="xl" height="100%" display="flex" flexDirection="column">
+          <CardHeader bg="white" flexShrink={0}>
             <Flex align="center" mb={4}>
               <Button
                 variant="ghost"
@@ -492,7 +493,7 @@ function AdminManagement() {
               </Heading>
             </Flex>
           </CardHeader>
-          <CardBody bg="white">
+          <CardBody bg="white" flex="1" overflow="auto">
             {/* Success/Error Message Display */}
             {error && (
               <Text
@@ -585,7 +586,7 @@ function AdminManagement() {
                 bg="white"
               />
             </FormControl>
-            <Flex justify="flex-end" mt={6}>
+            <Flex justify="flex-end" mt={6} flexShrink={0}>
               <Button 
                 variant="outline" 
                 mr={3} 
@@ -611,401 +612,670 @@ function AdminManagement() {
     );
   }
 
-  // Render List View
+  // Render List View with Fixed Layout
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
-      {/* Statistics Cards */}
-      <Grid
-        templateColumns={{ sm: "1fr", md: "1fr 1fr 1fr" }}
-        gap="24px"
-        mb="24px"
-      >
-        {/* Super Admins Card */}
-        <Card
-          minH="83px"
-          cursor="pointer"
-          onClick={() => handleCardClick("super")}
-          border={activeFilter === "super" ? "2px solid" : "1px solid"}
-          borderColor={activeFilter === "super" ? customColor : `${customColor}30`}
-          transition="all 0.2s"
-          bg="white"
-          _hover={{ transform: "translateY(-2px)", shadow: "lg", bg: `${customColor}05` }}
+    <Flex 
+      flexDirection="column" 
+      pt={{ base: "120px", md: "45px" }} 
+      height="100vh" 
+      overflow="hidden"
+    >
+      {/* Fixed Statistics Cards */}
+      <Box >
+        <Grid
+          templateColumns={{ sm: "1fr", md: "1fr 1fr 1fr" }}
+          gap="24px"
+          mb="24px"
         >
-          <CardBody>
-            <Flex flexDirection="row" align="center" justify="center" w="100%">
-              <Stat me="auto">
-                <StatLabel
-                  fontSize="sm"
-                  color="gray.600"
-                  fontWeight="bold"
-                  pb="2px"
-                >
-                  Super Admins
-                </StatLabel>
-                <Flex>
-                  <StatNumber fontSize="lg" color={textColor}>
-                    {adminData.filter((a) => a.role === "super admin").length}
-                  </StatNumber>
-                </Flex>
-              </Stat>
-              <IconBox as="box" h={"45px"} w={"45px"} bg={customColor}>
-                <Icon
-                  as={MdAdminPanelSettings}
-                  h={"24px"}
-                  w={"24px"}
-                  color="white"
-                />
-              </IconBox>
-            </Flex>
-          </CardBody>
-        </Card>
-
-        {/* Active Status Card */}
-        <Card
-          minH="83px"
-          cursor="pointer"
-          onClick={() => handleCardClick("active")}
-          border={activeFilter === "active" ? "2px solid" : "1px solid"}
-          borderColor={activeFilter === "active" ? customColor : `${customColor}30`}
-          transition="all 0.2s"
-          bg="white"
-          _hover={{ transform: "translateY(-2px)", shadow: "lg", bg: `${customColor}05` }}
-        >
-          <CardBody>
-            <Flex flexDirection="row" align="center" justify="center" w="100%">
-              <Stat me="auto">
-                <StatLabel
-                  fontSize="sm"
-                  color="gray.600"
-                  fontWeight="bold"
-                  pb="2px"
-                >
-                  Active Status
-                </StatLabel>
-                <Flex>
-                  <StatNumber fontSize="lg" color={textColor}>
-                    {adminData.filter((a) => a.status === "active").length}
-                  </StatNumber>
-                </Flex>
-              </Stat>
-              <IconBox as="box" h={"45px"} w={"45px"} bg={customColor}>
-                <Icon
-                  as={IoCheckmarkDoneCircleSharp}
-                  h={"24px"}
-                  w={"24px"}
-                  color="white"
-                />
-              </IconBox>
-            </Flex>
-          </CardBody>
-        </Card>
-
-        {/* Admins Only Card */}
-        <Card
-          minH="100px"
-          cursor="pointer"
-          onClick={() => handleCardClick("admins")}
-          border={activeFilter === "admins" ? "2px solid" : "1px solid"}
-          borderColor={activeFilter === "admins" ? customColor : `${customColor}30`}
-          transition="all 0.2s"
-          bg="white"
-          _hover={{ transform: "translateY(-2px)", shadow: "lg", bg: `${customColor}05` }}
-        >
-          <CardBody>
-            <Flex flexDirection="row" align="center" justify="center" w="100%">
-              <Stat me="auto">
-                <StatLabel
-                  fontSize="sm"
-                  color="gray.600"
-                  fontWeight="bold"
-                  pb="2px"
-                >
-                  Admins Only
-                </StatLabel>
-                <Flex>
-                  <StatNumber fontSize="lg" color={textColor}>
-                    {adminData.filter((a) => a.role === "admin").length}
-                  </StatNumber>
-                </Flex>
-              </Stat>
-              <IconBox as="box" h={"45px"} w={"45px"} bg={customColor}>
-                <Icon
-                  as={FaUsers}
-                  h={"24px"}
-                  w={"24px"}
-                  color="white"
-                />
-              </IconBox>
-            </Flex>
-          </CardBody>
-        </Card>
-      </Grid>
-
-      {/* Success/Error Message Display */}
-      {error && (
-        <Text
-          color="red.500"
-          mb={4}
-          p={3}
-          border="1px"
-          borderColor="red.200"
-          borderRadius="md"
-          bg="red.50"
-        >
-          {error}
-        </Text>
-      )}
-      {success && (
-        <Text
-          color="green.500"
-          mb={4}
-          p={3}
-          border="1px"
-          borderColor="green.200"
-          borderRadius="md"
-          bg="green.50"
-        >
-          {success}
-        </Text>
-      )}
-
-      {/* Active Filter Display */}
-      <Flex justify="space-between" align="center" mb={4}>
-        <Text fontSize="lg" fontWeight="bold" color={textColor}>
-          {activeFilter === "super" && "Super Admins"}
-          {activeFilter === "active" && "Active Admins"}
-          {activeFilter === "admins" && "Admins Only"}
-          {activeFilter === "all" && "All Administrators"}
-        </Text>
-        {activeFilter !== "all" && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setActiveFilter("all")}
-            border="1px"
-            borderColor={customColor}
-            color={customColor}
-            _hover={{ bg: customColor, color: "white" }}
+          {/* Super Admins Card */}
+          <Card
+            minH="83px"
+            cursor="pointer"
+            onClick={() => handleCardClick("super")}
+            border={activeFilter === "super" ? "2px solid" : "1px solid"}
+            borderColor={activeFilter === "super" ? customColor : `${customColor}30`}
+            transition="all 0.2s ease-in-out"
+            bg="white"
+            position="relative"
+            overflow="hidden"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: "translateY(-4px)",
+              shadow: "xl",
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}
           >
-            Show All
-          </Button>
+            <CardBody position="relative" zIndex={1}>
+              <Flex flexDirection="row" align="center" justify="center" w="100%">
+                <Stat me="auto">
+                  <StatLabel
+                    fontSize="sm"
+                    color="gray.600"
+                    fontWeight="bold"
+                    pb="2px"
+                  >
+                    Super Admins
+                  </StatLabel>
+                  <Flex>
+                    <StatNumber fontSize="lg" color={textColor}>
+                      {adminData.filter((a) => a.role === "super admin").length}
+                    </StatNumber>
+                  </Flex>
+                </Stat>
+                <IconBox 
+                  as="box" 
+                  h={"45px"} 
+                  w={"45px"} 
+                  bg={customColor}
+                  transition="all 0.2s ease-in-out"
+                  _groupHover={{
+                    transform: "scale(1.1)",
+                  }}
+                >
+                  <Icon
+                    as={MdAdminPanelSettings}
+                    h={"24px"}
+                    w={"24px"}
+                    color="white"
+                  />
+                </IconBox>
+              </Flex>
+            </CardBody>
+          </Card>
+
+          {/* Active Status Card */}
+          <Card
+            minH="83px"
+            cursor="pointer"
+            onClick={() => handleCardClick("active")}
+            border={activeFilter === "active" ? "2px solid" : "1px solid"}
+            borderColor={activeFilter === "active" ? customColor : `${customColor}30`}
+            transition="all 0.2s ease-in-out"
+            bg="white"
+            position="relative"
+            overflow="hidden"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: "translateY(-4px)",
+              shadow: "xl",
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}
+          >
+            <CardBody position="relative" zIndex={1}>
+              <Flex flexDirection="row" align="center" justify="center" w="100%">
+                <Stat me="auto">
+                  <StatLabel
+                    fontSize="sm"
+                    color="gray.600"
+                    fontWeight="bold"
+                    pb="2px"
+                  >
+                    Active Status
+                  </StatLabel>
+                  <Flex>
+                    <StatNumber fontSize="lg" color={textColor}>
+                      {adminData.filter((a) => a.status === "active").length}
+                    </StatNumber>
+                  </Flex>
+                </Stat>
+                <IconBox 
+                  as="box" 
+                  h={"45px"} 
+                  w={"45px"} 
+                  bg={customColor}
+                  transition="all 0.2s ease-in-out"
+                  _groupHover={{
+                    transform: "scale(1.1)",
+                  }}
+                >
+                  <Icon
+                    as={IoCheckmarkDoneCircleSharp}
+                    h={"24px"}
+                    w={"24px"}
+                    color="white"
+                  />
+                </IconBox>
+              </Flex>
+            </CardBody>
+          </Card>
+
+          {/* Admins Only Card */}
+          <Card
+            minH="100px"
+            cursor="pointer"
+            onClick={() => handleCardClick("admins")}
+            border={activeFilter === "admins" ? "2px solid" : "1px solid"}
+            borderColor={activeFilter === "admins" ? customColor : `${customColor}30`}
+            transition="all 0.2s ease-in-out"
+            bg="white"
+            position="relative"
+            overflow="hidden"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: "translateY(-4px)",
+              shadow: "xl",
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}
+          >
+            <CardBody position="relative" zIndex={1}>
+              <Flex flexDirection="row" align="center" justify="center" w="100%">
+                <Stat me="auto">
+                  <StatLabel
+                    fontSize="sm"
+                    color="gray.600"
+                    fontWeight="bold"
+                    pb="2px"
+                  >
+                    Admins Only
+                  </StatLabel>
+                  <Flex>
+                    <StatNumber fontSize="lg" color={textColor}>
+                      {adminData.filter((a) => a.role === "admin").length}
+                    </StatNumber>
+                  </Flex>
+                </Stat>
+                <IconBox 
+                  as="box" 
+                  h={"45px"} 
+                  w={"45px"} 
+                  bg={customColor}
+                  transition="all 0.2s ease-in-out"
+                  _groupHover={{
+                    transform: "scale(1.1)",
+                  }}
+                >
+                  <Icon
+                    as={FaUsers}
+                    h={"24px"}
+                    w={"24px"}
+                    color="white"
+                  />
+                </IconBox>
+              </Flex>
+            </CardBody>
+          </Card>
+        </Grid>
+
+        {/* Success/Error Message Display */}
+        {error && (
+          <Text
+            color="red.500"
+            mb={4}
+            p={3}
+            border="1px"
+            borderColor="red.200"
+            borderRadius="md"
+            bg="red.50"
+          >
+            {error}
+          </Text>
         )}
-      </Flex>
+        {success && (
+          <Text
+            color="green.500"
+            mb={4}
+            p={3}
+            border="1px"
+            borderColor="green.200"
+            borderRadius="md"
+            bg="green.50"
+          >
+            {success}
+          </Text>
+        )}
 
-      {/* Admin Table with new styling */}
-      <Card p={5} shadow="xl" bg="white">
-        <CardHeader p="6px 0px 22px 0px" bg="white">
-          <Flex justify="space-between" align="center" flexWrap="wrap" gap={4}>
-            {/* Title */}
-            <Heading size="md" flexShrink={0} color="gray.700">
-              👤 Administrators Table
-            </Heading>
+        {/* Active Filter Display */}
+        <Flex justify="space-between" align="center" mb={4}>
+          <Text fontSize="lg" fontWeight="bold" color={textColor}>
+            {activeFilter === "super" && "Super Admins"}
+            {activeFilter === "active" && "Active Admins"}
+            {activeFilter === "admins" && "Admins Only"}
+            {activeFilter === "all" && "All Administrators"}
+          </Text>
+          {activeFilter !== "all" && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setActiveFilter("all")}
+              border="1px"
+              borderColor={customColor}
+              color={customColor}
+              _hover={{ bg: customColor, color: "white" }}
+            >
+              Show All
+            </Button>
+          )}
+        </Flex>
+      </Box>
 
-            {/* Search Bar */}
-            <Flex align="center" flex="1" maxW="400px">
-              <Input
-                placeholder="Search by name, email, role, or status..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                size="sm"
-                mr={2}
-                borderColor={`${customColor}50`}
-                _hover={{ borderColor: customColor }}
-                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                bg="white"
-              />
-              <Icon as={FaSearch} color="gray.400" />
-              {searchTerm && (
-                <Button 
-                  size="sm" 
-                  ml={2} 
-                  onClick={handleClearSearch}
+      {/* Fixed Table Container */}
+      <Box 
+        flex="1" 
+        display="flex" 
+        flexDirection="column" 
+        p={6}
+        pt={0}
+        overflow="hidden"
+        bg="white"
+      >
+        <Card 
+          shadow="xl" 
+          bg="white" 
+          display="flex" 
+          flexDirection="column"
+          height="100%"
+          minH="0" // Important for flex child to respect container height
+        >
+          {/* Fixed Table Header */}
+          <CardHeader 
+            p="24px" 
+            pb="16px"
+            bg="white" 
+            flexShrink={0}
+            borderBottom="1px solid"
+            borderColor={`${customColor}20`}
+          >
+            <Flex justify="space-between" align="center" flexWrap="wrap" gap={4}>
+              {/* Title */}
+              <Heading size="md" flexShrink={0} color="gray.700">
+                👤 Administrators Table
+              </Heading>
+
+              {/* Search Bar */}
+              <Flex align="center" flex="1" maxW="400px">
+                <Input
+                  placeholder="Search by name, email, role, or status..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  size="sm"
+                  mr={2}
+                  borderColor={`${customColor}50`}
+                  _hover={{ borderColor: customColor }}
+                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  bg="white"
+                />
+                <Icon as={FaSearch} color="gray.400" />
+                {searchTerm && (
+                  <Button 
+                    size="sm" 
+                    ml={2} 
+                    onClick={handleClearSearch}
+                    bg="white"
+                    color={customColor}
+                    border="1px"
+                    borderColor={customColor}
+                    _hover={{ bg: customColor, color: "white" }}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </Flex>
+
+              {/* Add Admin Button */}
+              <Button
+                bg={customColor}
+                _hover={{ bg: customHoverColor }}
+                color="white"
+                onClick={handleAddAdmin}
+                fontSize="sm"
+                borderRadius="8px"
+                flexShrink={0}
+              >
+                + Add Admin
+              </Button>
+            </Flex>
+          </CardHeader>
+          
+          {/* Table Content Area - Scrollable Body with Fixed Header and Pagination */}
+          <CardBody 
+            bg="white" 
+            flex="1" 
+            display="flex" 
+            flexDirection="column" 
+            p={0} 
+            overflow="hidden"
+          >
+            {tableLoading ? (
+              <Flex justify="center" align="center" py={10} flex="1">
+                <Spinner size="xl" color={customColor} />
+                <Text ml={4}>Loading administrators...</Text>
+              </Flex>
+            ) : (
+              <Box flex="1" display="flex" flexDirection="column" overflow="hidden">
+                {currentItems.length > 0 ? (
+                  <>
+                    {/* Table Container - Fixed height with scrollable content */}
+                   <Box 
+  position="relative" 
+  flex="1"
+  overflow="hidden"
+  display="flex"
+  flexDirection="column"
+>
+  {/* Single Scrollable Table Container */}
+  <Box
+    flex="1"
+    overflow="auto"
+    css={{
+      '&::-webkit-scrollbar': {
+        width: '8px',
+        height: '8px',
+      },
+      '&::-webkit-scrollbar-track': {
+        background: '#f1f1f1',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        background: customColor,
+        borderRadius: '4px',
+      },
+      '&::-webkit-scrollbar-thumb:hover': {
+        background: customHoverColor,
+      },
+    }}
+  >
+    <Table variant="simple" size="md">
+      {/* Fixed Header */}
+      <Thead>
+        <Tr bg={`${customColor}20`}>
+          <Th 
+            color="gray.700" 
+            borderColor={`${customColor}30`}
+            position="sticky"
+            top={0}
+            bg={`${customColor}20`}
+            zIndex={1}
+          >
+            Name
+          </Th>
+          <Th 
+            color="gray.700" 
+            borderColor={`${customColor}30`}
+            position="sticky"
+            top={0}
+            bg={`${customColor}20`}
+            zIndex={1}
+          >
+            Email
+          </Th>
+          <Th 
+            color="gray.700" 
+            borderColor={`${customColor}30`}
+            position="sticky"
+            top={0}
+            bg={`${customColor}20`}
+            zIndex={1}
+          >
+            Role
+          </Th>
+          <Th 
+            color="gray.700" 
+            borderColor={`${customColor}30`}
+            position="sticky"
+            top={0}
+            bg={`${customColor}20`}
+            zIndex={1}
+          >
+            Status
+          </Th>
+          <Th 
+            color="gray.700" 
+            borderColor={`${customColor}30`}
+            position="sticky"
+            top={0}
+            bg={`${customColor}20`}
+            zIndex={1}
+          >
+            Actions
+          </Th>
+        </Tr>
+      </Thead>
+
+      {/* Scrollable Body */}
+      <Tbody>
+        {currentItems.map((admin, index) => {
+          const statusColors = getStatusColor(admin.status);
+          return (
+            <Tr 
+              key={admin._id || index}
+              bg="white"
+              _hover={{ bg: `${customColor}10` }}
+              borderBottom="1px"
+              borderColor={`${customColor}20`}
+              height="60px"
+            >
+              <Td borderColor={`${customColor}20`}>{admin.name}</Td>
+              <Td borderColor={`${customColor}20`}>{admin.email}</Td>
+              <Td borderColor={`${customColor}20`}>{admin.role}</Td>
+              <Td borderColor={`${customColor}20`}>
+                <Badge
+                  bg={statusColors.bg}
+                  color={statusColors.color}
+                  px={3}
+                  py={1}
+                  borderRadius="full"
+                  fontSize="sm"
+                  fontWeight="bold"
+                >
+                  {admin.status || "active"}
+                </Badge>
+              </Td>
+              <Td borderColor={`${customColor}20`}>
+                <IconButton
+                  aria-label="Edit admin"
+                  icon={<FaEdit />}
                   bg="white"
                   color={customColor}
                   border="1px"
                   borderColor={customColor}
                   _hover={{ bg: customColor, color: "white" }}
-                >
-                  Clear
-                </Button>
-              )}
-            </Flex>
-
-            {/* Add Admin Button */}
-            <Button
-              bg={customColor}
-              _hover={{ bg: customHoverColor }}
-              color="white"
-              onClick={handleAddAdmin}
-              fontSize="sm"
-              borderRadius="8px"
-              flexShrink={0}
-            >
-              + Add Admin
-            </Button>
-          </Flex>
-        </CardHeader>
-        <CardBody bg="white">
-          
-          {tableLoading ? (
-            <Flex justify="center" align="center" py={10}>
-              <Spinner size="xl" color={customColor} />
-              <Text ml={4}>Loading administrators...</Text>
-            </Flex>
-          ) : (
-            <>
-              {currentItems.length > 0 ? (
-                <>
-                  <Table variant="simple" bg="white">
-                    <Thead bg={`${customColor}20`}>
-                      <Tr>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Name</Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Email</Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Role</Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Status</Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Actions</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {currentItems.map((admin, index) => {
-                        const statusColors = getStatusColor(admin.status);
-                        return (
-                          <Tr 
-                            key={admin._id || index}
-                            bg="white"
-                            _hover={{ bg: `${customColor}10` }}
-                            borderBottom="1px"
-                            borderColor={`${customColor}20`}
-                          >
-                            <Td borderColor={`${customColor}20`}>{admin.name}</Td>
-                            <Td borderColor={`${customColor}20`}>{admin.email}</Td>
-                            <Td borderColor={`${customColor}20`}>{admin.role}</Td>
-                            <Td borderColor={`${customColor}20`}>
-                              <Badge
-                                bg={statusColors.bg}
-                                color={statusColors.color}
-                                px={3}
-                                py={1}
-                                borderRadius="full"
-                                fontSize="sm"
-                                fontWeight="bold"
-                              >
-                                {admin.status || "active"}
-                              </Badge>
-                            </Td>
-                            <Td borderColor={`${customColor}20`}>
-                              <Button
-                                bg="white"
-                                color={customColor}
-                                border="1px"
-                                borderColor={customColor}
-                                _hover={{ bg: customColor, color: "white" }}
-                                size="sm"
-                                leftIcon={<FaEdit />}
-                                onClick={() => handleEditAdmin(admin)}
-                              >
-                                Edit
-                              </Button>
-                            </Td>
-                          </Tr>
-                        );
-                      })}
-                    </Tbody>
-                  </Table>
-
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <Flex
-                      justify="space-between"
-                      align="center"
-                      mt={4}
-                      pt={4}
+                  size="sm"
+                  onClick={() => handleEditAdmin(admin)}
+                />
+              </Td>
+            </Tr>
+          );
+        })}
+      </Tbody>
+    </Table>
+  </Box>
+</Box>
+                    {/* Fixed Pagination Controls */}
+                    <Box 
+                      flexShrink={0} 
+                      p="24px"
+                      pt="16px"
                       borderTop="1px solid"
                       borderColor={`${customColor}20`}
+                      bg="white"
                     >
-                      <Text fontSize="sm" color="gray.600">
-                        Showing {indexOfFirstItem + 1} to{" "}
-                        {Math.min(indexOfLastItem, filteredData.length)} of{" "}
-                        {filteredData.length} entries
-                        {searchTerm &&
-                          ` (filtered from ${adminData.length} total)`}
-                      </Text>
-                      <Flex align="center" gap={2}>
-                        <Button
-                          size="sm"
-                          onClick={handlePrevPage}
-                          isDisabled={currentPage === 1}
-                          leftIcon={<FaChevronLeft />}
-                          bg="white"
-                          color={customColor}
-                          border="1px"
-                          borderColor={customColor}
-                          _hover={{ bg: customColor, color: "white" }}
-                          _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
-                        >
-                          Previous
-                        </Button>
+                      <Flex
+                        justify="space-between"
+                        align={{ base: "stretch", md: "center" }}
+                        direction={{ base: "column", md: "row" }}
+                        gap={4}
+                      >
+                        <Text fontSize="sm" color="gray.600" alignSelf="center">
+                          Showing {indexOfFirstItem + 1} to{" "}
+                          {Math.min(indexOfLastItem, filteredData.length)} of{" "}
+                          {filteredData.length} entries
+                          {searchTerm &&
+                            ` (filtered from ${adminData.length} total)`}
+                        </Text>
+                        <Flex align="center" gap={2} justify="center" flexWrap="wrap">
+                          <Button
+                            size="sm"
+                            onClick={handlePrevPage}
+                            isDisabled={currentPage === 1}
+                            leftIcon={<FaChevronLeft />}
+                            bg="white"
+                            color={customColor}
+                            border="1px"
+                            borderColor={customColor}
+                            _hover={{ bg: customColor, color: "white" }}
+                            _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
+                          >
+                            Previous
+                          </Button>
 
-                        {/* Page Numbers */}
-                        <Flex gap={1}>
-                          {Array.from(
-                            { length: totalPages },
-                            (_, i) => i + 1
-                          ).map((page) => (
-                            <Button
-                              key={page}
-                              size="sm"
-                              variant={
-                                currentPage === page ? "solid" : "outline"
+                          {/* Page Numbers */}
+                          <Flex gap={1} flexWrap="wrap" justify="center">
+                            {(() => {
+                              const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+                              
+                              if (totalPages <= 7) {
+                                return pages.map(page => (
+                                  <Button
+                                    key={page}
+                                    size="sm"
+                                    variant={currentPage === page ? "solid" : "outline"}
+                                    bg={currentPage === page ? customColor : "white"}
+                                    color={currentPage === page ? "white" : customColor}
+                                    border="1px"
+                                    borderColor={customColor}
+                                    _hover={currentPage === page ? 
+                                      { bg: customHoverColor } : 
+                                      { bg: customColor, color: "white" }
+                                    }
+                                    onClick={() => handlePageClick(page)}
+                                    minW="40px"
+                                  >
+                                    {page}
+                                  </Button>
+                                ));
                               }
-                              bg={currentPage === page ? customColor : "white"}
-                              color={currentPage === page ? "white" : customColor}
-                              border="1px"
-                              borderColor={customColor}
-                              _hover={currentPage === page ? 
-                                { bg: customHoverColor } : 
-                                { bg: customColor, color: "white" }
-                              }
-                              onClick={() => handlePageClick(page)}
-                            >
-                              {page}
-                            </Button>
-                          ))}
+
+                              const visiblePages = new Set([
+                                1,
+                                2,
+                                3,
+                                currentPage - 1,
+                                currentPage,
+                                currentPage + 1,
+                                totalPages - 2,
+                                totalPages - 1,
+                                totalPages
+                              ].filter(page => page >= 1 && page <= totalPages));
+
+                              const sortedPages = Array.from(visiblePages).sort((a, b) => a - b);
+                              const result = [];
+
+                              sortedPages.forEach((page, index) => {
+                                if (index > 0 && page - sortedPages[index - 1] > 1) {
+                                  result.push(
+                                    <Text key={`ellipsis-${page}`} px={2} color="gray.500" alignSelf="center">
+                                      ...
+                                    </Text>
+                                  );
+                                }
+
+                                result.push(
+                                  <Button
+                                    key={page}
+                                    size="sm"
+                                    variant={currentPage === page ? "solid" : "outline"}
+                                    bg={currentPage === page ? customColor : "white"}
+                                    color={currentPage === page ? "white" : customColor}
+                                    border="1px"
+                                    borderColor={customColor}
+                                    _hover={currentPage === page ? 
+                                      { bg: customHoverColor } : 
+                                      { bg: customColor, color: "white" }
+                                    }
+                                    onClick={() => handlePageClick(page)}
+                                    minW="40px"
+                                  >
+                                    {page}
+                                  </Button>
+                                );
+                              });
+
+                              return result;
+                            })()}
+                          </Flex>
+
+                          <Button
+                            size="sm"
+                            onClick={handleNextPage}
+                            isDisabled={currentPage === totalPages}
+                            rightIcon={<FaChevronRight />}
+                            bg="white"
+                            color={customColor}
+                            border="1px"
+                            borderColor={customColor}
+                            _hover={{ bg: customColor, color: "white" }}
+                            _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
+                          >
+                            Next
+                          </Button>
                         </Flex>
-
-                        <Button
-                          size="sm"
-                          onClick={handleNextPage}
-                          isDisabled={currentPage === totalPages}
-                          rightIcon={<FaChevronRight />}
-                          bg="white"
-                          color={customColor}
-                          border="1px"
-                          borderColor={customColor}
-                          _hover={{ bg: customColor, color: "white" }}
-                          _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
-                        >
-                          Next
-                        </Button>
                       </Flex>
-                    </Flex>
-                  )}
-                </>
-              ) : (
-                <Text textAlign="center" py={10} color="gray.500" fontSize="lg">
-                  {dataLoaded
-                    ? adminData.length === 0
-                      ? "No administrators found."
-                      : searchTerm
-                      ? "No administrators match your search."
-                      : "No administrators match the selected filter."
-                    : "Loading administrators..."}
-                </Text>
-              )}
-            </>
-          )}
-        </CardBody>
-      </Card>
+                    </Box>
+                  </>
+                ) : (
+                  <Flex 
+                    height="200px" 
+                    justify="center" 
+                    align="center" 
+                    border="1px dashed"
+                    borderColor={`${customColor}30`}
+                    borderRadius="md"
+                    flex="1"
+                  >
+                    <Text textAlign="center" color="gray.500" fontSize="lg">
+                      {dataLoaded
+                        ? adminData.length === 0
+                          ? "No administrators found."
+                          : searchTerm
+                          ? "No administrators match your search."
+                          : "No administrators match the selected filter."
+                        : "Loading administrators..."}
+                    </Text>
+                  </Flex>
+                )}
+              </Box>
+            )}
+          </CardBody>
+        </Card>
+      </Box>
     </Flex>
   );
 }

@@ -9,6 +9,7 @@ import {
   Icon,
   Input,
   Select,
+  IconButton,
   SimpleGrid,
   Stat,
   StatLabel,
@@ -45,6 +46,7 @@ import { MdAdminPanelSettings, MdPerson } from "react-icons/md";
 import {
   getAllUsers,
   updateUser,
+  createUser,
 } from "views/utils/axiosInstance";
 
 // Main User Management Component
@@ -73,7 +75,7 @@ function UserManagement() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState(""); // Search filter state
 
-  // View state - 'list', 'edit'
+  // View state - 'list', 'add', 'edit'
   const [currentView, setCurrentView] = useState("list");
   const [editingUser, setEditingUser] = useState(null);
 
@@ -84,6 +86,7 @@ function UserManagement() {
     phone: "",
     email: "",
     password: "",
+    confirmPassword: "",
     profileImage: "",
     role: "user"
   });
@@ -97,6 +100,7 @@ function UserManagement() {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
   const handleAddUser = () => {
     setFormData({
       firstName: "",
@@ -248,6 +252,7 @@ function UserManagement() {
       phone: user.phone || "",
       email: user.email || "",
       password: "", // Don't pre-fill password for security
+      confirmPassword: "",
       profileImage: user.profileImage || "",
       role: user.role || "user"
     });
@@ -265,7 +270,7 @@ function UserManagement() {
     setSuccess("");
   };
 
-  // Handle form submit
+  // Handle form submit for both add and edit
   const handleSubmit = async () => {
     // Frontend validation
     if (!formData.firstName || !formData.lastName || !formData.email) {
@@ -289,6 +294,17 @@ function UserManagement() {
       });
     }
 
+    // For add user, password is required
+    if (currentView === "add" && !formData.password) {
+      return toast({
+        title: "Validation Error",
+        description: "Password is required for new users",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
     // Validate password strength if provided
     if (formData.password) {
       const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
@@ -302,6 +318,17 @@ function UserManagement() {
           isClosable: true,
         });
       }
+    }
+
+    // Check password confirmation for add user
+    if (currentView === "add" && formData.password !== formData.confirmPassword) {
+      return toast({
+        title: "Validation Error",
+        description: "Passwords do not match",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
 
     setLoading(true);
@@ -320,37 +347,59 @@ function UserManagement() {
         ...(formData.password && { password: formData.password })
       };
 
-      // Update existing user using the API function
-      const response = await updateUser(editingUser._id, userDataToSend);
-      console.log("Update user response:", response);
+      let response;
+      let successMessage;
+
+      if (currentView === "edit" && editingUser) {
+        // Update existing user
+        response = await updateUser(editingUser._id, userDataToSend);
+        successMessage = `User ${response.data?.firstName || formData.firstName} updated successfully`;
+      } else {
+        // Create new user
+        response = await createUser(userDataToSend);
+        successMessage = `User ${response.data?.firstName || formData.firstName} created successfully`;
+      }
+
+      console.log("User operation response:", response);
 
       // Extract user data from response
-      const updatedUser = response.data || response;
+      const userResponse = response.data || response;
 
       toast({
-        title: "User Updated",
-        description: `User ${updatedUser.firstName} ${updatedUser.lastName} updated successfully`,
+        title: currentView === "edit" ? "User Updated" : "User Created",
+        description: successMessage,
         status: "success",
         duration: 3000,
         isClosable: true,
       });
 
-      // Update user in the list
-      const updatedUsers = userData.map((user) =>
-        user._id === editingUser._id ? { ...user, ...updatedUser } : user
-      );
-      setUserData(updatedUsers);
-      setFilteredData(updatedUsers);
+      // Refresh user list
+      const fetchUsers = async () => {
+        try {
+          const usersResponse = await getAllUsers();
+          const users = usersResponse.data?.users || usersResponse.data || usersResponse?.users || usersResponse || [];
+          const sortedUsers = users.sort(
+            (a, b) => new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id)
+          );
+          setUserData(sortedUsers);
+          setFilteredData(sortedUsers);
+        } catch (err) {
+          console.error("Error refreshing users:", err);
+        }
+      };
 
-      setSuccess("User updated successfully!");
+      await fetchUsers();
+
+      setSuccess(successMessage);
       
-      // Reset form and go back to list immediately
+      // Reset form and go back to list
       setFormData({
         firstName: "",
         lastName: "",
         phone: "",
         email: "",
         password: "",
+        confirmPassword: "",
         profileImage: "",
         role: "user"
       });
@@ -437,12 +486,12 @@ function UserManagement() {
     );
   }
 
-  // Render Form View (Edit)
-  if (currentView === "edit") {
+  // Render Form View (Add/Edit)
+  if (currentView === "add" || currentView === "edit") {
     return (
-      <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
-        <Card bg="white" shadow="xl">
-          <CardHeader bg="white">
+      <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} height="100vh" overflow="hidden">
+        <Card bg="white" shadow="xl" height="100%" display="flex" flexDirection="column">
+          <CardHeader bg="white" flexShrink={0}>
             <Flex align="center" mb={4}>
               <Button
                 variant="ghost"
@@ -454,12 +503,12 @@ function UserManagement() {
               >
                 {/* Removed "Back to List" text, only icon */}
               </Button>
-              <Heading size="md">
-                Edit User
+              <Heading size="md" color="gray.700">
+                {currentView === "add" ? "Add New User" : "Edit User"}
               </Heading>
             </Flex>
           </CardHeader>
-          <CardBody bg="white">
+          <CardBody bg="white" flex="1" overflow="auto">
             {/* Success/Error Message Display */}
             {error && (
               <Text
@@ -489,7 +538,7 @@ function UserManagement() {
             )}
             
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
-              <FormControl>
+              <FormControl isRequired>
                 <FormLabel htmlFor="firstName" color="gray.700">First Name</FormLabel>
                 <Input
                   id="firstName"
@@ -504,7 +553,7 @@ function UserManagement() {
                 />
               </FormControl>
               
-              <FormControl>
+              <FormControl isRequired>
                 <FormLabel htmlFor="lastName" color="gray.700">Last Name</FormLabel>
                 <Input
                   id="lastName"
@@ -521,7 +570,7 @@ function UserManagement() {
             </SimpleGrid>
 
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
-              <FormControl>
+              <FormControl isRequired>
                 <FormLabel htmlFor="email" color="gray.700">Email</FormLabel>
                 <Input
                   id="email"
@@ -587,9 +636,9 @@ function UserManagement() {
             </FormControl>
 
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
-              <FormControl>
+              <FormControl isRequired={currentView === "add"}>
                 <FormLabel htmlFor="password" color="gray.700">
-                  {currentView === "add" ? "Password" : "New Password (optional)"}
+                  {currentView === "add" ? "Password *" : "New Password (optional)"}
                 </FormLabel>
                 <Input
                   id="password"
@@ -604,10 +653,12 @@ function UserManagement() {
                   bg="white"
                 />
               </FormControl>
-              
+
               {currentView === "add" && (
-                <FormControl>
-                  <FormLabel htmlFor="confirmPassword" color="gray.700">Confirm Password</FormLabel>
+                <FormControl isRequired>
+                  <FormLabel htmlFor="confirmPassword" color="gray.700">
+                    Confirm Password *
+                  </FormLabel>
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
@@ -624,7 +675,7 @@ function UserManagement() {
               )}
             </SimpleGrid>
 
-            <Flex justify="flex-end" mt={6}>
+            <Flex justify="flex-end" mt={6} flexShrink={0}>
               <Button 
                 variant="outline" 
                 mr={3} 
@@ -641,7 +692,7 @@ function UserManagement() {
                 onClick={handleSubmit}
                 isLoading={loading}
               >
-                Update User
+                {currentView === "add" ? "Create User" : "Update User"}
               </Button>
             </Flex>
           </CardBody>
@@ -650,449 +701,693 @@ function UserManagement() {
     );
   }
 
-  // Render List View
+  // Render List View with Fixed Layout
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
-      {/* Statistics Cards */}
-      <Grid
-        templateColumns={{ sm: "1fr", md: "1fr 1fr 1fr" }}
-        gap="24px"
-        mb="24px"
-      >
-        {/* Total Users Card */}
-        <Card
-          minH="83px"
-          cursor="pointer"
-          onClick={() => handleCardClick("all")}
-          border={activeFilter === "all" ? "2px solid" : "1px solid"}
-          borderColor={activeFilter === "all" ? customColor : `${customColor}30`}
-          transition="all 0.2s"
-          bg="white"
-          _hover={{ transform: "translateY(-2px)", shadow: "lg", bg: `${customColor}05` }}
+    <Flex 
+      flexDirection="column" 
+      pt={{ base: "120px", md: "45px" }} 
+      height="100vh" 
+      overflow="hidden"
+    >
+      {/* Fixed Statistics Cards */}
+      <Box>
+        <Grid
+          templateColumns={{ sm: "1fr", md: "1fr 1fr 1fr" }}
+          gap="24px"
+          mb="24px"
         >
-          <CardBody>
-            <Flex flexDirection="row" align="center" justify="center" w="100%">
-              <Stat me="auto">
-                <StatLabel
-                  fontSize="sm"
-                  color="gray.600"
-                  fontWeight="bold"
-                  pb="2px"
-                >
-                  Total Users
-                </StatLabel>
-                <Flex>
-                  <StatNumber fontSize="lg" color={textColor}>
-                    {userData.length}
-                  </StatNumber>
-                </Flex>
-              </Stat>
-              <IconBox as="box" h={"45px"} w={"45px"} bg={customColor}>
-                <Icon
-                  as={FaUsers}
-                  h={"24px"}
-                  w={"24px"}
-                  color="white"
-                />
-              </IconBox>
-            </Flex>
-          </CardBody>
-        </Card>
-
-        {/* Active Users Card */}
-        <Card
-          minH="83px"
-          cursor="pointer"
-          onClick={() => handleCardClick("active")}
-          border={activeFilter === "active" ? "2px solid" : "1px solid"}
-          borderColor={activeFilter === "active" ? customColor : `${customColor}30`}
-          transition="all 0.2s"
-          bg="white"
-          _hover={{ transform: "translateY(-2px)", shadow: "lg", bg: `${customColor}05` }}
-        >
-          <CardBody>
-            <Flex flexDirection="row" align="center" justify="center" w="100%">
-              <Stat me="auto">
-                <StatLabel
-                  fontSize="sm"
-                  color="gray.600"
-                  fontWeight="bold"
-                  pb="2px"
-                >
-                  Active Users
-                </StatLabel>
-                <Flex>
-                  <StatNumber fontSize="lg" color={textColor}>
-                    {userData.filter((a) => a.status === "active").length}
-                  </StatNumber>
-                </Flex>
-              </Stat>
-              <IconBox as="box" h={"45px"} w={"45px"} bg={customColor}>
-                <Icon
-                  as={IoCheckmarkDoneCircleSharp}
-                  h={"24px"}
-                  w={"24px"}
-                  color="white"
-                />
-              </IconBox>
-            </Flex>
-          </CardBody>
-        </Card>
-
-        {/* Verified Users Card */}
-        <Card
-          minH="83px"
-          cursor="pointer"
-          onClick={() => handleCardClick("verified")}
-          border={activeFilter === "verified" ? "2px solid" : "1px solid"}
-          borderColor={activeFilter === "verified" ? customColor : `${customColor}30`}
-          transition="all 0.2s"
-          bg="white"
-          _hover={{ transform: "translateY(-2px)", shadow: "lg", bg: `${customColor}05` }}
-        >
-          <CardBody>
-            <Flex flexDirection="row" align="center" justify="center" w="100%">
-              <Stat me="auto">
-                <StatLabel
-                  fontSize="sm"
-                  color="gray.600"
-                  fontWeight="bold"
-                  pb="2px"
-                >
-                  Verified Users
-                </StatLabel>
-                <Flex>
-                  <StatNumber fontSize="lg" color={textColor}>
-                    {userData.filter((a) => a.isVerified === true).length}
-                  </StatNumber>
-                </Flex>
-              </Stat>
-              <IconBox as="box" h={"45px"} w={"45px"} bg={customColor}>
-                <Icon
-                  as={MdPerson}
-                  h={"24px"}
-                  w={"24px"}
-                  color="white"
-                />
-              </IconBox>
-            </Flex>
-          </CardBody>
-        </Card>
-      </Grid>
-
-      {/* Success/Error Message Display */}
-      {error && (
-        <Text
-          color="red.500"
-          mb={4}
-          p={3}
-          border="1px"
-          borderColor="red.200"
-          borderRadius="md"
-        >
-          {error}
-        </Text>
-      )}
-      {success && (
-        <Text
-          color="green.500"
-          mb={4}
-          p={3}
-          border="1px"
-          borderColor="green.200"
-          borderRadius="md"
-        >
-          {success}
-        </Text>
-      )}
-
-      {/* Active Filter Display */}
-      <Flex justify="space-between" align="center" mb={4}>
-        <Text fontSize="lg" fontWeight="bold" color={textColor}>
-          {activeFilter === "active" && "Active Users"}
-          {activeFilter === "inactive" && "Inactive Users"}
-          {activeFilter === "verified" && "Verified Users"}
-          {activeFilter === "all" && "All Users"}
-        </Text>
-        {activeFilter !== "all" && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setActiveFilter("all")}
-            border="1px"
-            borderColor={customColor}
-            color={customColor}
-            _hover={{ bg: customColor, color: "white" }}
+          {/* Total Users Card */}
+          <Card
+            minH="83px"
+            cursor="pointer"
+            onClick={() => handleCardClick("all")}
+            border={activeFilter === "all" ? "2px solid" : "1px solid"}
+            borderColor={activeFilter === "all" ? customColor : `${customColor}30`}
+            transition="all 0.2s ease-in-out"
+            bg="white"
+            position="relative"
+            overflow="hidden"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: "translateY(-4px)",
+              shadow: "xl",
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}
           >
-            Show All
-          </Button>
-        )}
-      </Flex>
-
-      {/* User Table with new styling */}
-      <Card mx={4} mb={4} shadow="xl" flex="1" overflow="hidden" bg="white">
-        <CardHeader p="6px 0px 22px 0px" bg="white">
-          <Flex justify="space-between" align="center" flexWrap="wrap" gap={4}>
-            {/* Title */}
-            <Heading size="md" flexShrink={0} color="gray.700">
-              👥 Users Table
-            </Heading>
-
-            {/* Search Bar */}
-            <Flex align="center" flex="1" maxW="400px">
-              <Input
-                placeholder="Search by name, email, phone, or role..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                size="sm"
-                mr={2}
-                borderColor={`${customColor}50`}
-                _hover={{ borderColor: customColor }}
-                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                bg="white"
-              />
-              <Icon as={FaSearch} color="gray.400" />  
-              {searchTerm && (
-                <Button 
-                  size="sm" 
-                  ml={2} 
-                  onClick={handleClearSearch}j
-                  bg="white"
-                  color={customColor}
-                  border="1px"
-                  borderColor={customColor}
-                  _hover={{ bg: customColor, color: "white" }}
+            <CardBody position="relative" zIndex={1}>
+              <Flex flexDirection="row" align="center" justify="center" w="100%">
+                <Stat me="auto">
+                  <StatLabel
+                    fontSize="sm"
+                    color="gray.600"
+                    fontWeight="bold"
+                    pb="2px"
+                  >
+                    Total Users
+                  </StatLabel>
+                  <Flex>
+                    <StatNumber fontSize="lg" color={textColor}>
+                      {userData.length}
+                    </StatNumber>
+                  </Flex>
+                </Stat>
+                <IconBox 
+                  as="box" 
+                  h={"45px"} 
+                  w={"45px"} 
+                  bg={customColor}
+                  transition="all 0.2s ease-in-out"
+                  _groupHover={{
+                    transform: "scale(1.1)",
+                  }}
                 >
-                  Clear
-                </Button>
-              )}
-            </Flex>
+                  <Icon
+                    as={FaUsers}
+                    h={"24px"}
+                    w={"24px"}
+                    color="white"
+                  />
+                </IconBox>
+              </Flex>
+            </CardBody>
+          </Card>
 
-            {/* Add User Button */}
+          {/* Active Users Card */}
+          <Card
+            minH="83px"
+            cursor="pointer"
+            onClick={() => handleCardClick("active")}
+            border={activeFilter === "active" ? "2px solid" : "1px solid"}
+            borderColor={activeFilter === "active" ? customColor : `${customColor}30`}
+            transition="all 0.2s ease-in-out"
+            bg="white"
+            position="relative"
+            overflow="hidden"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: "translateY(-4px)",
+              shadow: "xl",
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}
+          >
+            <CardBody position="relative" zIndex={1}>
+              <Flex flexDirection="row" align="center" justify="center" w="100%">
+                <Stat me="auto">
+                  <StatLabel
+                    fontSize="sm"
+                    color="gray.600"
+                    fontWeight="bold"
+                    pb="2px"
+                  >
+                    Active Users
+                  </StatLabel>
+                  <Flex>
+                    <StatNumber fontSize="lg" color={textColor}>
+                      {userData.filter((a) => a.status === "active").length}
+                    </StatNumber>
+                  </Flex>
+                </Stat>
+                <IconBox 
+                  as="box" 
+                  h={"45px"} 
+                  w={"45px"} 
+                  bg={customColor}
+                  transition="all 0.2s ease-in-out"
+                  _groupHover={{
+                    transform: "scale(1.1)",
+                  }}
+                >
+                  <Icon
+                    as={IoCheckmarkDoneCircleSharp}
+                    h={"24px"}
+                    w={"24px"}
+                    color="white"
+                  />
+                </IconBox>
+              </Flex>
+            </CardBody>
+          </Card>
+
+          {/* Verified Users Card */}
+          <Card
+            minH="83px"
+            cursor="pointer"
+            onClick={() => handleCardClick("verified")}
+            border={activeFilter === "verified" ? "2px solid" : "1px solid"}
+            borderColor={activeFilter === "verified" ? customColor : `${customColor}30`}
+            transition="all 0.2s ease-in-out"
+            bg="white"
+            position="relative"
+            overflow="hidden"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: "translateY(-4px)",
+              shadow: "xl",
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}
+          >
+            <CardBody position="relative" zIndex={1}>
+              <Flex flexDirection="row" align="center" justify="center" w="100%">
+                <Stat me="auto">
+                  <StatLabel
+                    fontSize="sm"
+                    color="gray.600"
+                    fontWeight="bold"
+                    pb="2px"
+                  >
+                    Verified Users
+                  </StatLabel>
+                  <Flex>
+                    <StatNumber fontSize="lg" color={textColor}>
+                      {userData.filter((a) => a.isVerified === true).length}
+                    </StatNumber>
+                  </Flex>
+                </Stat>
+                <IconBox 
+                  as="box" 
+                  h={"45px"} 
+                  w={"45px"} 
+                  bg={customColor}
+                  transition="all 0.2s ease-in-out"
+                  _groupHover={{
+                    transform: "scale(1.1)",
+                  }}
+                >
+                  <Icon
+                    as={MdPerson}
+                    h={"24px"}
+                    w={"24px"}
+                    color="white"
+                  />
+                </IconBox>
+              </Flex>
+            </CardBody>
+          </Card>
+        </Grid>
+
+        {/* Success/Error Message Display */}
+        {error && (
+          <Text
+            color="red.500"
+            mb={4}
+            p={3}
+            border="1px"
+            borderColor="red.200"
+            borderRadius="md"
+            bg="red.50"
+          >
+            {error}
+          </Text>
+        )}
+        {success && (
+          <Text
+            color="green.500"
+            mb={4}
+            p={3}
+            border="1px"
+            borderColor="green.200"
+            borderRadius="md"
+            bg="green.50"
+          >
+            {success}
+          </Text>
+        )}
+
+        {/* Active Filter Display */}
+        <Flex justify="space-between" align="center" mb={4}>
+          <Text fontSize="lg" fontWeight="bold" color={textColor}>
+            {activeFilter === "active" && "Active Users"}
+            {activeFilter === "inactive" && "Inactive Users"}
+            {activeFilter === "verified" && "Verified Users"}
+            {activeFilter === "all" && "All Users"}
+          </Text>
+          {activeFilter !== "all" && (
             <Button
-              bg={customColor}
-              _hover={{ bg: customHoverColor }}
-              color="white"
-              onClick={handleAddUser}
-              fontSize="sm"
-              borderRadius="8px"
-              flexShrink={0}
-              leftIcon={<FaUserPlus />}
+              size="sm"
+              variant="outline"
+              onClick={() => setActiveFilter("all")}
+              border="1px"
+              borderColor={customColor}
+              color={customColor}
+              _hover={{ bg: customColor, color: "white" }}
             >
-              Add User
+              Show All
             </Button>
-          </Flex>
-        </CardHeader>
-        <CardBody overflow="auto" bg="white">
-          {tableLoading ? (
-            <Flex justify="center" align="center" py={10}>
-              <Spinner size="xl" color={customColor} />
-              <Text ml={4}>Loading users...</Text>
-            </Flex>
-          ) : (
-            <>
-              {currentItems.length > 0 ? (
-                <>
-                  <Table variant="simple" bg="white">
-                    <Thead bg={`${customColor}20`} position="sticky" top={0} zIndex={1}>
-                      <Tr>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>User</Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Contact</Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Role</Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Status</Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Verification</Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Actions</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {currentItems.map((user, index) => {
-                        const statusColors = getStatusColor(user.status);
-                        const verification = getVerificationBadge(user.isVerified);
-                        return (
-                          <Tr 
-                            key={user._id || index}
-                            bg="white"
-                            _hover={{ bg: `${customColor}10` }}
-                            borderBottom="1px"
-                            borderColor={`${customColor}20`}
-                          >
-                            <Td borderColor={`${customColor}20`}>
-                              <Flex align="center">
-                                <Avatar
-                                  size="sm"
-                                  name={`${user.firstName} ${user.lastName}`}
-                                  src={user.profileImage}
-                                  mr={3}
-                                />
-                                <Box>
-                                  <Text fontSize="sm">{user.email}</Text>
-                                  <Text fontSize="xs" color="gray.600">
-                                    {user.phone || "No phone"}
-                                  </Text>
-                                </Box>
-                              </Flex>
-                            </Td>
-                            <Td borderColor={`${customColor}20`}>
-                              <Box>
-                                <Text>{user.email}</Text>
-                                <Text fontSize="sm" color="gray.600">
-                                  {user.phone || "No phone"}
-                                </Text>
-                              </Box>
-                            </Td>
-                            <Td borderColor={`${customColor}20`}>
-                              <Badge
-                                colorScheme={
-                                  user.role === "super admin" ? "purple" :
-                                  user.role === "admin" ? "blue" : "gray"
-                                }
-                                px={3}
-                                py={1}
-                                borderRadius="full"
-                                fontSize="sm"
-                                fontWeight="bold"
-                              >
-                                {user.role || "user"}
-                              </Badge>
-                            </Td>
-                            <Td borderColor={`${customColor}20`}>
-                              <Badge
-                                bg={statusColors.bg}
-                                color={statusColors.color}
-                                px={3}
-                                py={1}
-                                borderRadius="full"
-                                fontSize="sm"
-                                fontWeight="bold"
-                              >
-                                {user.status || "active"}
-                              </Badge>
-                            </Td>
-                            <Td borderColor={`${customColor}20`}>
-                              <Badge
-                                colorScheme={verification.color}
-                                px={3}
-                                py={1}
-                                borderRadius="full"
-                                fontSize="sm"
-                                fontWeight="bold"
-                              >
-                                {verification.text}
-                              </Badge>
-                            </Td>
-                            <Td borderColor={`${customColor}20`}>
-                              <Button
-                                bg="white"
-                                color={customColor}
-                                border="1px"
-                                borderColor={customColor}
-                                _hover={{ bg: customColor, color: "white" }}
-                                size="sm"
-                                leftIcon={<FaEdit />}
-                                onClick={() => handleEditUser(user)}
-                              >
-                                Edit
-                              </Button>
-                            </Td>
-                          </Tr>
-                        );
-                      })}
-                    </Tbody>
-                  </Table>
+          )}
+        </Flex>
+      </Box>
 
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <Flex
-                      justify="space-between"
-                      align="center"
-                      mt={4}
-                      pt={4}
+      {/* Fixed Table Container */}
+      <Box 
+        flex="1" 
+        display="flex" 
+        flexDirection="column" 
+        p={6}
+        pt={0}
+        overflow="hidden"
+        bg="white"
+      >
+        <Card 
+          shadow="xl" 
+          bg="white" 
+          display="flex" 
+          flexDirection="column"
+          height="100%"
+          minH="0"
+        >
+          {/* Fixed Table Header */}
+          <CardHeader 
+            p="24px" 
+            pb="16px"
+            bg="white" 
+            flexShrink={0}
+            borderBottom="1px solid"
+            borderColor={`${customColor}20`}
+          >
+            <Flex justify="space-between" align="center" flexWrap="wrap" gap={4}>
+              {/* Title */}
+              <Heading size="md" flexShrink={0} color="gray.700">
+                👥 Users Table
+              </Heading>
+
+              {/* Search Bar */}
+              <Flex align="center" flex="1" maxW="400px">
+                <Input
+                  placeholder="Search by name, email, phone, or role..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  size="sm"
+                  mr={2}
+                  borderColor={`${customColor}50`}
+                  _hover={{ borderColor: customColor }}
+                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  bg="white"
+                />
+                <Icon as={FaSearch} color="gray.400" />
+                {searchTerm && (
+                  <Button 
+                    size="sm" 
+                    ml={2} 
+                    onClick={handleClearSearch}
+                    bg="white"
+                    color={customColor}
+                    border="1px"
+                    borderColor={customColor}
+                    _hover={{ bg: customColor, color: "white" }}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </Flex>
+
+              {/* Add User Button */}
+              <Button
+                bg={customColor}
+                _hover={{ bg: customHoverColor }}
+                color="white"
+                onClick={handleAddUser}
+                fontSize="sm"
+                borderRadius="8px"
+                flexShrink={0}
+                leftIcon={<FaUserPlus />}
+              >
+                Add User
+              </Button>
+            </Flex>
+          </CardHeader>
+          
+          {/* Table Content Area - Scrollable Body with Fixed Header and Pagination */}
+          <CardBody 
+            bg="white" 
+            flex="1" 
+            display="flex" 
+            flexDirection="column" 
+            p={0} 
+            overflow="hidden"
+          >
+            {tableLoading ? (
+              <Flex justify="center" align="center" py={10} flex="1">
+                <Spinner size="xl" color={customColor} />
+                <Text ml={4}>Loading users...</Text>
+              </Flex>
+            ) : (
+              <Box flex="1" display="flex" flexDirection="column" overflow="hidden">
+                {currentItems.length > 0 ? (
+                  <>
+                    {/* Table Container - Fixed height with scrollable content */}
+                   <Box 
+  position="relative" 
+  flex="1"
+  overflow="hidden"
+  display="flex"
+  flexDirection="column"
+>
+  {/* Single Table Container */}
+  <Box
+    flex="1"
+    display="flex"
+    flexDirection="column"
+    overflow="hidden"
+  >
+    {/* Scrollable Table */}
+    <Box
+      flex="1"
+      overflow="auto"
+      css={{
+        '&::-webkit-scrollbar': {
+          width: '8px',
+          height: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: '#f1f1f1',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: customColor,
+          borderRadius: '4px',
+        },
+        '&::-webkit-scrollbar-thumb:hover': {
+          background: customHoverColor,
+        },
+      }}
+    >
+      <Table variant="simple" size="md">
+        {/* Fixed Header */}
+        <Thead>
+          <Tr bg={`${customColor}20`}>
+            <Th 
+              color="gray.700" 
+              borderColor={`${customColor}30`}
+              position="sticky"
+              top={0}
+              bg={`${customColor}20`}
+              zIndex={1}
+            >
+              User
+            </Th>
+            <Th 
+              color="gray.700" 
+              borderColor={`${customColor}30`}
+              position="sticky"
+              top={0}
+              bg={`${customColor}20`}
+              zIndex={1}
+            >
+              Contact
+            </Th>
+            <Th 
+              color="gray.700" 
+              borderColor={`${customColor}30`}
+              position="sticky"
+              top={0}
+              bg={`${customColor}20`}
+              zIndex={1}
+            >
+              Role
+            </Th>
+            <Th 
+              color="gray.700" 
+              borderColor={`${customColor}30`}
+              position="sticky"
+              top={0}
+              bg={`${customColor}20`}
+              zIndex={1}
+            >
+              Actions
+            </Th>
+          </Tr>
+        </Thead>
+
+        {/* Scrollable Body */}
+        <Tbody>
+          {currentItems.map((user, index) => {
+            const statusColors = getStatusColor(user.status);
+            const verification = getVerificationBadge(user.isVerified);
+            return (
+              <Tr 
+                key={user._id || index}
+                bg="white"
+                _hover={{ bg: `${customColor}10` }}
+                borderBottom="1px"
+                borderColor={`${customColor}20`}
+                height="60px"
+              >
+                <Td borderColor={`${customColor}20`}>
+                  <Flex align="center">
+                    <Avatar
+                      size="sm"
+                      name={`${user.firstName} ${user.lastName}`}
+                      src={user.profileImage}
+                      mr={3}
+                    />
+                    <Box>
+                      <Text fontWeight="medium">{`${user.firstName} ${user.lastName}`}</Text>
+                      <Text fontSize="sm" color="gray.600">
+                        {user.email}
+                      </Text>
+                    </Box>
+                  </Flex>
+                </Td>
+                <Td borderColor={`${customColor}20`}>
+                  <Box>
+                    <Text>{user.email}</Text>
+                    <Text fontSize="sm" color="gray.600">
+                      {user.phone || "No phone"}
+                    </Text>
+                  </Box>
+                </Td>
+                <Td borderColor={`${customColor}20`}>
+                  <Badge
+                    colorScheme={
+                      user.role === "super admin" ? "purple" :
+                      user.role === "admin" ? "blue" : "gray"
+                    }
+                    px={3}
+                    py={1}
+                    borderRadius="full"
+                    fontSize="sm"
+                    fontWeight="bold"
+                  >
+                    {user.role || "user"}
+                  </Badge>
+                </Td>
+                <Td borderColor={`${customColor}20`}>
+                  <IconButton
+                    aria-label="Edit user"
+                    icon={<FaEdit />}
+                    bg="white"
+                    color={customColor}
+                    border="1px"
+                    borderColor={customColor}
+                    _hover={{ bg: customColor, color: "white" }}
+                    size="sm"
+                    onClick={() => handleEditUser(user)}
+                  />
+                </Td>
+              </Tr>
+            );
+          })}
+        </Tbody>
+      </Table>
+    </Box>
+  </Box>
+</Box>
+                    {/* Fixed Pagination Controls */}
+                    <Box 
+                      flexShrink={0} 
+                      p="24px"
+                      pt="16px"
                       borderTop="1px solid"
                       borderColor={`${customColor}20`}
+                      bg="white"
                     >
-                      <Text fontSize="sm" color="gray.600">
-                        Showing {indexOfFirstItem + 1} to{" "}
-                        {Math.min(indexOfLastItem, filteredData.length)} of{" "}
-                        {filteredData.length} entries
-                        {searchTerm &&
-                          ` (filtered from ${userData.length} total)`}
-                      </Text>
-                      <Flex align="center" gap={2}>
-                        <Button
-                          size="sm"
-                          onClick={handlePrevPage}
-                          isDisabled={currentPage === 1}
-                          leftIcon={<FaChevronLeft />}
-                          bg="white"
-                          color={customColor}
-                          border="1px"
-                          borderColor={customColor}
-                          _hover={{ bg: customColor, color: "white" }}
-                          _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
-                        >
-                          Previous
-                        </Button>
+                      <Flex
+                        justify="space-between"
+                        align={{ base: "stretch", md: "center" }}
+                        direction={{ base: "column", md: "row" }}
+                        gap={4}
+                      >
+                        <Text fontSize="sm" color="gray.600" alignSelf="center">
+                          Showing {indexOfFirstItem + 1} to{" "}
+                          {Math.min(indexOfLastItem, filteredData.length)} of{" "}
+                          {filteredData.length} entries
+                          {searchTerm &&
+                            ` (filtered from ${userData.length} total)`}
+                        </Text>
+                        <Flex align="center" gap={2} justify="center" flexWrap="wrap">
+                          <Button
+                            size="sm"
+                            onClick={handlePrevPage}
+                            isDisabled={currentPage === 1}
+                            leftIcon={<FaChevronLeft />}
+                            bg="white"
+                            color={customColor}
+                            border="1px"
+                            borderColor={customColor}
+                            _hover={{ bg: customColor, color: "white" }}
+                            _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
+                          >
+                            Previous
+                          </Button>
 
-                        {/* Page Numbers */}
-                        <Flex gap={1}>
-                          {Array.from(
-                            { length: totalPages },
-                            (_, i) => i + 1
-                          ).map((page) => (
-                            <Button
-                              key={page}
-                              size="sm"
-                              variant={
-                                currentPage === page ? "solid" : "outline"
+                          {/* Page Numbers */}
+                          <Flex gap={1} flexWrap="wrap" justify="center">
+                            {(() => {
+                              const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+                              
+                              if (totalPages <= 7) {
+                                return pages.map(page => (
+                                  <Button
+                                    key={page}
+                                    size="sm"
+                                    variant={currentPage === page ? "solid" : "outline"}
+                                    bg={currentPage === page ? customColor : "white"}
+                                    color={currentPage === page ? "white" : customColor}
+                                    border="1px"
+                                    borderColor={customColor}
+                                    _hover={currentPage === page ? 
+                                      { bg: customHoverColor } : 
+                                      { bg: customColor, color: "white" }
+                                    }
+                                    onClick={() => handlePageClick(page)}
+                                    minW="40px"
+                                  >
+                                    {page}
+                                  </Button>
+                                ));
                               }
-                              bg={currentPage === page ? customColor : "white"}
-                              color={currentPage === page ? "white" : customColor}
-                              border="1px"
-                              borderColor={customColor}
-                              _hover={currentPage === page ? 
-                                { bg: customHoverColor } : 
-                                { bg: customColor, color: "white" }
-                              }
-                              onClick={() => handlePageClick(page)}
-                            >
-                              {page}
-                            </Button>
-                          ))}
+
+                              const visiblePages = new Set([
+                                1,
+                                2,
+                                3,
+                                currentPage - 1,
+                                currentPage,
+                                currentPage + 1,
+                                totalPages - 2,
+                                totalPages - 1,
+                                totalPages
+                              ].filter(page => page >= 1 && page <= totalPages));
+
+                              const sortedPages = Array.from(visiblePages).sort((a, b) => a - b);
+                              const result = [];
+
+                              sortedPages.forEach((page, index) => {
+                                if (index > 0 && page - sortedPages[index - 1] > 1) {
+                                  result.push(
+                                    <Text key={`ellipsis-${page}`} px={2} color="gray.500" alignSelf="center">
+                                      ...
+                                    </Text>
+                                  );
+                                }
+
+                                result.push(
+                                  <Button
+                                    key={page}
+                                    size="sm"
+                                    variant={currentPage === page ? "solid" : "outline"}
+                                    bg={currentPage === page ? customColor : "white"}
+                                    color={currentPage === page ? "white" : customColor}
+                                    border="1px"
+                                    borderColor={customColor}
+                                    _hover={currentPage === page ? 
+                                      { bg: customHoverColor } : 
+                                      { bg: customColor, color: "white" }
+                                    }
+                                    onClick={() => handlePageClick(page)}
+                                    minW="40px"
+                                  >
+                                    {page}
+                                  </Button>
+                                );
+                              });
+
+                              return result;
+                            })()}
+                          </Flex>
+
+                          <Button
+                            size="sm"
+                            onClick={handleNextPage}
+                            isDisabled={currentPage === totalPages}
+                            rightIcon={<FaChevronRight />}
+                            bg="white"
+                            color={customColor}
+                            border="1px"
+                            borderColor={customColor}
+                            _hover={{ bg: customColor, color: "white" }}
+                            _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
+                          >
+                            Next
+                          </Button>
                         </Flex>
-
-                        <Button
-                          size="sm"
-                          onClick={handleNextPage}
-                          isDisabled={currentPage === totalPages}
-                          rightIcon={<FaChevronRight />}
-                          bg="white"
-                          color={customColor}
-                          border="1px"
-                          borderColor={customColor}
-                          _hover={{ bg: customColor, color: "white" }}
-                          _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
-                        >
-                          Next
-                        </Button>
                       </Flex>
-                    </Flex>
-                  )}
-                </>
-              ) : (
-                <Text textAlign="center" py={10} color="gray.500" fontSize="lg">
-                  {dataLoaded
-                    ? userData.length === 0
-                      ? "No users found."
-                      : searchTerm
-                      ? "No users match your search."
-                      : "No users match the selected filter."
-                    : "Loading users..."}
-                </Text>
-              )}
-            </>
-          )}
-        </CardBody>
-      </Card>
+                    </Box>
+                  </>
+                ) : (
+                  <Flex 
+                    height="200px" 
+                    justify="center" 
+                    align="center" 
+                    border="1px dashed"
+                    borderColor={`${customColor}30`}
+                    borderRadius="md"
+                    flex="1"
+                  >
+                    <Text textAlign="center" color="gray.500" fontSize="lg">
+                      {dataLoaded
+                        ? userData.length === 0
+                          ? "No users found."
+                          : searchTerm
+                          ? "No users match your search."
+                          : "No users match the selected filter."
+                        : "Loading users..."}
+                    </Text>
+                  </Flex>
+                )}
+              </Box>
+            )}
+          </CardBody>
+        </Card>
+      </Box>
     </Flex>
   );
 }
