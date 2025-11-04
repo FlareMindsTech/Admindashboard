@@ -1,17 +1,14 @@
 // Chakra Imports
 import {
   Box,
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
   Flex,
-  useColorModeValue
+  useColorModeValue,
   IconButton,
   HStack,
 } from "@chakra-ui/react";
 import { HamburgerIcon } from "@chakra-ui/icons";
 import React, { useEffect, useState } from "react";
-import { Link as RouterLink } from "react-router-dom";  // ✅ v6 Link
+import { Link as RouterLink } from "react-router-dom";
 import AdminNavbarLinks from "./AdminNavbarLinks";
 
 export default function AdminNavbar(props) {
@@ -19,77 +16,38 @@ export default function AdminNavbar(props) {
   const { fixed, secondary, onOpen } = props; 
 
   useEffect(() => {
+    const changeNavbar = () => setScrolled(window.scrollY > 1);
     window.addEventListener("scroll", changeNavbar);
+    return () => window.removeEventListener("scroll", changeNavbar);
+  }, []);
 
-    return () => {
-      window.removeEventListener("scroll", changeNavbar);
-    };
-  });
-
-  const {
-    variant,
-    children,
-    fixed,
-    secondary,
-    brandText,
-    onOpen,
-    ...rest
-  } = props;
-
-  let mainText =
-    fixed && scrolled
-      ? useColorModeValue("gray.700", "gray.200")
-      : useColorModeValue("white", "gray.200");
-  let secondaryText =
-    fixed && scrolled
-      ? useColorModeValue("gray.700", "gray.200")
-      : useColorModeValue("white", "gray.200");
-
-  let navbarPosition = "absolute";
-  let navbarFilter = "none";
-  let navbarBackdrop = "none";
+  // 🎨 Colors and styles
+  let mainText = useColorModeValue("gray.700", "gray.200");
+  let navbarPosition = "fixed";
   let navbarShadow = "none";
-  let navbarBg = "none";
+  let navbarBg = "#7b2cbf"; // purple
   let navbarBorder = "transparent";
-  let secondaryMargin = "0px";
-  let paddingX = "15px";
+  let paddingX = "35px";
 
-  if (props.fixed === true)
+  // 🧭 Scroll + Fixed Navbar
+  if (fixed === true) {
     if (scrolled === true) {
-      navbarPosition = "fixed";
-      navbarShadow = useColorModeValue(
-        "0px 7px 23px rgba(0, 0, 0, 0.05)",
-        "none"
-      );
-      navbarBg = useColorModeValue(
-        "linear-gradient(112.83deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.8) 110.84%)",
-        "linear-gradient(112.83deg, rgba(255, 255, 255, 0.21) 0%, rgba(255, 255, 255, 0) 110.84%)"
-      );
-      navbarBorder = useColorModeValue(
-        "#FFFFFF",
-        "rgba(255, 255, 255, 0.31)"
-      );
-      navbarFilter = useColorModeValue(
-        "none",
-        "drop-shadow(0px 7px 23px rgba(0, 0, 0, 0.05))"
-      );
+      navbarBg = useColorModeValue("white", "gray.800");
+      navbarShadow = useColorModeValue("0px 7px 23px rgba(0, 0, 0, 0.1)", "none");
+      navbarBorder = useColorModeValue("#E2E8F0", "rgba(255,255,255,0.1)");
+    } else {
+      navbarBg = useColorModeValue("#7b2cbf", "gray.800"); // keep purple at top
+      navbarShadow = useColorModeValue("0px 4px 20px rgba(0, 0, 0, 0.05)", "none");
     }
-  if (props.secondary) {
-    navbarBackdrop = "none";
-    navbarPosition = "absolute";
-    mainText = "white";
-    secondaryText = "white";
-    secondaryMargin = "22px";
-    paddingX = "30px";
   }
 
-  const changeNavbar = () => {
-    if (window.scrollY > 1) {
-      setScrolled(true);
-    } else {
-      setScrolled(false);
-    }
-  };
+  // 💡 Transparent mode for overlay
+  if (secondary) {
+    navbarPosition = "absolute";
+    mainText = "white";
+    navbarBg = "transparent";
+    paddingX = "30px";
+  }
 
   return (
     <>
