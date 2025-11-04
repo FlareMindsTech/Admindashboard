@@ -14,7 +14,7 @@ import {
   useColorMode,
   useColorModeValue,
   useDisclosure,
-} from "@chakra-ui/react";  
+} from "@chakra-ui/react";
 import IconBox from "components/Icons/IconBox";
 import {
   renderThumbDark,
@@ -54,10 +54,35 @@ function Sidebar(props) {
             <Text
               color={activeColor}
               fontWeight="bold"
-              mb={{ xl: "6px" }}
+              mb={{ 
+                base: "4px",    // 320px - 480px
+                sm: "5px",      // 481px - 767px
+                md: "6px",      // 768px - 1024px
+                lg: "6px",      // 1025px - 1280px
+                xl: "6px"       // 1281px +
+              }}
               mx="auto"
-              ps={{ sm: "10px", xl: "16px" }}
-              py="12px"
+              ps={{ 
+                base: "8px",    // 320px - 480px
+                sm: "9px",      // 481px - 767px
+                md: "10px",     // 768px - 1024px
+                lg: "12px",     // 1025px - 1280px
+                xl: "16px"      // 1281px +
+              }}
+              py={{
+                base: "8px",    // 320px - 480px
+                sm: "10px",     // 481px - 767px
+                md: "12px",     // 768px - 1024px
+                lg: "12px",     // 1025px - 1280px
+                xl: "12px"      // 1281px +
+              }}
+              fontSize={{
+                base: "xs",     // 320px - 480px
+                sm: "sm",       // 481px - 767px
+                md: "sm",       // 768px - 1024px
+                lg: "sm",       // 1025px - 1280px
+                xl: "sm"        // 1281px +
+              }}
             >
               {document.documentElement.dir === "rtl" ? prop.rtlName : prop.name}
             </Text>
@@ -75,31 +100,85 @@ function Sidebar(props) {
               boxSize="initial"
               justifyContent="flex-start"
               alignItems="center"
-              mb={{ xl: "6px" }}
-              mx={{ xl: "auto" }}
-              ps={{ sm: "10px", xl: "16px" }}
-              py="12px"
+              mb={{ 
+                base: "4px",    // 320px - 480px
+                sm: "5px",      // 481px - 767px
+                md: "6px",      // 768px - 1024px
+                lg: "6px",      // 1025px - 1280px
+                xl: "6px"       // 1281px +
+              }}
+              mx={{ 
+                base: "auto",   // 320px - 480px
+                sm: "auto",     // 481px - 767px
+                md: "auto",     // 768px - 1024px
+                lg: "auto",     // 1025px - 1280px
+                xl: "auto"      // 1281px +
+              }}
+              ps={{ 
+                base: "8px",    // 320px - 480px
+                sm: "9px",      // 481px - 767px
+                md: "10px",     // 768px - 1024px
+                lg: "12px",     // 1025px - 1280px
+                xl: "16px"      // 1281px +
+              }}
+              py={{
+                base: "8px",    // 320px - 480px
+                sm: "10px",     // 481px - 767px
+                md: "12px",     // 768px - 1024px
+                lg: "12px",     // 1025px - 1280px
+                xl: "12px"      // 1281px +
+              }}
               borderRadius="15px"
               w="100%"
               bg={isActive ? activeBg : "transparent"}
               color={isActive ? activeColor : inactiveColor}
               boxShadow={isActive ? sidebarActiveShadow : "none"}
               _hover="none"
-              _active={{ bg: "inherit", transform: "none", borderColor: "transparent" }}
+              _active={{
+                bg: "inherit",
+                transform: "none",
+                borderColor: "transparent",
+              }}
               _focus={{ boxShadow: "none" }}
             >
               <Flex>
                 <IconBox
                   bg={isActive ? "blue.500" : inactiveBg}
                   color={isActive ? "white" : "blue.500"}
-                  h="30px"
-                  w="30px"
-                  me="12px"
+                  h={{
+                    base: "24px",  // 320px - 480px
+                    sm: "26px",    // 481px - 767px
+                    md: "28px",    // 768px - 1024px
+                    lg: "30px",    // 1025px - 1280px
+                    xl: "30px"     // 1281px +
+                  }}
+                  w={{
+                    base: "24px",  // 320px - 480px
+                    sm: "26px",    // 481px - 767px
+                    md: "28px",    // 768px - 1024px
+                    lg: "30px",    // 1025px - 1280px
+                    xl: "30px"     // 1281px +
+                  }}
+                  me={{
+                    base: "8px",   // 320px - 480px
+                    sm: "10px",    // 481px - 767px
+                    md: "12px",    // 768px - 1024px
+                    lg: "12px",    // 1025px - 1280px
+                    xl: "12px"     // 1281px +
+                  }}
                 >
                   {prop.icon}
                 </IconBox>
-                <Text my="auto" fontSize="sm">
-                  {document.documentElement.dir === "rtl" ? prop.rtlName : prop.name}
+                <Text my="auto" fontSize={{
+                  base: "xs",     // 320px - 480px
+                  sm: "sm",       // 481px - 767px
+                  md: "sm",       // 768px - 1024px
+                  lg: "sm",       // 1025px - 1280px
+                  xl: "sm"        // 1281px +
+                }}>
+                  {document.documentElement.dir === "rtl"
+                    ? prop.rtlName
+                    : prop.name}
                 </Text>
               </Flex>
             </Button>
@@ -111,44 +190,136 @@ function Sidebar(props) {
   const links = <>{createLinks(routes)}</>;
 
   const brand = (
-    <Box pt="25px" mb="12px">
+    <Box pt={{
+      base: "15px",  // 320px - 480px
+      sm: "20px",    // 481px - 767px
+      md: "25px",    // 768px - 1024px
+      lg: "25px",    // 1025px - 1280px
+      xl: "25px"     // 1281px +
+    }} mb={{
+      base: "8px",   // 320px - 480px
+      sm: "10px",    // 481px - 767px
+      md: "12px",    // 768px - 1024px
+      lg: "12px",    // 1025px - 1280px
+      xl: "12px"     // 1281px +
+    }}>
       {logo}
-      <HSeparator my="26px" />
+      <HSeparator my={{
+        base: "20px", // 320px - 480px
+        sm: "22px",   // 481px - 767px
+        md: "24px",   // 768px - 1024px
+        lg: "26px",   // 1025px - 1280px
+        xl: "26px"    // 1281px +
+      }} />
     </Box>
   );
 
   return (
     <Box ref={mainPanel}>
-      <Box display={{ sm: "none", xl: "block" }} position="fixed">
+      {/* Desktop Sidebar - Show on lg screens and above */}
+      <Box
+        display={{ 
+          base: "none",  // 320px - 480px
+          sm: "none",    // 481px - 767px
+          md: "none",    // 768px - 1024px
+          lg: "block",   // 1025px - 1280px
+          xl: "block"    // 1281px +
+        }}
+        position="fixed"
+        top={{
+          base: "40px",  // 320px - 480px
+          sm: "45px",    // 481px - 767px
+          md: "50px",    // 768px - 1024px
+          lg: "50px",    // 1025px - 1280px
+          xl: "50px"     // 1281px +
+        }}
+        left={{
+          base: "12px",  // 320px - 480px
+          sm: "14px",    // 481px - 767px
+          md: "16px",    // 768px - 1024px
+          lg: "16px",    // 1025px - 1280px
+          xl: "16px"     // 1281px +
+        }}
+        zIndex="9999"
+      >
         <Box
           bg={sidebarBg}
           transition={variantChange}
-          w="260px"
-          maxW="260px"
-          ms={{ sm: "16px" }}
-          my={{ sm: "50px" }}
-          h="calc(80vh - 32px)"
-          ps="20px"
-          pe="20px"
+          w={{
+            base: "240px",  // 320px - 480px
+            sm: "250px",    // 481px - 767px
+            md: "260px",    // 768px - 1024px
+            lg: "250px",    // 1025px - 1280px
+            xl: "260px"     // 1281px +
+          }}
+          maxW={{
+            base: "240px",  // 320px - 480px
+            sm: "250px",    // 481px - 767px
+            md: "260px",    // 768px - 1024px
+            lg: "260px",    // 1025px - 1280px
+            xl: "260px"     // 1281px +
+          }}
+          h={{
+            base: "calc(100vh - 60px)",  // 320px - 480px
+            sm: "calc(100vh - 65px)",    // 481px - 767px
+            md: "calc(100vh - 66px)",    // 768px - 1024px
+            lg: "calc(100vh - 66px)",    // 1025px - 1280px
+            xl: "calc(100vh - 66px)"     // 1281px +
+          }}
+          ps={{
+            base: "15px",  // 320px - 480px
+            sm: "18px",    // 481px - 767px
+            md: "20px",    // 768px - 1024px
+            lg: "20px",    // 1025px - 1280px
+            xl: "20px"     // 1281px +
+          }}
+          pe={{
+            base: "15px",  // 320px - 480px
+            sm: "18px",    // 481px - 767px
+            md: "20px",    // 768px - 1024px
+            lg: "20px",    // 1025px - 1280px
+            xl: "20px"     // 1281px +
+          }}
           m={sidebarMargins}
           filter="drop-shadow(1px 5px 14px rgba(0, 0, 0, 0.05))"
           borderRadius={sidebarRadius}
-          zIndex="99"
+          display="flex"
+          flexDirection="column"
         >
-          <Scrollbars
-            autoHide
-            renderTrackVertical={document.documentElement.dir === "rtl" ? renderTrackRTL : renderTrack}
-            renderThumbVertical={useColorModeValue(renderThumbLight, renderThumbDark)}
-            renderView={document.documentElement.dir === "rtl" ? renderViewRTL : renderView}
-            style={{ flex: "1 1 auto" }}
-          >
+          <Box flex="1" display="flex" flexDirection="column" overflow="hidden">
             <Box>{brand}</Box>
-            <Stack direction="column" mb="40px">
-              <Box>{links}</Box>
+            <Stack direction="column" mb={{
+              base: "30px", // 320px - 480px
+              sm: "35px",   // 481px - 767px
+              md: "40px",   // 768px - 1024px
+              lg: "40px",   // 1025px - 1280px
+              xl: "40px"    // 1281px +
+            }} flex="1" overflow="hidden">
+              <Box overflow="hidden" flex="1">
+                {links}
+              </Box>
             </Stack>
-          </Scrollbars>
-          <Box textAlign="center" py="12px" fontSize="13px" color="#888">
-             © 2025 FlareMinds ❤️
+          </Box>
+          <Box
+            textAlign="center"
+            py={{
+              base: "8px",   // 320px - 480px
+              sm: "10px",    // 481px - 767px
+              md: "12px",    // 768px - 1024px
+              lg: "12px",    // 1025px - 1280px
+              xl: "12px"     // 1281px +
+            }}
+            fontSize={{
+              base: "11px",  // 320px - 480px
+              sm: "12px",    // 481px - 767px
+              md: "13px",    // 768px - 1024px
+              lg: "13px",    // 1025px - 1280px
+              xl: "13px"     // 1281px +
+            }}
+            color="#888"
+            flexShrink={0}
+          >
+            © 2025 FlareMinds ❤️
           </Box>
         </Box>
       </Box>
@@ -156,11 +327,10 @@ function Sidebar(props) {
   );
 }
 
-// Responsive Sidebar
+// ✅ Responsive Sidebar - FIXED VERSION
 export function SidebarResponsive(props) {
-  const { logo, routes, hamburgerColor } = props;
+  const { logo, routes, hamburgerColor, isOpen, onOpen, onClose } = props;
   const mainPanel = React.useRef();
-  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const activeBg = useColorModeValue("white", "navy.700");
   const inactiveBg = useColorModeValue("white", "navy.700");
@@ -181,12 +351,31 @@ export function SidebarResponsive(props) {
             <Text
               color={activeColor}
               fontWeight="bold"
-              mb={{ xl: "6px" }}
+              mb={{ 
+                base: "4px",    // 320px - 480px
+                sm: "5px",      // 481px - 767px
+                md: "6px"       // 768px - 1024px
+              }}
               mx="auto"
-              ps={{ sm: "10px", xl: "16px" }}
-              py="12px"
+              ps={{ 
+                base: "8px",    // 320px - 480px
+                sm: "9px",      // 481px - 767px
+                md: "10px"      // 768px - 1024px
+              }}
+              py={{
+                base: "8px",    // 320px - 480px
+                sm: "10px",     // 481px - 767px
+                md: "12px"      // 768px - 1024px
+              }}
+              fontSize={{
+                base: "xs",     // 320px - 480px
+                sm: "sm",       // 481px - 767px
+                md: "sm"        // 768px - 1024px
+              }}
             >
-              {document.documentElement.dir === "rtl" ? prop.rtlName : prop.name}
+              {document.documentElement.dir === "rtl"
+                ? prop.rtlName
+                : prop.name}
             </Text>
             {createLinks(prop.views)}
           </React.Fragment>
@@ -194,37 +383,75 @@ export function SidebarResponsive(props) {
       }
 
       return (
-        <NavLink to={prop.layout + prop.path} key={key}>
+        <NavLink to={prop.layout + prop.path} key={key} onClick={onClose}>
           {({ isActive }) => (
             <Button
               boxSize="initial"
               justifyContent="flex-start"
               alignItems="center"
-              mb={{ xl: "6px" }}
-              mx={{ xl: "auto" }}
-              ps={{ sm: "10px", xl: "16px" }}
-              py="12px"
+              mb={{ 
+                base: "4px",    // 320px - 480px
+                sm: "5px",      // 481px - 767px
+                md: "6px"       // 768px - 1024px
+              }}
+              mx={{ 
+                base: "auto",   // 320px - 480px
+                sm: "auto",     // 481px - 767px
+                md: "auto"      // 768px - 1024px
+              }}
+              ps={{ 
+                base: "8px",    // 320px - 480px
+                sm: "9px",      // 481px - 767px
+                md: "10px"      // 768px - 1024px
+              }}
+              py={{
+                base: "8px",    // 320px - 480px
+                sm: "10px",     // 481px - 767px
+                md: "12px"      // 768px - 1024px
+              }}
               borderRadius="15px"
               w="100%"
               bg={isActive ? activeBg : "transparent"}
               color={isActive ? activeColor : inactiveColor}
               boxShadow={isActive ? sidebarActiveShadow : "none"}
               _hover="none"
-              _active={{ bg: "inherit", transform: "none", borderColor: "transparent" }}
+              _active={{
+                bg: "inherit",
+                transform: "none",
+                borderColor: "transparent",
+              }}
               _focus={{ boxShadow: "none" }}
             >
               <Flex>
                 <IconBox
                   bg={isActive ? "blue.500" : inactiveBg}
                   color={isActive ? "white" : "blue.500"}
-                  h="30px"
-                  w="30px"
-                  me="12px"
+                  h={{
+                    base: "24px",  // 320px - 480px
+                    sm: "26px",    // 481px - 767px
+                    md: "28px"     // 768px - 1024px
+                  }}
+                  w={{
+                    base: "24px",  // 320px - 480px
+                    sm: "26px",    // 481px - 767px
+                    md: "28px"     // 768px - 1024px
+                  }}
+                  me={{
+                    base: "8px",   // 320px - 480px
+                    sm: "10px",    // 481px - 767px
+                    md: "12px"     // 768px - 1024px
+                  }}
                 >
                   {prop.icon}
                 </IconBox>
-                <Text my="auto" fontSize="sm">
-                  {document.documentElement.dir === "rtl" ? prop.rtlName : prop.name}
+                <Text my="auto" fontSize={{
+                  base: "xs",     // 320px - 480px
+                  sm: "sm",       // 481px - 767px
+                  md: "sm"        // 768px - 1024px
+                }}>
+                  {document.documentElement.dir === "rtl"
+                    ? prop.rtlName
+                    : prop.name}
                 </Text>
               </Flex>
             </Button>
@@ -236,41 +463,164 @@ export function SidebarResponsive(props) {
   const links = <>{createLinks(routes)}</>;
 
   const brand = (
-    <Box pt="35px" mb="8px">
+    <Box pt={{
+      base: "25px",  // 320px - 480px
+      sm: "30px",    // 481px - 767px
+      md: "35px"     // 768px - 1024px
+    }} mb={{
+      base: "6px",   // 320px - 480px
+      sm: "7px",     // 481px - 767px
+      md: "8px"      // 768px - 1024px
+    }}>
       {logo}
-      <HSeparator my="26px" />
+      <HSeparator my={{
+        base: "20px", // 320px - 480px
+        sm: "22px",   // 481px - 767px
+        md: "26px"    // 768px - 1024px
+      }} />
     </Box>
   );
 
   return (
-    <Flex display={{ sm: "flex", xl: "none" }} ref={mainPanel} alignItems="center">
-      <HamburgerIcon color={hamburgerColor} w="18px" h="18px" onClick={onOpen} />
+    <Flex
+      display={{ 
+        base: "flex",  // 320px - 480px
+        sm: "flex",    // 481px - 767px
+        md: "flex",    // 768px - 1024px
+        lg: "none",    // 1025px - 1280px
+        xl: "none"     // 1281px +
+      }}
+      ref={mainPanel}
+      alignItems="center"
+    >
+      {/* Hamburger Icon - Only visible on mobile */}
+      <HamburgerIcon 
+        color={hamburgerColor} 
+        w={{
+          base: "16px",  // 320px - 480px
+          sm: "17px",    // 481px - 767px
+          md: "18px"     // 768px - 1024px
+        }}
+        h={{
+          base: "16px",  // 320px - 480px
+          sm: "17px",    // 481px - 767px
+          md: "18px"     // 768px - 1024px
+        }}
+        onClick={onOpen}
+        cursor="pointer"
+      />
+      
+      {/* Mobile Sidebar Drawer */}
       <Drawer
         isOpen={isOpen}
         onClose={onClose}
         placement={document.documentElement.dir === "rtl" ? "right" : "left"}
+        size={{
+          base: "xs",  // 320px - 480px
+          sm: "sm",    // 481px - 767px
+          md: "md"     // 768px - 1024px
+        }}
       >
         <DrawerOverlay />
         <DrawerContent
-          w="250px"
-          maxW="250px"
-          ms={{ sm: "16px" }}
-          my={{ sm: "16px" }}
-          borderRadius="16px"
+          w={{
+            base: "250px",  // 320px - 480px
+            sm: "260px",    // 481px - 767px
+            md: "280px"     // 768px - 1024px
+          }}
+          maxW={{
+            base: "250px",  // 320px - 480px
+            sm: "260px",    // 481px - 767px
+            md: "280px"     // 768px - 1024px
+          }}
           bg={sidebarBackgroundColor}
+          borderRadius="16px"
+          mt={{
+            base: "50px",  // 320px - 480px
+            sm: "55px",    // 481px - 767px
+            md: "60px"     // 768px - 1024px
+          }}
+          mb={{
+            base: "15px",  // 320px - 480px
+            sm: "18px",    // 481px - 767px
+            md: "20px"     // 768px - 1024px
+          }}
+          ml={{
+            base: "8px",   // 320px - 480px
+            sm: "9px",     // 481px - 767px
+            md: "10px"     // 768px - 1024px
+          }}
+          h={{
+            base: "calc(100vh - 65px)",  // 320px - 480px
+            sm: "calc(100vh - 73px)",    // 481px - 767px
+            md: "calc(100vh - 80px)"     // 768px - 1024px
+          }}
         >
-          <DrawerCloseButton _focus={{ boxShadow: "none" }} _hover={{ boxShadow: "none" }} />
-          <DrawerBody maxW="250px" px="1rem">
-            <Box maxW="100%" h="100vh" display="flex" flexDirection="column" justifyContent="space-between">
-              <Box>
+          <DrawerCloseButton
+            _focus={{ boxShadow: "none" }}
+            _hover={{ boxShadow: "none" }}
+            mt={{
+              base: "8px",   // 320px - 480px
+              sm: "9px",     // 481px - 767px
+              md: "10px"     // 768px - 1024px
+            }}
+            mr={{
+              base: "8px",   // 320px - 480px
+              sm: "9px",     // 481px - 767px
+              md: "10px"     // 768px - 1024px
+            }}
+            size={{
+              base: "md",    // 320px - 480px
+              sm: "lg",      // 481px - 767px
+              md: "lg"       // 768px - 1024px
+            }}
+          />
+          <DrawerBody
+            px={{
+              base: "0.8rem",  // 320px - 480px
+              sm: "0.9rem",    // 481px - 767px
+              md: "1rem"       // 768px - 1024px
+            }}
+            display="flex"
+            flexDirection="column"
+            overflow="hidden"
+          >
+            <Box
+              w="100%"
+              h="100%"
+              display="flex"
+              flexDirection="column"
+              justifyContent="space-between"
+            >
+              <Box flex="1" display="flex" flexDirection="column" overflow="hidden">
                 <Box>{brand}</Box>
-                <Stack direction="column" mb="40px">
-                  <Box>{links}</Box>
+                <Stack direction="column" mb={{
+                  base: "30px", // 320px - 480px
+                  sm: "35px",   // 481px - 767px
+                  md: "40px"    // 768px - 1024px
+                }} flex="1" overflow="hidden">
+                  <Box overflow="auto" flex="1">
+                    {links}
+                  </Box>
                 </Stack>
                 <SidebarHelp />
               </Box>
 
-              <Box textAlign="center" py="12px" fontSize="13px" color="#888">
+              <Box
+                textAlign="center"
+                py={{
+                  base: "8px",   // 320px - 480px
+                  sm: "10px",    // 481px - 767px
+                  md: "12px"     // 768px - 1024px
+                }}
+                fontSize={{
+                  base: "11px",  // 320px - 480px
+                  sm: "12px",    // 481px - 767px
+                  md: "13px"     // 768px - 1024px
+                }}
+                color="#888"
+                flexShrink={0}
+              >
                 2025 ❤️ Flaremind
               </Box>
             </Box>

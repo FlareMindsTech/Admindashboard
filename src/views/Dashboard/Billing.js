@@ -1,522 +1,774 @@
+
 import {
-  Box,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  Text,
-  useColorModeValue,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
-  useDisclosure,
-  Button,
-  Flex,
-  Tabs,
-  Tab,
-  TabList,
-  TabPanels,
-  TabPanel,
-  Image,
-  Input,
-  Select,
-  Badge,
-  useToast,
+  Box,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Text,
+  useColorModeValue,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  useDisclosure,
+  Button,
+  Flex,
+  Tabs,
+  Tab,
+  TabList,
+  TabPanels,
+  TabPanel,
+  Input,
+  Select,
+  Badge,
+  Grid,
+  Stat,
+  StatLabel,
+  StatNumber,
+  Heading,
+  Icon,
+  IconButton,
+  InputGroup,
+  InputLeftElement,
+  HStack,
+  VStack,
+  Progress,
+  Avatar,
+  AvatarGroup,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  Divider,
+  useToast,
 } from "@chakra-ui/react";
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { useNavigate } from "react-router-dom";
-
-import Card from "components/Card/Card.js";
-import CardBody from "components/Card/CardBody.js";
-import CardHeader from "components/Card/CardHeader.js";
-
-import storeLogo from "assets/img/Aadvi-logo.png";
+import React, { useState } from "react";
+import { 
+  FiShoppingCart, 
+  FiCreditCard, 
+  FiRepeat, 
+  FiEye, 
+  FiDownload, 
+  FiCheckCircle,
+  FiTruck,
+  FiCalendar,
+  FiUser,
+  FiMoreVertical,
+  FiSearch,
+  FiFilter
+} from "react-icons/fi";
 
 export default function Billing() {
-  const textColor = useColorModeValue("gray.800", "white");
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const toast = useToast();
-  const navigate = useNavigate();
+  const textColor = useColorModeValue("gray.800", "white");
+  const bgColor = useColorModeValue("gray.50", "gray.900");
+  const cardBg = useColorModeValue("white", "gray.800");
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const toast = useToast();
 
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [orders, setOrders] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [deliveryDate, setDeliveryDate] = useState("");
-  const [deliveryTime, setDeliveryTime] = useState("");
-  const [paymentFilter, setPaymentFilter] = useState("all");
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [activeTab, setActiveTab] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // --- NEW STATE FOR ACCESS CONTROL ---
-  const [userRole, setUserRole] = useState(null); 
-  // We remove 'currentUser' state and rely on localStorage directly for token in getAuthHeader
-  // and userRole state for rendering checks.
+  // Modern color palette
+  const colors = {
+    primary: "#6366F1",
+    primaryLight: "#818CF8",
+    success: "#10B981",
+    warning: "#F59E0B",
+    danger: "#EF4444",
+    info: "#3B82F6",
+  };
 
-  // --- Helper to get authorization header config. NOW uses localStorage directly for token ---
-  const getAuthHeader = useCallback(() => {
-    const token = localStorage.getItem("adminToken");
-    if (token) {
-      return {
-        headers: {
-          Authorization: `Bearer ${token}`, // Use token from adminToken key
-        },
-      };
-    }
-    return {};
-  }, []);
-  // -------------------------------------------------
+  // Demo data
+  const orders = [
+    {
+      _id: "ORD001",
+      customer: "John Doe",
+      customerEmail: "john@example.com",
+      status: "pending",
+      progress: 30,
+      createdAt: "2024-01-15",
+      deliveryDate: "2024-01-20",
+      orderItems: [
+        { name: "MacBook Pro 14\"", price: 1999, qty: 1, image: "💻" },
+        { name: "Magic Mouse", price: 99, qty: 2, image: "🖱️" }
+      ],
+      assignedTeam: ["👨‍💼", "👩‍💻"]
+    },
+    {
+      _id: "ORD002",
+      customer: "Jane Smith",
+      customerEmail: "jane@example.com",
+      status: "confirmed",
+      progress: 60,
+      createdAt: "2024-01-16",
+      deliveryDate: "2024-01-22",
+      orderItems: [
+        { name: "iPhone 15 Pro", price: 1199, qty: 1, image: "📱" },
+        { name: "AirPods Pro", price: 249, qty: 1, image: "🎧" }
+      ],
+      assignedTeam: ["👨‍💼", "👩‍💻", "👨‍🔧"]
+    },
+    {
+      _id: "ORD003",
+      customer: "Mike Johnson",
+      customerEmail: "mike@example.com",
+      status: "delivered",
+      progress: 100,
+      createdAt: "2024-01-14",
+      deliveryDate: "2024-01-18",
+      orderItems: [
+        { name: "iPad Air", price: 749, qty: 1, image: "📱" },
+        { name: "Apple Pencil", price: 129, qty: 1, image: "✏️" }
+      ],
+      assignedTeam: ["👨‍💼", "👩‍💻"]
+    }
+  ];
 
-  // ------------------ FETCH DATA WRAPPER ------------------
-  const fetchOrders = async () => {
-    try {
-      const res = await axiosInstance.get("api/orders/all", getAuthHeader());
-      setOrders(res.data);
-    } catch (err) {
-      console.error("Error fetching orders:", err);
-    }
-  };
+  const payments = [
+    { 
+      _id: "PAY001", 
+      orderId: "ORD001", 
+      amount: 2197, 
+      status: "pending", 
+      method: "Credit Card",
+      dueDate: "2024-01-25"
+    },
+    { 
+      _id: "PAY002", 
+      orderId: "ORD002", 
+      amount: 1448, 
+      status: "completed", 
+      method: "PayPal",
+      paidDate: "2024-01-16"
+    }
+  ];
 
-  const fetchTransactions = async () => {
-    try {
-      const res = await axiosInstance.get("api/transactions/all", getAuthHeader());
-      setTransactions(res.data);
-    } catch (err) {
-      console.error("Error fetching transactions:", err);
-    }
-  };
+  const transactions = [
+    { 
+      _id: "TXN001", 
+      orderId: "ORD002", 
+      amount: 1448, 
+      type: "payment",
+      status: "completed",
+      createdAt: "2024-01-16",
+      method: "PayPal"
+    },
+    { 
+      _id: "TXN002", 
+      orderId: "ORD003", 
+      amount: 878, 
+      type: "payment",
+      status: "completed",
+      createdAt: "2024-01-14",
+      method: "Bank Transfer"
+    }
+  ];
 
-  const fetchPayments = async () => {
-    try {
-      const res = await axiosInstance.get("api/payments/all", getAuthHeader());
-      setPayments(res.data);
-    } catch (err) {
-      console.error("Error fetching payments:", err);
-    }
-  };
-  
-  // Combine fetching functions into one to match the new useEffect's intent
-  const fetchData = useCallback(() => {
-    fetchOrders();
-    fetchTransactions();
-    fetchPayments();
-  }, [getAuthHeader]); // Include getAuthHeader if it were to change, though it's memoized
+  // Handlers
+  const handleRowClick = (order) => {
+    setSelectedOrder(order);
+    onOpen();
+  };
 
-  // ------------------ ACCESS CONTROL (FIXED CODE) ------------------
-  useEffect(() => {
-    // Simplified Auth Check & Data Load:
-    const token = localStorage.getItem("adminToken"); 
-    const rawRole = localStorage.getItem("userRole"); 
-    
-    // **CRITICAL FIX: Normalize role for consistent checking**
-    const normalizedRole = rawRole?.toLowerCase().replace(/\s/g, '') || null;
+  const handleConfirmOrder = () => {
+    toast({
+      title: "Order Confirmed",
+      description: `Order ${selectedOrder._id} has been confirmed`,
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+    onClose();
+  };
 
-    // Check for token AND a valid admin role
-    if (!token || (normalizedRole !== "admin" && normalizedRole !== "superadmin")) {
-      toast({ 
-          title: "Auth Required", 
-          description: "Please login as Admin.", 
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-          position: "top", 
-      });
-      // Redirect to admin login page
-      navigate("/admin/login"); 
-      return;
-    }
-    
-    // Set the normalized user role
-    setUserRole(normalizedRole); 
+  const handleMarkDelivered = () => {
+    toast({
+      title: "Order Delivered",
+      description: `Order ${selectedOrder._id} marked as delivered`,
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+    onClose();
+  };
 
-    fetchData();
-  }, [navigate, toast, fetchData]); // Added fetchData as a dependency since it's used inside
+  const handleDownload = () => {
+    toast({
+      title: "Download Started",
+      description: "Invoice is being downloaded",
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+    });
+  };
 
-  // ------------------ ORDER HANDLERS ------------------
-  const handleRowClick = (order) => {
-    setSelectedOrder(order);
-    setDeliveryDate(order.deliveryDate || "");
-    setDeliveryTime(order.deliveryTime || "");
-    onOpen();
-  };
+  const getStatusColor = (status) => {
+    const statusColors = {
+      delivered: { color: "white", bg: colors.success },
+      confirmed: { color: "white", bg: colors.info },
+      completed: { color: "white", bg: colors.success },
+      pending: { color: "white", bg: colors.warning },
+      success: { color: "white", bg: colors.success },
+    };
+    return statusColors[status] || { color: "white", bg: colors.primary };
+  };
 
-  const calculateTotal = (items) => {
-    let totalQty = 0;
-    let totalPrice = 0;
-    items.forEach((it) => {
-      totalQty += it.qty;
-      totalPrice += it.qty * it.price;
-    });
-    return { totalQty, totalPrice };
-  };
+  const calculateTotal = (items) => {
+    return items.reduce((total, item) => total + (item.price * item.qty), 0);
+  };
 
-  const handleConfirmOrder = async () => {
-    if (!deliveryDate || !deliveryTime) {
-      alert("Please select delivery date and time");
-      return;
-    }
-    try {
-      const updatedOrder = {
-        status: "confirmed",
-        deliveryDate,
-        deliveryTime,
-        confirmationDate: new Date().toISOString(),
-      };
-      // --- MODIFIED: Include Authorization header ---
-      await axiosInstance.put(
-        `api/orders/update/${selectedOrder._id}`, 
-        updatedOrder, 
-        getAuthHeader()
-      );
-      fetchOrders();
-      setSelectedOrder({ ...selectedOrder, ...updatedOrder });
-      onClose();
-    } catch (err) {
-      console.error("Error confirming order:", err);
-    }
-  };
+  return (
+    <Box
+      minH="100vh"
+      bg={bgColor}
+      p={{ base: 4, md: 6, lg: 8 }}
+      mt="130px"
+    >
+      {/* Header */}
+      <VStack spacing={6} align="stretch" mb={8}>
+        <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
+          <VStack align="start" spacing={2}>
+            <Heading size="lg" color="gray.700" fontWeight="bold">
+              Order Management
+            </Heading>
+            <Text color="gray.500" fontSize="md">
+              Manage orders, payments, and transactions
+            </Text>
+          </VStack>
+          
+          <HStack spacing={3}>
+            <Box position="relative">
+              <Input
+                placeholder="Search orders..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                bg={cardBg}
+                borderColor="gray.200"
+                pl={10}
+                w={{ base: "200px", md: "300px" }}
+                _focus={{
+                  borderColor: colors.primary,
+                  boxShadow: `0 0 0 1px ${colors.primary}`
+                }}
+              />
+              <Icon
+                as={FiSearch}
+                position="absolute"
+                left={3}
+                top="50%"
+                transform="translateY(-50%)"
+                color="gray.400"
+              />
+            </Box>
+            <Button
+              leftIcon={<FiFilter />}
+              variant="outline"
+              borderColor="gray.200"
+              bg={cardBg}
+            >
+              Filter
+            </Button>
+          </HStack>
+        </Flex>
 
-  const handleMarkDelivered = async () => {
-    try {
-      // --- MODIFIED: Include Authorization header ---
-      await axiosInstance.put(
-        `api/orders/update/${selectedOrder._id}`, 
-        { status: "delivered" },
-        getAuthHeader()
-      );
-      fetchOrders();
-      setSelectedOrder({ ...selectedOrder, status: "delivered" });
-    } catch (err) {
-      console.error(err);
-    }
-  };
+        {/* Stats Boxes */}
+        <Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={6}>
+          {/* Total Orders */}
+          <Box 
+            bg={cardBg} 
+            p={6} 
+            borderRadius="lg" 
+            shadow="sm" 
+            borderLeft={`4px solid ${colors.primary}`}
+          >
+            <HStack justify="space-between">
+              <VStack align="start" spacing={1}>
+                <Text color="gray.500" fontSize="sm">Total Orders</Text>
+                <Text fontSize="2xl" fontWeight="bold" color="gray.700">
+                  {orders.length}
+                </Text>
+                <Text fontSize="sm" color={colors.success}>
+                  +12% this month
+                </Text>
+              </VStack>
+              <Box p={3} bg={`${colors.primary}15`} borderRadius="lg">
+                <Icon as={FiShoppingCart} boxSize={6} color={colors.primary} />
+              </Box>
+            </HStack>
+          </Box>
 
-  // ------------------ PAYMENT HANDLERS ------------------
-  const handlePaymentStatusChange = async (paymentId, newStatus) => {
-    try {
-      // --- MODIFIED: Include Authorization header ---
-      await axiosInstance.put(
-        `api/payments/update/${paymentId}`, 
-        { status: newStatus },
-        getAuthHeader()
-      );
-      fetchPayments();
-    } catch (err) {
-      console.error("Error updating payment status:", err);
-    }
-  };
+          {/* Completed Orders */}
+          <Box 
+            bg={cardBg} 
+            p={6} 
+            borderRadius="lg" 
+            shadow="sm" 
+            borderLeft={`4px solid ${colors.success}`}
+          >
+            <HStack justify="space-between">
+              <VStack align="start" spacing={1}>
+                <Text color="gray.500" fontSize="sm">Completed</Text>
+                <Text fontSize="2xl" fontWeight="bold" color="gray.700">
+                  {orders.filter(o => o.status === 'delivered').length}
+                </Text>
+                <Text fontSize="sm" color={colors.success}>
+                  85% success rate
+                </Text>
+              </VStack>
+              <Box p={3} bg={`${colors.success}15`} borderRadius="lg">
+                <Icon as={FiCheckCircle} boxSize={6} color={colors.success} />
+              </Box>
+            </HStack>
+          </Box>
 
-  // ------------------ PDF RECEIPT (No change needed here) ------------------
-  const handleDownload = () => {
-    if (!selectedOrder) return;
-    const doc = new jsPDF();
-    const img = new Image();
-    img.src = storeLogo;
-    img.onload = function () {
-      const imgWidth = 50;
-      const imgHeight = (img.height * imgWidth) / img.width;
-      doc.addImage(img, "PNG", 14, 10, imgWidth, imgHeight);
+          {/* Revenue */}
+          <Box 
+            bg={cardBg} 
+            p={6} 
+            borderRadius="lg" 
+            shadow="sm" 
+            borderLeft={`4px solid ${colors.info}`}
+          >
+            <HStack justify="space-between">
+              <VStack align="start" spacing={1}>
+                <Text color="gray.500" fontSize="sm">Revenue</Text>
+                <Text fontSize="2xl" fontWeight="bold" color="gray.700">
+                  ₹{orders.reduce((sum, order) => sum + calculateTotal(order.orderItems), 0).toLocaleString()}
+                </Text>
+                <Text fontSize="sm" color={colors.success}>
+                  +8% growth
+                </Text>
+              </VStack>
+              <Box p={3} bg={`${colors.info}15`} borderRadius="lg">
+                <Icon as={FiCreditCard} boxSize={6} color={colors.info} />
+              </Box>
+            </HStack>
+          </Box>
+        </Grid>
+      </VStack>
 
-      doc.setFontSize(18);
-      doc.text("Order Receipt", 70, 25);
+      {/* Main Content Box */}
+      <Box bg={cardBg} shadow="md" borderRadius="xl" overflow="hidden">
+        {/* Tabs Header */}
+        <Box p={6} borderBottom="1px solid" borderColor="gray.200">
+          <Tabs 
+            variant="soft-rounded" 
+            colorScheme="purple"
+            onChange={setActiveTab}
+          >
+            <TabList>
+              <Tab
+                _selected={{ 
+                  bg: `${colors.primary}15`, 
+                  color: colors.primary,
+                  fontWeight: "semibold"
+                }}
+                fontSize="sm"
+                fontWeight="medium"
+              >
+                <HStack spacing={2}>
+                  <Icon as={FiShoppingCart} />
+                  <Text>Orders</Text>
+                  <Badge 
+                    bg={`${colors.primary}20`} 
+                    color={colors.primary}
+                    borderRadius="full"
+                    px={2}
+                  >
+                    {orders.length}
+                  </Badge>
+                </HStack>
+              </Tab>
+              <Tab
+                _selected={{ 
+                  bg: `${colors.info}15`, 
+                  color: colors.info,
+                  fontWeight: "semibold"
+                }}
+                fontSize="sm"
+                fontWeight="medium"
+              >
+                <HStack spacing={2}>
+                  <Icon as={FiCreditCard} />
+                  <Text>Payments</Text>
+                </HStack>
+              </Tab>
+              <Tab
+                _selected={{ 
+                  bg: `${colors.success}15`, 
+                  color: colors.success,
+                  fontWeight: "semibold"
+                }}
+                fontSize="sm"
+                fontWeight="medium"
+              >
+                <HStack spacing={2}>
+                  <Icon as={FiRepeat} />
+                  <Text>Transactions</Text>
+                </HStack>
+              </Tab>
+            </TabList>
+          </Tabs>
+        </Box>
 
-      doc.setFontSize(12);
-      doc.text(`Order ID: ${selectedOrder._id}`, 14, imgHeight + 30);
-      doc.text(`Customer: ${selectedOrder.customer}`, 14, imgHeight + 38);
-      doc.text(`Email: ${selectedOrder.email}`, 14, imgHeight + 46);
-      doc.text(`Phone: ${selectedOrder.phone}`, 14, imgHeight + 54);
-      doc.text(`Address: ${selectedOrder.address}`, 14, imgHeight + 62);
+        {/* Tab Content */}
+        <Box p={6}>
+          {activeTab === 0 && (
+            <Box overflowX="auto">
+              <Table variant="simple">
+                <Thead bg="gray.50">
+                  <Tr>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Order Details</Th>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Customer</Th>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Status</Th>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Progress</Th>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Team</Th>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Actions</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {orders.map((order) => (
+                    <Tr
+                      key={order._id}
+                      _hover={{ bg: "gray.50", cursor: "pointer" }}
+                      onClick={() => handleRowClick(order)}
+                      borderBottom="1px solid"
+                      borderColor="gray.100"
+                    >
+                      <Td>
+                        <VStack align="start" spacing={1}>
+                          <Text fontWeight="semibold" color="gray.800">
+                            {order._id}
+                          </Text>
+                          <Text fontSize="sm" color="gray.500">
+                            {order.orderItems.length} items
+                          </Text>
+                          <Text fontSize="sm" fontWeight="medium" color="gray.700">
+                            ₹{calculateTotal(order.orderItems).toLocaleString()}
+                          </Text>
+                        </VStack>
+                      </Td>
+                      <Td>
+                        <VStack align="start" spacing={1}>
+                          <Text fontWeight="medium">{order.customer}</Text>
+                          <Text fontSize="sm" color="gray.500">
+                            {order.customerEmail}
+                          </Text>
+                        </VStack>
+                      </Td>
+                      <Td>
+                        <Badge
+                          bg={getStatusColor(order.status).bg}
+                          color={getStatusColor(order.status).color}
+                          px={3}
+                          py={1}
+                          borderRadius="full"
+                          fontSize="xs"
+                          fontWeight="bold"
+                        >
+                          {order.status.toUpperCase()}
+                        </Badge>
+                      </Td>
+                      <Td>
+                        <VStack spacing={1} align="start" w="120px">
+                          <Progress 
+                            value={order.progress} 
+                            size="sm" 
+                            w="100%"
+                            colorScheme={
+                              order.status === 'delivered' ? 'green' :
+                              order.status === 'confirmed' ? 'blue' : 'orange'
+                            }
+                            borderRadius="full"
+                          />
+                          <Text fontSize="xs" color="gray.500">
+                            {order.progress}% complete
+                          </Text>
+                        </VStack>
+                      </Td>
+                      <Td>
+                        <AvatarGroup size="sm" max={3}>
+                          {order.assignedTeam.map((emoji, index) => (
+                            <Avatar key={index} name={emoji} src="" bg="transparent" />
+                          ))}
+                        </AvatarGroup>
+                      </Td>
+                      <Td>
+                        <Menu>
+                          <MenuButton
+                            as={Button}
+                            variant="ghost"
+                            size="sm"
+                          >
+                            <Icon as={FiMoreVertical} />
+                          </MenuButton>
+                          <MenuList>
+                            <MenuItem icon={<FiEye />} onClick={() => handleRowClick(order)}>
+                              View Details
+                            </MenuItem>
+                            <MenuItem icon={<FiDownload />} onClick={handleDownload}>
+                              Download Invoice
+                            </MenuItem>
+                          </MenuList>
+                        </Menu>
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </Box>
+          )}
 
-      if (selectedOrder.deliveryDate && selectedOrder.deliveryTime) {
-        doc.text(`Delivery Scheduled: ${selectedOrder.deliveryDate} at ${selectedOrder.deliveryTime}`, 14, imgHeight + 70);
-      }
+          {activeTab === 1 && (
+            <Box overflowX="auto">
+              <Table variant="simple">
+                <Thead bg="gray.50">
+                  <Tr>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Payment ID</Th>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Order ID</Th>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Amount</Th>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Method</Th>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Status</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {payments.map((payment) => (
+                    <Tr key={payment._id} borderBottom="1px solid" borderColor="gray.100">
+                      <Td>
+                        <Text fontWeight="semibold">{payment._id}</Text>
+                      </Td>
+                      <Td>
+                        <Text color="gray.700">{payment.orderId}</Text>
+                      </Td>
+                      <Td>
+                        <Text fontWeight="bold" color="gray.800" fontSize="lg">
+                          ₹{payment.amount.toLocaleString()}
+                        </Text>
+                      </Td>
+                      <Td>
+                        <Badge variant="outline" colorScheme="blue">
+                          {payment.method}
+                        </Badge>
+                      </Td>
+                      <Td>
+                        <Badge
+                          bg={getStatusColor(payment.status).bg}
+                          color={getStatusColor(payment.status).color}
+                          px={3}
+                          py={1}
+                          borderRadius="full"
+                          fontSize="xs"
+                          fontWeight="bold"
+                        >
+                          {payment.status.toUpperCase()}
+                        </Badge>
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </Box>
+          )}
 
-      const tableData = selectedOrder.orderItems.map((it) => [
-        it.name,
-        `₹${it.price}`,
-        it.qty,
-        `₹${it.qty * it.price}`,
-      ]);
+          {activeTab === 2 && (
+            <Box overflowX="auto">
+              <Table variant="simple">
+                <Thead bg="gray.50">
+                  <Tr>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Transaction ID</Th>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Order ID</Th>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Type</Th>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Amount</Th>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Date</Th>
+                    <Th color="gray.600" fontSize="sm" fontWeight="semibold">Status</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {transactions.map((transaction) => (
+                    <Tr key={transaction._id} borderBottom="1px solid" borderColor="gray.100">
+                      <Td>
+                        <Text fontWeight="semibold">{transaction._id}</Text>
+                      </Td>
+                      <Td>
+                        <Text color="gray.700">{transaction.orderId}</Text>
+                      </Td>
+                      <Td>
+                        <Badge
+                          colorScheme={transaction.type === 'payment' ? 'green' : 'orange'}
+                          variant="subtle"
+                        >
+                          {transaction.type}
+                        </Badge>
+                      </Td>
+                      <Td>
+                        <Text fontWeight="bold" color="gray.800" fontSize="lg">
+                          ₹{transaction.amount.toLocaleString()}
+                        </Text>
+                      </Td>
+                      <Td>
+                        <Text color="gray.600">
+                          {new Date(transaction.createdAt).toLocaleDateString()}
+                        </Text>
+                      </Td>
+                      <Td>
+                        <Badge
+                          bg={getStatusColor(transaction.status).bg}
+                          color={getStatusColor(transaction.status).color}
+                          px={3}
+                          py={1}
+                          borderRadius="full"
+                          fontSize="xs"
+                          fontWeight="bold"
+                        >
+                          {transaction.status.toUpperCase()}
+                        </Badge>
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </Box>
+          )}
+        </Box>
+      </Box>
 
-      autoTable(doc, {
-        head: [["Item", "Price", "Qty", "Total"]],
-        body: tableData,
-        startY: imgHeight + 78,
-      });
+      {/* Order Details Modal */}
+      <Modal isOpen={isOpen} onClose={onClose} size="4xl" isCentered>
+        <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(4px)" />
+        <ModalContent bg={cardBg} borderRadius="2xl" overflow="hidden">
+          <ModalHeader 
+            bg={`${colors.primary}08`}
+            borderBottom="1px solid"
+            borderColor="gray.200"
+          >
+            <VStack align="start" spacing={2}>
+              <Heading size="md">Order Details</Heading>
+              <Text color="gray.600" fontSize="sm">
+                Manage order status and delivery information
+              </Text>
+            </VStack>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody py={6}>
+            {selectedOrder && (
+              <VStack spacing={6} align="stretch">
+                {/* Order Header */}
+                <HStack justify="space-between" align="start">
+                  <VStack align="start" spacing={1}>
+                    <Text fontSize="2xl" fontWeight="bold" color="gray.800">
+                      {selectedOrder._id}
+                    </Text>
+                    <HStack spacing={4}>
+                      <HStack>
+                        <Icon as={FiUser} color="gray.500" />
+                        <Text color="gray.600">{selectedOrder.customer}</Text>
+                      </HStack>
+                      <HStack>
+                        <Icon as={FiCalendar} color="gray.500" />
+                        <Text color="gray.600">
+                          {new Date(selectedOrder.createdAt).toLocaleDateString()}
+                        </Text>
+                      </HStack>
+                    </HStack>
+                  </VStack>
+                  <Badge
+                    bg={getStatusColor(selectedOrder.status).bg}
+                    color={getStatusColor(selectedOrder.status).color}
+                    px={4}
+                    py={2}
+                    borderRadius="full"
+                    fontSize="md"
+                    fontWeight="bold"
+                  >
+                    {selectedOrder.status.toUpperCase()}
+                  </Badge>
+                </HStack>
 
-      const { totalQty, totalPrice } = calculateTotal(selectedOrder.orderItems);
-      doc.text(`Total Items: ${totalQty}`, 14, doc.lastAutoTable.finalY + 10);
-      doc.text(`Total Price: ₹${totalPrice}`, 14, doc.lastAutoTable.finalY + 18);
+                <Divider />
 
-      if (selectedOrder.notes) {
-        doc.text(`Note: ${selectedOrder.notes}`, 14, doc.lastAutoTable.finalY + 30);
-      }
+                {/* Order Items */}
+                <Box>
+                  <Text fontSize="lg" fontWeight="semibold" mb={4}>
+                    Order Items
+                  </Text>
+                  <VStack spacing={3} align="stretch">
+                    {selectedOrder.orderItems.map((item, index) => (
+                      <HStack
+                        key={index}
+                        justify="space-between"
+                        p={3}
+                        bg="gray.50"
+                        borderRadius="lg"
+                      >
+                        <HStack spacing={3}>
+                          <Text fontSize="xl">{item.image}</Text>
+                          <VStack align="start" spacing={0}>
+                            <Text fontWeight="medium">{item.name}</Text>
+                            <Text fontSize="sm" color="gray.600">
+                              ₹{item.price} × {item.qty}
+                            </Text>
+                          </VStack>
+                        </HStack>
+                        <Text fontWeight="bold" fontSize="lg">
+                          ₹{(item.price * item.qty).toLocaleString()}
+                        </Text>
+                      </HStack>
+                    ))}
+                  </VStack>
+                </Box>
 
-      doc.save(`Order_${selectedOrder._id}.pdf`);
-    };
-  };
+                {/* Total */}
+                <Box bg={`${colors.primary}05`} p={4} borderRadius="lg">
+                  <HStack justify="space-between">
+                    <Text fontSize="xl" fontWeight="bold">
+                      Total Amount
+                    </Text>
+                    <Text fontSize="2xl" fontWeight="bold" color={colors.primary}>
+                      ₹{calculateTotal(selectedOrder.orderItems).toLocaleString()}
+                    </Text>
+                  </HStack>
+                </Box>
 
-  // ------------------ RETURN NULL IF NO ACCESS ------------------
-  // Check if userRole is set to allow rendering
-  if (!userRole) return null;
-
-  // ------------------ RENDER (JSX remains the same) ------------------
-  return (
-    <Box pt={{ base: "20px", md: "75px" }}>
-      <Tabs isFitted variant="enclosed">
-        <TabList mb="1em">
-          <Tab fontSize="lg" fontWeight="bold" color="white" _selected={{ color: "white", borderBottom: "2px solid white" }}>
-            Order Summary
-          </Tab>
-          <Tab fontSize="lg" fontWeight="bold" color="white" _selected={{ color: "white", borderBottom: "2px solid white" }}>
-            Transaction Summary
-          </Tab>
-          <Tab fontSize="lg" fontWeight="bold" color="white" _selected={{ color: "white", borderBottom: "2px solid white" }}>
-            Payment Summary
-          </Tab>
-        </TabList>
-
-        <TabPanels>
-          {/* Orders Tab */}
-          <TabPanel>
-            <Card>
-              <CardHeader>
-                <Text fontSize="xl" fontWeight="bold">Order Summary</Text>
-              </CardHeader>
-              <CardBody>
-                <Table size="sm" variant="simple">
-                  <Thead>
-                    <Tr>
-                      <Th>Order ID</Th>
-                      <Th>Customer</Th>
-                      <Th>Email</Th>
-                      <Th>Phone</Th>
-                      <Th>Status</Th>
-                      <Th>Actions</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {orders.map((order, i) => (
-                      <Tr key={i} cursor="pointer" _hover={{ bg: "gray.100" }} onClick={() => handleRowClick(order)}>
-                        <Td>{order._id}</Td>
-                        <Td>{order.customer}</Td>
-                        <Td>{order.email}</Td>
-                        <Td>{order.phone}</Td>
-                        <Td>{order.status}</Td>
-                        <Td>
-                          {order.status === "pending" && (
-                            <Button size="sm" colorScheme="green" onClick={() => handleRowClick(order)}>Confirm</Button>
-                          )}
-                          {order.status === "confirmed" && (
-                            <Button size="sm" colorScheme="blue" onClick={() => handleMarkDelivered()}>Mark Delivered</Button>
-                          )}
-                        </Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
-              </CardBody>
-            </Card>
-          </TabPanel>
-
-          {/* Transactions Tab */}
-          <TabPanel>
-            <Card>
-              <CardHeader>
-                <Text fontSize="xl" fontWeight="bold">Transaction Summary</Text>
-              </CardHeader>
-              <CardBody>
-                <Table size="sm" variant="simple">
-                  <Thead>
-                    <Tr>
-                      <Th>Transaction ID</Th>
-                      <Th>Order ID</Th>
-                      <Th>Amount</Th>
-                      <Th>Mode</Th>
-                      <Th>Date</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {transactions.map((txn, i) => (
-                      <Tr key={i}>
-                        <Td>{txn.id}</Td>
-                        <Td>{txn.orderId}</Td>
-                        <Td>₹{txn.amount}</Td>
-                        <Td>{txn.mode}</Td>
-                        <Td>{txn.date}</Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
-              </CardBody>
-            </Card>
-          </TabPanel>
-
-          {/* Payments Tab */}
-          <TabPanel>
-            <Card>
-              <CardHeader>
-                <Text fontSize="xl" fontWeight="bold">Payment Summary</Text>
-              </CardHeader>
-              <CardBody>
-                <Flex mb="3" align="center" gap={3}>
-                  <Text>Filter by Status:</Text>
-                  <Select
-                    w="200px"
-                    value={paymentFilter}
-                    onChange={(e) => setPaymentFilter(e.target.value)}
-                  >
-                    <option value="all">All</option>
-                    <option value="pending">Pending</option>
-                    <option value="success">Success</option>
-                    <option value="failed">Failed</option>
-                    <option value="refunded">Refunded</option>
-                  </Select>
-                </Flex>
-                <Table size="sm" variant="simple">
-                  <Thead>
-                    <Tr>
-                      <Th>Transaction ID</Th>
-                      <Th>Order ID</Th>
-                      <Th>Amount</Th>
-                      <Th>Method</Th>
-                      <Th>Status</Th>
-                      <Th>Date</Th>
-                      <Th>Action</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {payments
-                      .filter(p => paymentFilter === "all" || p.status === paymentFilter)
-                      .map((p, i) => (
-                        <Tr key={i}>
-                          <Td>{p.transaction_id}</Td>
-                          <Td>{p.order}</Td>
-                          <Td>₹{p.amount}</Td>
-                          <Td>{p.method}</Td>
-                          <Td>
-                            <Badge colorScheme={
-                              p.status === "success" ? "green" :
-                                p.status === "pending" ? "yellow" :
-                                  p.status === "failed" ? "red" :
-                                    "gray"
-                            }>
-                              {p.status.toUpperCase()}
-                            </Badge>
-                          </Td>
-                          <Td>{new Date(p.createdAt).toLocaleString()}</Td>
-                          <Td>
-                            <Select
-                              size="sm"
-                              value={p.status}
-                              onChange={(e) => handlePaymentStatusChange(p._id, e.target.value)}
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="success">Success</option>
-                              <option value="failed">Failed</option>
-                              <option value="refunded">Refunded</option>
-                            </Select>
-                          </Td>
-                        </Tr>
-                      ))}
-                  </Tbody>
-                </Table>
-              </CardBody>
-            </Card>
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
-
-      {/* Modal for Order Details (JSX remains the same) */}
-      <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>
-            <Flex align="center" gap={3}>
-              <Image src={storeLogo} alt="Store Logo" boxSize="50px" objectFit="contain" />
-              <Text fontSize="lg" fontWeight="bold">Order Details</Text>
-            </Flex>
-          </ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            {selectedOrder && (
-              <Card>
-                <CardHeader>
-                  <Text fontSize="lg" fontWeight="bold">{selectedOrder.customer} &nbsp; #{selectedOrder._id}</Text>
-                </CardHeader>
-                <CardBody>
-                  <Flex justify="space-between" mb="4">
-                    <Box>
-                      <Text><strong>Email:</strong> {selectedOrder.email}</Text>
-                      <Text><strong>Phone:</strong> {selectedOrder.phone}</Text>
-                    </Box>
-                    <Box textAlign="right">
-                      <Text><strong>Address:</strong></Text>
-                      <Text>{selectedOrder.address}</Text>
-                    </Box>
-                  </Flex>
-
-                  <Table size="sm" variant="simple" mb="3">
-                    <Thead>
-                      <Tr>
-                        <Th>Item</Th>
-                        <Th isNumeric>Price</Th>
-                        <Th isNumeric>Qty</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {selectedOrder.orderItems.map((it, idx) => (
-                        <Tr key={idx}>
-                          <Td>{it.name}</Td>
-                          <Td isNumeric>₹{it.price}</Td>
-                          <Td isNumeric>{it.qty}</Td>
-                        </Tr>
-                      ))}
-                    </Tbody>
-                  </Table>
-
-                  {(() => {
-                    const { totalQty, totalPrice } = calculateTotal(selectedOrder.orderItems);
-                    return (
-                      <Flex justify="space-between" fontWeight="bold" mb="4">
-                        <Text>Total</Text>
-                        <Text>₹{totalPrice} ({totalQty} items)</Text>
-                      </Flex>
-                    );
-                  })()}
-
-                  {selectedOrder.status === "pending" && (
-                    <Flex direction="column" gap={2} mb="3">
-                      <Text fontWeight="bold">Set Delivery Schedule:</Text>
-                      <Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
-                      <Input type="time" value={deliveryTime} onChange={(e) => setDeliveryTime(e.target.value)} />
-                      <Button colorScheme="green" onClick={handleConfirmOrder}>Confirm Order</Button>
-                    </Flex>
-                  )}
-
-                  {selectedOrder.status === "confirmed" && (
-                    <Text fontWeight="bold" color="blue.600">
-                      Scheduled Delivery: {selectedOrder.deliveryDate} at {selectedOrder.deliveryTime}
-                    </Text>
-                  )}
-
-                  <Flex justify="flex-end" gap="3" mt="3">
-                    <Button size="sm" colorScheme="green" onClick={handleDownload}>
-                      Download Receipt
-                    </Button>
-                  </Flex>
-                </CardBody>
-              </Card>
-            )}
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-    </Box>
-  );
+                {/* Action Buttons */}
+                <HStack spacing={3} justify="flex-end">
+                  <Button
+                    variant="outline"
+                    leftIcon={<FiDownload />}
+                    onClick={handleDownload}
+                    borderColor="gray.300"
+                  >
+                    Download Invoice
+                  </Button>
+                  <Button
+                    leftIcon={<FiCheckCircle />}
+                    bg={colors.info}
+                    _hover={{ bg: colors.primaryLight }}
+                    color="white"
+                    onClick={handleConfirmOrder}
+                  >
+                    Confirm Order
+                  </Button>
+                  <Button
+                    leftIcon={<FiTruck />}
+                    bg={colors.success}
+                    _hover={{ bg: "#059669" }}
+                    color="white"
+                    onClick={handleMarkDelivered}
+                  >
+                    Mark Delivered
+                  </Button>
+                </HStack>
+              </VStack>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    </Box>
+  );
 }
