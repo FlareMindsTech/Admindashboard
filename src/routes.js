@@ -19,9 +19,22 @@ import {
   RocketIcon,
 } from "components/Icons/Icons";
 import { MdCategory } from "react-icons/md"; 
-import ProductManagement from "views/Dashboard/ProductManagement";// for category icon
+import ProductManagement from "views/Dashboard/ProductManagement"; // for category icon
 
 const ICON_COLOR = "#7b2cbf"; // ✅ updated color
+
+// ✅ Added: Logout component
+const Logout = () => {
+  // Clear stored data
+  localStorage.clear();
+  sessionStorage.clear();
+
+  // Redirect to login (auto-detect domain)
+  const base = window.location.origin + window.location.pathname;
+  window.location.replace(`${base}#/auth/signin`);
+
+  return <div>Logging out...</div>;
+};
 
 var dashRoutes = [
   {
@@ -32,7 +45,7 @@ var dashRoutes = [
     element: <Dashboard />,
     layout: "/admin",
   },
-   {
+  {
     path: "/ProductManagement",
     name: "Product Management",
     rtlName: "إدارة المستخدمين",
@@ -64,17 +77,29 @@ var dashRoutes = [
     element: <Billing />,
     layout: "/admin",
   },
-  
-   
-     { path: "/profile", name: "Profile", element: <Profile />, layout: "/admin", },
-      {
-        path: "/signin",
-        name: "Logout",
-        rtlName: "تسجيل الدخول",
-        icon: <MdLogout color={ICON_COLOR} />,
-        element: <SignIn />,
-        layout: "/auth",
-      }]
-  
+  { 
+    path: "/profile", 
+    name: "Profile", 
+    element: <Profile />, 
+    layout: "/admin", 
+  },
+  {
+    path: "/signin",
+    name: "Logout",
+    rtlName: "تسجيل الدخول",
+    icon: <MdLogout color={ICON_COLOR} />,
+    element: <SignIn />,
+    layout: "/auth",
+  },
+  // ✅ Added: Real Logout route (no existing code touched)
+  {
+    path: "/logout",
+    name: "Logout",
+    rtlName: "تسجيل الخروج",
+    icon: <MdLogout color={ICON_COLOR} />,
+    element: <Logout />,
+    layout: "/admin",
+  },
+];
 
 export default dashRoutes;

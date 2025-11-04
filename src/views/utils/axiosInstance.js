@@ -16,7 +16,8 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem("token");
+    const token =
+      localStorage.getItem("token") || sessionStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,17 +30,16 @@ axiosInstance.interceptors.request.use(
 // 2️⃣ ADMIN / SUPER ADMIN AXIOS INSTANCE
 // =========================================================
 const adminAxiosInstance = axios.create({
-  baseURL: API_BASE_URL, // This is correct, as the /api is added in the component file
+  baseURL: API_BASE_URL,
   timeout: TIMEOUT_MS,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
 });
 
-// --- Interceptor for Admin Authentication (using 'adminToken') ---
 adminAxiosInstance.interceptors.request.use(
   (config) => {
-    const adminToken = sessionStorage.getItem("adminToken");
+    const adminToken =
+      localStorage.getItem("adminToken") ||
+      sessionStorage.getItem("adminToken");
     if (adminToken) {
       config.headers.Authorization = `Bearer ${adminToken}`;
     }
@@ -55,60 +55,50 @@ const unauthorizedResponseHandler = (error) => {
   if (error.response && error.response.status === 401) {
     console.warn("⚠️ Unauthorized (401). Clearing auth data...");
 
-    // Clear tokens
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("user");
-    sessionStorage.removeItem("userRole");
-    sessionStorage.removeItem("adminToken");
-    sessionStorage.removeItem("adminUser");
+    // Clear both localStorage & sessionStorage tokens
+    localStorage.clear();
+    sessionStorage.clear();
 
-    // Optional: redirect to login page if needed
-    // window.location.href = "/admin/login";
+    // Optional redirect
+    // window.location.href = "/#/auth/signin";
   }
   return Promise.reject(error);
 };
 
-// Attach global handler
 axiosInstance.interceptors.response.use(
   (res) => res,
   unauthorizedResponseHandler
 );
+
 adminAxiosInstance.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      console.error("Admin Unauthorized (401): Token expired or invalid.");
-      sessionStorage.removeItem("adminToken");
-      // Optional: window.location.href = "/auth/signin";
-    }
-    return Promise.reject(error);
-  }
+  unauthorizedResponseHandler
 );
 
 // =========================================================
-// 3. EXPORTS
+// 4. EXPORTS
 // =========================================================
 export default axiosInstance;
 export { adminAxiosInstance };
 
 // =========================================================
-// 4. API CALL FUNCTION (Example)
+// 5. Helper function to get token (checks both storages)
+// =========================================================
+const getToken = () =>
+  localStorage.getItem("token") || sessionStorage.getItem("token");
+
+// =========================================================
+// 6. API CALL FUNCTIONS
 // =========================================================
 
-// ===== Admin API functions =====
-
-// Get all admins
+// ----- Admin APIs -----
 export const getAllAdmins = async () => {
   try {
-    const token = sessionStorage.getItem("token");
+    const token = getToken();
     const response = await fetch(`${BASE_URL}/admins/all`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        token: token,
-      },
+      headers: { "Content-Type": "application/json", token },
     });
-
     if (!response.ok) throw new Error(`Error: ${response.status}`);
     return await response.json();
   } catch (error) {
@@ -117,182 +107,30 @@ export const getAllAdmins = async () => {
   }
 };
 
-
-
-
-
-//update category
-  export const updateCategories = async (categoryId, updatedData) => {
+export const createAdmin = async (adminData) => {
   try {
-    const token = sessionStorage.getItem("token"); // Get token from sessionStorage
-
-    const response = await fetch(`${BASE_URL}/categories/update/${categoryId}`, {
-      method: "PUT", // Update request
-      headers: {
-        "Content-Type": "application/json",
-        token: token, // Include JWT token for authorization
-      },
-      body: JSON.stringify(updatedData), // Send updated category data as JSON
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data; // Return the updated category details
-  } catch (error) {
-    console.error("Error updating category:", error);
-    throw error;
-  }
-};
-// =========================================================
-//6. API CALL FUNCTION (Example)
-// =========================================================
-// Create a new admin
-
-
-// =========================================================
-//7. API CALL FUNCTION (Example)
-// =========================================================
-export const getAllProducts = async () => {
-  try {
-    const token = sessionStorage.getItem("token");
-    const response = await fetch(`${BASE_URL}/products/all`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        token: token, // send the stored token
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status}`); // throws for 4xx or 5xx
-    }
-
-    const data = await response.json();
-    return data; // should return { products: [...] }
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    throw error;
-  }
-};
-
-//create product
-export const createProducts = async (productData) => {
-  try {
-    const token = sessionStorage.getItem("token"); // get token from sessionStorage
-
-    const response = await fetch(`${BASE_URL}/products/create`, {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/admins/create`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        token: token, // send token in headers
-      },
-      body: JSON.stringify(productData), // send product data as JSON
+      headers: { "Content-Type": "application/json", token },
+      body: JSON.stringify(adminData),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data; // returns created product details
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
   } catch (error) {
-    console.error("Error creating product:", error);
-  }
-};
-
-//image upload
-export const uploadImage = async (file) => {
-  const token = sessionStorage.getItem("token");
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const res = await fetch(`${BASE_URL}/products/upload`, {
-    method: "POST",
-    headers: {
-      token: token,
-    },
-    body: formData,
-  });
-
-  // If server returns non-OK, log full response text
-  if (!res.ok) {
-    const text = await res.text();
-    console.error("Error uploading image, backend response:", text);
-    throw new Error("Image upload failed");
-  }
-
-  // Parse JSON returned by backend
-  const data = await res.json();
-  return data.url; // backend must return { url: "<image URL>" }
-};
-
-
-//update product
-export const updateProducts = async (productId, updatedData) => {
-  try {
-    const token = sessionStorage.getItem("token");
-    const response = await fetch(`${BASE_URL}/products/update/${productId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        token: token, // send the stored token
-      },
-      body: JSON.stringify(updatedData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error updating product: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data; // updated product object
-  } catch (error) {
-    console.error("Error updating product:", error);
-    throw error;
-  }
-};
-
-// Delete a product
-export const deleteProducts = async (productId) => {
-  try {
-    const token = sessionStorage.getItem("token");
-    const response = await fetch(`${BASE_URL}/products/delete/${productId}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        token: token, // send the stored token
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error deleting product: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data; // maybe a success message
-  } catch (error) {
-    console.error("Error deleting product:", error);
+    console.error("Error creating admin:", error);
     throw error;
   }
 };
 
 export const updateAdmin = async (adminId, updatedData) => {
   try {
-    const token = sessionStorage.getItem("token");
+    const token = getToken();
     const response = await fetch(`${BASE_URL}/admins/update/${adminId}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        token: token,
-      },
+      headers: { "Content-Type": "application/json", token },
       body: JSON.stringify(updatedData),
     });
-
     if (!response.ok) throw new Error(`Error: ${response.status}`);
     return await response.json();
   } catch (error) {
@@ -301,23 +139,154 @@ export const updateAdmin = async (adminId, updatedData) => {
   }
 };
 
-
-//  USERS 
-
-// ===== User API functions =====
-
-// Get all users
-export const getAllUsers = async () => {
+// ----- Category APIs -----
+export const getAllCategories = async () => {
   try {
-    const token = sessionStorage.getItem("token");
-    const response = await fetch(`${BASE_URL}/users/all`, {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/categories/all`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        token: token,
-      },
+      headers: { "Content-Type": "application/json", token },
+    });
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    throw error;
+  }
+};
+
+export const createCategories = async (categoryData) => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/categories/create`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", token },
+      body: JSON.stringify(categoryData),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error creating category:", error);
+    throw error;
+  }
+};
+
+export const updateCategories = async (categoryId, updatedData) => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/categories/update/${categoryId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", token },
+      body: JSON.stringify(updatedData),
+    });
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating category:", error);
+    throw error;
+  }
+};
+
+// ----- Product APIs -----
+export const getAllProducts = async () => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/products/all`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json", token },
+    });
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    throw error;
+  }
+};
+
+export const createProducts = async (productData) => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/products/create`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", token },
+      body: JSON.stringify(productData),
+    });
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error creating product:", error);
+    throw error;
+  }
+};
+
+export const uploadImage = async (file) => {
+  try {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch(`${BASE_URL}/products/upload`, {
+      method: "POST",
+      headers: { token },
+      body: formData,
     });
 
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("Error uploading image, backend response:", text);
+      throw new Error("Image upload failed");
+    }
+
+    const data = await res.json();
+    return data.url;
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    throw error;
+  }
+};
+
+export const updateProducts = async (productId, updatedData) => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/products/update/${productId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", token },
+      body: JSON.stringify(updatedData),
+    });
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating product:", error);
+    throw error;
+  }
+};
+
+export const deleteProducts = async (productId) => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/products/delete/${productId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", token },
+    });
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    throw error;
+  }
+};
+
+// ----- User APIs -----
+export const getAllUsers = async () => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/users/all`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json", token },
+    });
     if (!response.ok) throw new Error(`Error: ${response.status}`);
     return await response.json();
   } catch (error) {
@@ -326,19 +295,14 @@ export const getAllUsers = async () => {
   }
 };
 
-// Create a new user
 export const createUser = async (userData) => {
   try {
-    const token = sessionStorage.getItem("token");
+    const token = getToken();
     const response = await fetch(`${BASE_URL}/users/register`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        token: token,
-      },
+      headers: { "Content-Type": "application/json", token },
       body: JSON.stringify(userData),
     });
-
     if (!response.ok) throw new Error(`Error: ${response.status}`);
     return await response.json();
   } catch (error) {
@@ -347,110 +311,18 @@ export const createUser = async (userData) => {
   }
 };
 
-// Update an existing user
 export const updateUser = async (userId, updatedData) => {
   try {
-    const token = sessionStorage.getItem("token");
+    const token = getToken();
     const response = await fetch(`${BASE_URL}/users/update/${userId}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        token: token,
-      },
+      headers: { "Content-Type": "application/json", token },
       body: JSON.stringify(updatedData),
     });
-
     if (!response.ok) throw new Error(`Error: ${response.status}`);
     return await response.json();
   } catch (error) {
     console.error("Error updating user:", error);
-    throw error;
-  }
-};
-export const createCategories = async (categoryData) => {
-  try {
-    const token = sessionStorage.getItem("token"); // get token from sessionStorage
-    const response = await fetch(`${BASE_URL}/categories/create`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        token: token, // send the stored token
-      },
-      body: JSON.stringify(categoryData), // send category data as JSON
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data; // should return the created category
-  } catch (error) {
-    console.error("Error creating category:", error);
-  }}
-// Create a new admin
-export const createAdmin = async (adminData) => {
-  try {
-    const token = sessionStorage.getItem("token");
-    const response = await fetch(`${BASE_URL}/admins/create`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        token: token,
-      },
-      body: JSON.stringify(adminData),
-    });
-
-    if (!response.ok) throw new Error(`Error: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error("Error creating admin:", error);
-    throw error;
-  }
-};
-export const getAllCategories = async () => {
-  try {
-    const token = sessionStorage.getItem("token");
-    const response = await fetch(`${BASE_URL}/categories/all`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        token: token, // send the stored token
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data; // should return { categories: [...] }
-  } catch (error) {
-    console.error("Error fetching categories:", error);
-    throw error;
-  }
-};
-
-export const updateAdminProfile = async ({ id, name, email, password, role }) => {
-  try {
-    const body = { name, email };
-    if (password) body.password = password; // only include if defined
-    if (role) body.role = role;             // only include if defined
-
-    const response = await axios.put(
-      `${BASE_URL}/admins/update/${id}`,
-      body,
-      {
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-        },
-      }
-    );
-
-    return response.data;
-  } catch (error) {
-    console.error("Failed to update admin profile:", error);
     throw error;
   }
 };

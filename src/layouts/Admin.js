@@ -1,4 +1,4 @@
-// Chakra imports
+// Admin.js
 import {
   Portal,
   useDisclosure,
@@ -7,20 +7,11 @@ import {
   useColorMode,
 } from "@chakra-ui/react";
 import { Image } from "@chakra-ui/react";
-import Configurator from "components/Configurator/Configurator";
-import Footer from "components/Footer/Footer.js";
-import {
-  ArgonLogoDark,
-  ArgonLogoLight,
-  ChakraLogoDark,
-  ChakraLogoLight,
-} from "components/Icons/Icons";
-import FlareLogo from "assets/img/Aadvi-logo.png"; 
-
+import FlareLogo from "assets/img/Aadvi-logo.png";
 
 // Layout components
+import Sidebar, { SidebarResponsive } from "components/Sidebar/Sidebar.js";
 import AdminNavbar from "components/Navbars/AdminNavbar.js";
-import Sidebar from "components/Sidebar/Sidebar.js";
 import React, { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import routes from "routes.js";
@@ -30,15 +21,31 @@ import FixedPlugin from "components/FixedPlugin/FixedPlugin";
 import MainPanel from "components/Layout/MainPanel";
 import PanelContainer from "components/Layout/PanelContainer";
 import PanelContent from "components/Layout/PanelContent";
-import bgAdmin from "assets/img/admin-background.png";
 
 export default function Dashboard(props) {
   const { ...rest } = props;
-  // states and functions
   const [fixed, setFixed] = useState(false);
   const { colorMode } = useColorMode();
+  
+  // Separate drawer states to prevent conflicts
+  const { isOpen: isSidebarOpen, onOpen: onSidebarOpen, onClose: onSidebarClose } = useDisclosure();
+  const { isOpen: isPluginOpen, onOpen: onPluginOpen, onClose: onPluginClose } = useDisclosure();
 
-  // functions for changing the states from components
+  document.documentElement.dir = "ltr";
+
+  // ✅ Only include routes with layout "/admin" — skip auth routes
+  const getRoutes = (routes) => {
+    return routes.map((prop, key) => {
+      if (prop.collapse) return getRoutes(prop.views);
+      if (prop.category === "account") return getRoutes(prop.views);
+      if (prop.layout === "/auth") return null;
+      if (prop.layout === "/admin") {
+        return <Route path={prop.path} element={prop.element} key={key} />;
+      }
+      return null;
+    });
+  };
+
   const getRoute = () => {
     return window.location.pathname !== "/admin/full-screen-maps";
   };
@@ -48,109 +55,118 @@ export default function Dashboard(props) {
     for (let i = 0; i < routes.length; i++) {
       if (routes[i].collapse) {
         let collapseActiveRoute = getActiveRoute(routes[i].views);
-        if (collapseActiveRoute !== activeRoute) {
-          return collapseActiveRoute;
-        }
+        if (collapseActiveRoute !== activeRoute) return collapseActiveRoute;
       } else if (routes[i].category) {
         let categoryActiveRoute = getActiveRoute(routes[i].views);
-        if (categoryActiveRoute !== activeRoute) {
-          return categoryActiveRoute;
-        }
-      } else {
-        if (
-          window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1
-        ) {
-          return routes[i].name;
-        }
+        if (categoryActiveRoute !== activeRoute) return categoryActiveRoute;
+      } else if (
+        window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1
+      ) {
+        return routes[i].name;
       }
     }
     return activeRoute;
   };
 
-  // This changes navbar state(fixed or not)
   const getActiveNavbar = (routes) => {
     let activeNavbar = false;
     for (let i = 0; i < routes.length; i++) {
       if (routes[i].category) {
         let categoryActiveNavbar = getActiveNavbar(routes[i].views);
-        if (categoryActiveNavbar !== activeNavbar) {
-          return categoryActiveNavbar;
-        }
-      } else {
-        if (
-          window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1
-        ) {
-          if (routes[i].secondaryNavbar) {
-            return routes[i].secondaryNavbar;
-          }
-        }
+        if (categoryActiveNavbar !== activeNavbar) return categoryActiveNavbar;
+      } else if (
+        window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1
+      ) {
+        if (routes[i].secondaryNavbar) return routes[i].secondaryNavbar;
       }
     }
     return activeNavbar;
   };
 
-  // Generate Route components for v6
-  const getRoutes = (routes) => {
-    return routes.map((prop, key) => {
-      if (prop.collapse) {
-        return getRoutes(prop.views);
-      }
-      if (prop.category === "account") {
-        return getRoutes(prop.views);
-      }
-      if (prop.layout === "/admin") {
-        return (
-          <Route
-            path={prop.path}
-            element={prop.element}
-            key={key}
-          />
-        );
-      } else {
-        return null;
-      }
-    });
-  };
-
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  document.documentElement.dir = "ltr";
-
-  // Chakra Color Mode
   return (
     <Box>
       <Box
-        minH="15vh"
+        minH={{
+          base: "12vh",     // 320px - 480px
+          sm: "13vh",       // 481px - 767px  
+          md: "14vh",       // 768px - 1024px
+          lg: "15vh",       // 1025px - 1280px
+          xl: "15vh",       // 1281px +
+          "2xl": "15vh"     // Extra large
+        }}
+        
         w="100%"
-        position="absolute"
-        bgImage={colorMode === "light" ? bgAdmin : "none"}
-        bg={colorMode === "light" ? bgAdmin : "navy.900"}
+        position="fixed"
         bgSize="cover"
         top="0"
       />
-      <Sidebar
-        routes={routes}
+      
+      {/* Mobile Sidebar - Show on smaller screens */}
+      <SidebarResponsive
         logo={
-  <Stack direction="row" spacing="12px" align="center" justify="center">
-    <Image src={FlareLogo} alt="Flare Logo" w="100px" h="auto" />
-    <Box
-      w="1px"
-      h="20px"
-      // bg={colorMode === "dark" ? "white" : "gray.700"}
-    />
-  </Stack>
-}
-        display="none"
+          <Stack direction="row" spacing="12px" align="center" justify="center">
+            <Image 
+              src={FlareLogo} 
+              alt="Flare Logo" 
+              w={{
+                base: "80px",   // 320px - 480px
+                sm: "90px",     // 481px - 767px
+                md: "100px",    // 768px - 1024px
+              }} 
+              h="auto" 
+            />
+            <Box w="1px" h="20px" />
+          </Stack>
+        }
+        routes={routes.filter(
+          (r) => !(r.layout === "/auth" && r.path === "/signin")
+        )}
+        hamburgerColor="white"
+        isOpen={isSidebarOpen}
+        onOpen={onSidebarOpen}
+        onClose={onSidebarClose}
+      />
+      
+      {/* Desktop Sidebar - Show on larger screens */}
+      <Sidebar
+        routes={routes.filter(
+          (r) => !(r.layout === "/auth" && r.path === "/signin")
+        )}
+        logo={
+          <Stack direction="row" spacing="12px" align="center" justify="center">
+            <Image 
+              src={FlareLogo} 
+              alt="Flare Logo" 
+              w={{
+                base: "80px",   // 320px - 480px
+                sm: "90px",     // 481px - 767px  
+                md: "100px",    // 768px - 1024px
+                lg: "100px",    // 1025px - 1280px
+                xl: "100px",    // 1281px +
+              }} 
+              h="auto" 
+            />
+            <Box w="1px" h="20px" />
+          </Stack>
+        }
         {...rest}
       />
+      
       <MainPanel
         w={{
-          base: "100%",
-          xl: "calc(100% - 275px)",
+          base: "100%",     // 320px - 480px
+          sm: "100%",       // 481px - 767px
+          md: "100%",       // 768px - 1024px
+          lg: "calc(100% - 240px)",       // 1025px - 1280px
+          xl: "calc(100% - 275px)", // 1281px +
+          "2xl": "calc(100% - 275px)" // Extra large
         }}
+        
+        transition="all 0.33s cubic-bezier(0.685, 0.0473, 0.346, 1)"
       >
         <Portal>
           <AdminNavbar
-            onOpen={onOpen}
+            onOpen={onSidebarOpen} // This now opens the mobile sidebar
             brandText={getActiveRoute(routes)}
             secondary={getActiveNavbar(routes)}
             fixed={fixed}
@@ -159,7 +175,22 @@ export default function Dashboard(props) {
         </Portal>
         {getRoute() ? (
           <PanelContent>
-            <PanelContainer>
+            <PanelContainer
+              px={{
+                base: "15px", // 320px - 480px
+                sm: "20px",   // 481px - 767px
+                md: "25px",   // 768px - 1024px
+                lg: "30px",   // 1025px - 1280px
+                xl: "35px",   // 1281px +
+              }}
+              py={{
+                base: "15px", // 320px - 480px
+                sm: "20px",   // 481px - 767px
+                md: "25px",   // 768px - 1024px
+                lg: "30px",   // 1025px - 1280px
+                xl: "35px",   // 1281px +
+              }}
+            >
               <Routes>
                 {getRoutes(routes)}
                 <Route
@@ -170,23 +201,13 @@ export default function Dashboard(props) {
             </PanelContainer>
           </PanelContent>
         ) : null}
-        <Footer />
         <Portal>
           <FixedPlugin
             secondary={getActiveNavbar(routes)}
             fixed={fixed}
-            onOpen={onOpen}
+            onOpen={onPluginOpen} // This opens the plugin drawer separately
           />
         </Portal>
-        {/* <Configurator
-          secondary={getActiveNavbar(routes)}
-          isOpen={isOpen}
-          onClose={onClose}
-          isChecked={fixed}
-          onSwitch={(value) => {
-            setFixed(value);
-          }}
-        /> */}
       </MainPanel>
     </Box>
   );
