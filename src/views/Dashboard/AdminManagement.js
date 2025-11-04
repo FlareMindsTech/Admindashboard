@@ -26,6 +26,8 @@ import {
   Text,
   IconButton,
   Spinner,
+  InputGroup,
+  InputRightElement,
 } from "@chakra-ui/react";
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
@@ -38,6 +40,8 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaSearch,
+  FaEye,
+  FaEyeSlash,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdAdminPanelSettings } from "react-icons/md";
@@ -72,6 +76,7 @@ function AdminManagement() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [dataLoaded, setDataLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState(""); // Search filter state
+  const [showPassword, setShowPassword] = useState(false); // Show password state
 
   // View state - 'list', 'add', 'edit'
   const [currentView, setCurrentView] = useState("list");
@@ -106,6 +111,9 @@ function AdminManagement() {
         return { color: "white", bg: "#9d4edd" };
     }
   };
+
+  // Toggle password visibility
+  const handleTogglePassword = () => setShowPassword(!showPassword);
 
   // Fetch current user from localStorage
   useEffect(() => {
@@ -245,6 +253,7 @@ function AdminManagement() {
     setCurrentView("add");
     setError("");
     setSuccess("");
+    setShowPassword(false); // Reset password visibility
   };
 
   // Handle edit admin - show edit form
@@ -259,6 +268,7 @@ function AdminManagement() {
     setCurrentView("edit");
     setError("");
     setSuccess("");
+    setShowPassword(false); // Reset password visibility
   };
 
   // Handle back to list
@@ -267,6 +277,7 @@ function AdminManagement() {
     setEditingAdmin(null);
     setError("");
     setSuccess("");
+    setShowPassword(false); // Reset password visibility
   };
 
   // Handle form submit
@@ -416,8 +427,8 @@ function AdminManagement() {
       case "super":
         filtered = admins.filter((admin) => admin.role === "super admin");
         break;
-      case "active":
-        filtered = admins.filter((admin) => admin.status === "active");
+      case "Active":
+        filtered = admins.filter((admin) => admin.status === "Active");
         break;
       case "admins":
         filtered = admins.filter((admin) => admin.role === "admin");
@@ -569,22 +580,37 @@ function AdminManagement() {
                   ? "Password"
                   : "Password (leave blank to keep current)"}
               </FormLabel>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder={
-                  currentView === "add"
-                    ? "Admin Password"
-                    : "New Password (optional)"
-                }
-                onChange={handleInputChange}
-                value={formData.password}
-                borderColor={`${customColor}50`}
-                _hover={{ borderColor: customColor }}
-                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                bg="white"
-              />
+              <InputGroup>
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder={
+                    currentView === "add"
+                      ? "Admin Password"
+                      : "New Password (optional)"
+                  }
+                  onChange={handleInputChange}
+                  value={formData.password}
+                  borderColor={`${customColor}50`}
+                  _hover={{ borderColor: customColor }}
+                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  bg="white"
+                  pr="3rem"
+                />
+                <InputRightElement width="3rem">
+                  <IconButton
+                    h="1.75rem"
+                    size="sm"
+                    onClick={handleTogglePassword}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    icon={showPassword ? <FaEyeSlash /> : <FaEye />}
+                    variant="ghost"
+                    color={customColor}
+                    _hover={{ bg: "transparent", color: customHoverColor }}
+                  />
+                </InputRightElement>
+              </InputGroup>
             </FormControl>
             <Flex justify="flex-end" mt={6} flexShrink={0}>
               <Button 
@@ -701,7 +727,7 @@ function AdminManagement() {
             minH="83px"
             cursor="pointer"
             onClick={() => handleCardClick("active")}
-            border={activeFilter === "active" ? "2px solid" : "1px solid"}
+            border={activeFilter === "Active" ? "2px solid" : "1px solid"}
             borderColor={activeFilter === "active" ? customColor : `${customColor}30`}
             transition="all 0.2s ease-in-out"
             bg="white"
@@ -867,7 +893,7 @@ function AdminManagement() {
         <Flex justify="space-between" align="center" mb={4}>
           <Text fontSize="lg" fontWeight="bold" color={textColor}>
             {activeFilter === "super" && "Super Admins"}
-            {activeFilter === "active" && "Active Admins"}
+            {activeFilter === "active" && "Active"}
             {activeFilter === "admins" && "Admins Only"}
             {activeFilter === "all" && "All Administrators"}
           </Text>

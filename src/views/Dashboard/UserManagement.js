@@ -27,6 +27,8 @@ import {
   Text,
   Spinner,
   Avatar,
+  InputGroup,
+  InputRightElement,
 } from "@chakra-ui/react";
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
@@ -40,6 +42,8 @@ import {
   FaChevronRight,
   FaSearch,
   FaUserPlus,
+  FaEye,
+  FaEyeSlash,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdAdminPanelSettings, MdPerson } from "react-icons/md";
@@ -74,6 +78,8 @@ function UserManagement() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [dataLoaded, setDataLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState(""); // Search filter state
+  const [showPassword, setShowPassword] = useState(false); // Show password state
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // Show confirm password state
 
   // View state - 'list', 'add', 'edit'
   const [currentView, setCurrentView] = useState("list");
@@ -101,6 +107,10 @@ function UserManagement() {
   const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
+  // Toggle password visibility
+  const handleTogglePassword = () => setShowPassword(!showPassword);
+  const handleToggleConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
+
   const handleAddUser = () => {
     setFormData({
       firstName: "",
@@ -116,6 +126,8 @@ function UserManagement() {
     setCurrentView("add");
     setError("");
     setSuccess("");
+    setShowPassword(false); // Reset password visibility
+    setShowConfirmPassword(false); // Reset confirm password visibility
   };
 
   // Fetch current user from localStorage
@@ -260,6 +272,8 @@ function UserManagement() {
     setCurrentView("edit");
     setError("");
     setSuccess("");
+    setShowPassword(false); // Reset password visibility
+    setShowConfirmPassword(false); // Reset confirm password visibility
   };
 
   // Handle back to list
@@ -268,6 +282,8 @@ function UserManagement() {
     setEditingUser(null);
     setError("");
     setSuccess("");
+    setShowPassword(false); // Reset password visibility
+    setShowConfirmPassword(false); // Reset confirm password visibility
   };
 
   // Handle form submit for both add and edit
@@ -640,18 +656,33 @@ function UserManagement() {
                 <FormLabel htmlFor="password" color="gray.700">
                   {currentView === "add" ? "Password *" : "New Password (optional)"}
                 </FormLabel>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder={currentView === "add" ? "Password" : "New Password"}
-                  onChange={handleInputChange}
-                  value={formData.password}
-                  borderColor={`${customColor}50`}
-                  _hover={{ borderColor: customColor }}
-                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                  bg="white"
-                />
+                <InputGroup>
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={currentView === "add" ? "Password" : "New Password"}
+                    onChange={handleInputChange}
+                    value={formData.password}
+                    borderColor={`${customColor}50`}
+                    _hover={{ borderColor: customColor }}
+                    _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                    bg="white"
+                    pr="3rem"
+                  />
+                  <InputRightElement width="3rem">
+                    <IconButton
+                      h="1.75rem"
+                      size="sm"
+                      onClick={handleTogglePassword}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      icon={showPassword ? <FaEyeSlash /> : <FaEye />}
+                      variant="ghost"
+                      color={customColor}
+                      _hover={{ bg: "transparent", color: customHoverColor }}
+                    />
+                  </InputRightElement>
+                </InputGroup>
               </FormControl>
 
               {currentView === "add" && (
@@ -659,18 +690,33 @@ function UserManagement() {
                   <FormLabel htmlFor="confirmPassword" color="gray.700">
                     Confirm Password *
                   </FormLabel>
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    placeholder="Confirm Password"
-                    onChange={handleInputChange}
-                    value={formData.confirmPassword}
-                    borderColor={`${customColor}50`}
-                    _hover={{ borderColor: customColor }}
-                    _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                    bg="white"
-                  />
+                  <InputGroup>
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm Password"
+                      onChange={handleInputChange}
+                      value={formData.confirmPassword}
+                      borderColor={`${customColor}50`}
+                      _hover={{ borderColor: customColor }}
+                      _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                      bg="white"
+                      pr="3rem"
+                    />
+                    <InputRightElement width="3rem">
+                      <IconButton
+                        h="1.75rem"
+                        size="sm"
+                        onClick={handleToggleConfirmPassword}
+                        aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                        icon={showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                        variant="ghost"
+                        color={customColor}
+                        _hover={{ bg: "transparent", color: customHoverColor }}
+                      />
+                    </InputRightElement>
+                  </InputGroup>
                 </FormControl>
               )}
             </SimpleGrid>
