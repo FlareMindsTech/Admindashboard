@@ -326,3 +326,25 @@ export const updateUser = async (userId, updatedData) => {
     throw error;
   }
 };
+
+
+// =========================================================
+// 4. Order APIs
+// =========================================================
+
+
+export const getAllOrders = async () => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/orders/all`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json", token },
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    throw error;
+  }
+};
