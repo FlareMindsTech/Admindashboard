@@ -1,16 +1,14 @@
 import React, { useEffect, useState } from "react";
 import {
-  Avatar, Button, Flex, Grid, Text, VStack,
-  Image, Divider, useColorModeValue, Table, Thead, Tbody, Tr, Th, Td,
-  Spinner, Badge, useToast, Card as ChakraCard,
+  Avatar, Button, Flex, Grid, Text, VStack, Image, Divider,
+  useColorModeValue, Table, Thead, Tbody, Tr, Th, Td, Spinner,
+  Badge, useToast, Input, Fade, FormControl, FormLabel,
 } from "@chakra-ui/react";
-import { FaUsers, FaBoxOpen, FaEdit, FaSignOutAlt } from "react-icons/fa";
+import { FaUsers, FaBoxOpen, FaEdit, FaSignOutAlt, FaSave, FaTimes } from "react-icons/fa";
 import { IoSettingsSharp } from "react-icons/io5";
 import storeLogo from "assets/img/Aadvi-logo.png";
 import Card from "components/Card/Card";
 import { useNavigate } from "react-router-dom";
-
-// Fetch all admins
 import { getAllAdmins } from "../utils/axiosInstance";
 
 const getInitialAdminData = () => {
@@ -42,17 +40,16 @@ export default function AdminProfile() {
   const toast = useToast();
   const navigate = useNavigate();
   const cardBg = useColorModeValue("white", "navy.800");
-
   const [adminData, setAdminData] = useState(getInitialAdminData());
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
-  const [currentView, setCurrentView] = useState("dashboard");
+  const [currentView, setCurrentView] = useState("users"); // Changed from "dashboard" to "users"
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState(adminData);
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const adminsPerPage = 5;
 
-  // Fetch all admins
   const fetchAllAdmins = async () => {
     setDataLoading(true);
     try {
@@ -60,87 +57,142 @@ export default function AdminProfile() {
       const adminsArray = Array.isArray(allAdmins) ? allAdmins : (allAdmins.admins || []);
       setAdminData(prev => ({ ...prev, createdAdmins: adminsArray }));
     } catch (err) {
-      console.error("Error fetching admins:", err);
       toast({ title: "Error", description: "Failed to fetch admins", status: "error" });
-      setAdminData(prev => ({ ...prev, createdAdmins: [] }));
     } finally {
       setDataLoading(false);
     }
   };
 
-  // Handle sidebar actions
+  // Fetch admins when component mounts since "users" view is now default
+  useEffect(() => {
+    if (currentView === "users") {
+      fetchAllAdmins();
+    }
+  }, [currentView]);
+
   const handleActionClick = async (action) => {
-    if (action.label === "Manage Products") {
-      setCurrentView("products");
-    } else if (action.label === "Manage Users") {
+    if (action.label === "Manage Products") setCurrentView("products");
+    else if (action.label === "Manage Users") {
       setCurrentView("users");
       await fetchAllAdmins();
-      setCurrentPage(1); // Reset pagination
-    } else {
-      setCurrentView("dashboard");
-    }
+      setCurrentPage(1);
+    } else setCurrentView("dashboard");
   };
 
-  // Logout
   const handleLogout = () => {
     localStorage.clear();
     toast({ title: "Logged Out", status: "info", duration: 2000 });
     navigate("/auth/signin");
   };
 
-  // Pagination helpers
+  const handleChange = (e) => setEditData({ ...editData, [e.target.name]: e.target.value });
+  const handleSave = () => {
+    setAdminData(editData);
+    setIsEditing(false);
+    toast({ title: "Profile updated", status: "success", duration: 2000 });
+  };
+
   const indexOfLastAdmin = currentPage * adminsPerPage;
-  const indexOfFirstAdmin = indexOfLastAdmin - adminsPerPage;
-  const currentAdmins = adminData.createdAdmins.slice(indexOfFirstAdmin, indexOfLastAdmin);
+  const currentAdmins = adminData.createdAdmins.slice(indexOfLastAdmin - adminsPerPage, indexOfLastAdmin);
   const totalPages = Math.ceil(adminData.createdAdmins.length / adminsPerPage);
 
-  const nextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
-  };
-  const prevPage = () => {
-    if (currentPage > 1) setCurrentPage(prev => prev - 1);
-  };
-
   return (
-    <Flex direction={{ base: "column", md: "row" }} gap={8} p={9} mt={9}>
+    <Flex direction={{ base: "column", md: "row" }} gap={8} p={6} mt={12}>
       {/* Left Panel */}
-      <Card w={{ base: "100%", md: "300px" }} bg={cardBg} p={6}>
+      <Card
+        w={{ base: "100%", md: "280px" }}
+        bg={cardBg}
+        mt={12}
+        p={5}
+        borderRadius="2xl"
+        boxShadow="md"
+        transition="all 0.3s ease"
+        _hover={{ transform: "translateY(-3px)", boxShadow: "xl" }}
+      >
         <Flex direction="column" align="center">
-          <Image src={storeLogo} alt="Store Logo" boxSize="80px" mb={4} />
-          <Avatar src={adminData.avatar} size="2xl" mb={4} />
-          <Text fontSize="xl" fontWeight="bold">{adminData.name}</Text>
-          <Badge colorScheme={adminData.role === "superadmin" ? "purple" : "blue"} mb={2}>
-            {adminData.role}
-          </Badge>
-          <Text fontSize="sm" mb={4}>{adminData.email}</Text>
+          <Image src={storeLogo} alt="Store Logo" boxSize="60px" mb={3} />
+          <Avatar src={adminData.avatar} size="xl" mb={3} />
+
+          {/* View Mode */}
+          <Fade in={!isEditing}>
+            <VStack spacing={2} align="center">
+              <Text fontSize="lg" fontWeight="bold">{adminData.name}</Text>
+              <Badge colorScheme={adminData.role === "superadmin" ? "purple" : "blue"}>
+                {adminData.role}
+              </Badge>
+              <Text fontSize="sm" mb={2}>{adminData.email}</Text>
+            </VStack>
+          </Fade>
+
+          {/* Edit Mode */}
+          <Fade in={isEditing}>
+            {isEditing && (
+              <VStack spacing={3} align="stretch" w="100%">
+                <FormControl>
+                  <FormLabel fontSize="sm">Name</FormLabel>
+                  <Input size="sm" name="name" value={editData.name} onChange={handleChange} />
+                </FormControl>
+                <FormControl>
+                  <FormLabel fontSize="sm">Email</FormLabel>
+                  <Input size="sm" name="email" value={editData.email} onChange={handleChange} />
+                </FormControl>
+                <FormControl>
+                  <FormLabel fontSize="sm">Role</FormLabel>
+                  <Input size="sm" name="role" value={editData.role} onChange={handleChange} />
+                </FormControl>
+              </VStack>
+            )}
+          </Fade>
+
           <Divider my={3} />
-          <VStack spacing={2} align="start" w="100%" mb={4}>
-            {adminData.actions.map((action, idx) => (
-              <Button
-                key={idx}
-                variant="ghost"
-                w="100%"
-                justifyContent="start"
-                leftIcon={
-                  action.icon === "users" ? <FaUsers /> :
-                  action.icon === "box" ? <FaBoxOpen /> :
-                  <IoSettingsSharp />
-                }
-                onClick={() => handleActionClick(action)}
-              >
-                {action.label}
-              </Button>
-            ))}
-          </VStack>
+
+          {!isEditing && (
+            <VStack spacing={2} align="start" w="100%" mb={4}>
+              {adminData.actions.map((action, idx) => (
+                <Button
+                  key={idx}
+                  variant="ghost"
+                  w="100%"
+                  justifyContent="start"
+                  leftIcon={
+                    action.icon === "users" ? <FaUsers /> :
+                    action.icon === "box" ? <FaBoxOpen /> :
+                    <IoSettingsSharp />
+                  }
+                  onClick={() => handleActionClick(action)}
+                  colorScheme={currentView === "users" && action.label === "Manage Users" ? "blue" : 
+                              currentView === "products" && action.label === "Manage Products" ? "blue" : 
+                              currentView === "dashboard" && action.label === "Settings" ? "blue" : "gray"}
+                >
+                  {action.label}
+                </Button>
+              ))}
+            </VStack>
+          )}
+
+          {/* Action Buttons */}
           <VStack spacing={2} w="100%">
-            <Button w="100%" leftIcon={<FaEdit />} colorScheme="blue">Edit Profile</Button>
-            <Button w="100%" leftIcon={<FaSignOutAlt />} colorScheme="red" onClick={handleLogout}>Logout</Button>
+            {!isEditing ? (
+              <Button w="100%" leftIcon={<FaEdit />} colorScheme="blue" onClick={() => setIsEditing(true)}>
+                Edit Profile
+              </Button>
+            ) : (
+              <Flex w="100%" gap={2}>
+                <Button flex="1" colorScheme="green" leftIcon={<FaSave />} onClick={handleSave}>
+                  Save
+                </Button>
+                <Button flex="1" colorScheme="gray" leftIcon={<FaTimes />} onClick={() => setIsEditing(false)}>
+                  Cancel
+                </Button>
+              </Flex>
+            )}
+           
           </VStack>
         </Flex>
       </Card>
 
       {/* Right Panel */}
-      <Grid templateColumns="1fr" gap={4} flex="1">
+      <Grid templateColumns="1fr" gap={4} flex="1"  mt={12} >
         {currentView === "dashboard" && (
           <Card p={6} bg={cardBg}>
             <Text fontSize="lg" fontWeight="bold">Welcome, {adminData.name}!</Text>
@@ -167,19 +219,15 @@ export default function AdminProfile() {
                         </Tr>
                       ))
                     ) : (
-                      <Tr>
-                        <Td colSpan={4} textAlign="center">No admins found</Td>
-                      </Tr>
+                      <Tr><Td colSpan={4} textAlign="center">No admins found</Td></Tr>
                     )}
                   </Tbody>
                 </Table>
-
-                {/* Pagination Controls */}
                 {adminData.createdAdmins.length > adminsPerPage && (
                   <Flex justifyContent="space-between" mt={4}>
-                    <Button onClick={prevPage} isDisabled={currentPage === 1}>Previous</Button>
+                    <Button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} isDisabled={currentPage === 1}>Previous</Button>
                     <Text>Page {currentPage} of {totalPages}</Text>
-                    <Button onClick={nextPage} isDisabled={currentPage === totalPages}>Next</Button>
+                    <Button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} isDisabled={currentPage === totalPages}>Next</Button>
                   </Flex>
                 )}
               </>

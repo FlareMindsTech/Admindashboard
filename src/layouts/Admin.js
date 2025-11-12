@@ -153,6 +153,20 @@ export default function Dashboard(props) {
       />
       
       <MainPanel
+      maxH={{
+          base: "auto",     // 320px - 480px
+          sm: "auto",       // 481px - 767px
+          md: "98vh",       // 768px - 1024px
+          lg: "98vh",       // 1025px - 1280px
+          xl: "98vh", // 1281px +
+          "2xl": "98vh" // Extra large
+        }}
+        
+        overflow={{
+          sm: "auto",
+          md: "hidden"
+
+        }}
         w={{
           base: "100%",     // 320px - 480px
           sm: "100%",       // 481px - 767px
@@ -211,4 +225,4 @@ export default function Dashboard(props) {
       </MainPanel>
     </Box>
   );
-}
+} 

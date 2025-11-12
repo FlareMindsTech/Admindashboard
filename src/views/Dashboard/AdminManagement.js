@@ -27,6 +27,7 @@ import {
   Text,
   IconButton,
   Spinner,
+  Avatar,
 } from "@chakra-ui/react";
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
@@ -39,14 +40,17 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaSearch,
+  FaUserPlus,
+  FaEye,
+  FaEyeSlash,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
-import { MdAdminPanelSettings } from "react-icons/md";
+import { MdAdminPanelSettings, MdPerson } from "react-icons/md";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 import {
   getAllAdmins,
-  createAdmin,
   updateAdmin,
+  createAdmin,
 } from "views/utils/axiosInstance";
 
 // Main Admin Management Component
@@ -74,6 +78,8 @@ function AdminManagement() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [dataLoaded, setDataLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState(""); // Search filter state
+  const [showPassword, setShowPassword] = useState(false); // Show password state
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // Show confirm password state
 
   // View state - 'list', 'add', 'edit'
   const [currentView, setCurrentView] = useState("list");
@@ -81,14 +87,15 @@ function AdminManagement() {
 
   // Form state
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
     email: "",
-    role: "admin",
     password: "",
+    confirmPassword: "",
+    profileImage: "",
+    role: "admin"
   });
-
-  // Password visibility state
-  const [showPassword, setShowPassword] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -104,16 +111,27 @@ function AdminManagement() {
     displayItems.push({ _id: `empty-${displayItems.length}`, isEmpty: true });
   }
 
-  // Get status color with background
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case "active":
-        return { color: "white", bg: "#9d4edd" };
-      case "inactive":
-        return { color: "white", bg: "red.500" };
-      default:
-        return { color: "white", bg: "#9d4edd" };
-    }
+  // Toggle password visibility
+  const handleTogglePassword = () => setShowPassword(!showPassword);
+  const handleToggleConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
+
+  const handleAddAdmin = () => {
+    setFormData({
+      firstName: "",
+      lastName: "",
+      phone: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      profileImage: "",
+      role: "admin"
+    });
+    setEditingAdmin(null);
+    setCurrentView("add");
+    setError("");
+    setSuccess("");
+    setShowPassword(false); // Reset password visibility
+    setShowConfirmPassword(false); // Reset confirm password visibility
   };
 
   // Fetch current user from localStorage
@@ -194,14 +212,14 @@ function AdminManagement() {
 
       // Apply role/status filter
       switch (activeFilter) {
-        case "super":
-          filtered = adminData.filter((admin) => admin.role === "super admin");
-          break;
         case "active":
           filtered = adminData.filter((admin) => admin.status === "active");
           break;
-        case "admins":
-          filtered = adminData.filter((admin) => admin.role === "admin");
+        case "inactive":
+          filtered = adminData.filter((admin) => admin.status === "inactive");
+          break;
+        case "super":
+          filtered = adminData.filter((admin) => admin.role === "super admin");
           break;
         default:
           filtered = adminData;
@@ -211,11 +229,11 @@ function AdminManagement() {
       if (searchTerm.trim() !== "") {
         filtered = filtered.filter(
           (admin) =>
-            admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            `${admin.firstName} ${admin.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
             admin.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            admin.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (admin.status &&
-              admin.status.toLowerCase().includes(searchTerm.toLowerCase()))
+            admin.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (admin.role && admin.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (admin.status && admin.status.toLowerCase().includes(searchTerm.toLowerCase()))
         );
       }
 
@@ -242,34 +260,24 @@ function AdminManagement() {
     setSearchTerm("");
   };
 
-  // Handle add admin - show add form
-  const handleAddAdmin = () => {
-    setFormData({
-      name: "",
-      email: "",
-      role: "admin",
-      password: "",
-    });
-    setEditingAdmin(null);
-    setCurrentView("add");
-    setError("");
-    setSuccess("");
-    setShowPassword(false);
-  };
-
   // Handle edit admin - show edit form
   const handleEditAdmin = (admin) => {
     setFormData({
-      name: admin.name,
-      email: admin.email,
-      role: admin.role,
+      firstName: admin.firstName || "",
+      lastName: admin.lastName || "",
+      phone: admin.phone || "",
+      email: admin.email || "",
       password: "", // Don't pre-fill password for security
+      confirmPassword: "",
+      profileImage: admin.profileImage || "",
+      role: admin.role || "admin"
     });
     setEditingAdmin(admin);
     setCurrentView("edit");
     setError("");
     setSuccess("");
-    setShowPassword(false);
+    setShowPassword(false); // Reset password visibility
+    setShowConfirmPassword(false); // Reset confirm password visibility
   };
 
   // Handle back to list
@@ -278,27 +286,17 @@ function AdminManagement() {
     setEditingAdmin(null);
     setError("");
     setSuccess("");
-    setShowPassword(false);
+    setShowPassword(false); // Reset password visibility
+    setShowConfirmPassword(false); // Reset confirm password visibility
   };
 
-  // Handle form submit
+  // Handle form submit for both add and edit
   const handleSubmit = async () => {
     // Frontend validation
-    if (!formData.name || !formData.email) {
+    if (!formData.firstName || !formData.lastName || !formData.email) {
       return toast({
         title: "Validation Error",
-        description: "Name and email are required",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-
-    // For new admin, password is required
-    if (currentView === "add" && !formData.password) {
-      return toast({
-        title: "Validation Error",
-        description: "Password is required for new admin",
+        description: "First name, last name, and email are required",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -316,8 +314,19 @@ function AdminManagement() {
       });
     }
 
-    // For new admin, validate password strength
-    if (currentView === "add") {
+    // For add admin, password is required
+    if (currentView === "add" && !formData.password) {
+      return toast({
+        title: "Validation Error",
+        description: "Password is required for new admins",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
+    // Validate password strength if provided
+    if (formData.password) {
       const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
       if (!passwordRegex.test(formData.password)) {
         return toast({
@@ -331,78 +340,92 @@ function AdminManagement() {
       }
     }
 
+    // Check password confirmation for add admin
+    if (currentView === "add" && formData.password !== formData.confirmPassword) {
+      return toast({
+        title: "Validation Error",
+        description: "Passwords do not match",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
     setLoading(true);
     setError("");
     setSuccess("");
 
     try {
+      // Prepare data for API with exact structure
+      const adminDataToSend = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        email: formData.email,
+        role: formData.role,
+        profileImage: formData.profileImage || "",
+        ...(formData.password && { password: formData.password })
+      };
+
       let response;
+      let successMessage;
 
-      if (currentView === "add") {
-        // Create new admin using the API function
-        response = await createAdmin(formData);
-        console.log("Create admin response:", response);
-
-        // Extract admin data from response
-        const newAdmin = response.data?.admin || response.data || response;
-
-        toast({
-          title: "Admin Created",
-          description: `Admin ${newAdmin.name} created successfully`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-
-        // Add new admin to the beginning of the list (newest first)
-        const updatedAdmins = [newAdmin, ...adminData];
-        setAdminData(updatedAdmins);
-
-        // Update filtered data based on current filter and search
-        applyFiltersAndSearch(updatedAdmins);
-
-        setSuccess("Admin created successfully!");
+      if (currentView === "edit" && editingAdmin) {
+        // Update existing admin
+        response = await updateAdmin(editingAdmin._id, adminDataToSend);
+        successMessage = `Admin ${response.data?.firstName || formData.firstName} updated successfully`;
       } else {
-        // Update existing admin using the API function
-        response = await updateAdmin(editingAdmin._id, formData);
-        console.log("Update admin response:", response);
-
-        // Extract admin data from response
-        const updatedAdmin = response.data?.admin || response.data || response;
-
-        toast({
-          title: "Admin Updated",
-          description: `Admin ${updatedAdmin.name} updated successfully`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-
-        // Update admin in the list
-        const updatedAdmins = adminData.map((admin) =>
-          admin._id === editingAdmin._id ? { ...admin, ...updatedAdmin } : admin
-        );
-        setAdminData(updatedAdmins);
-
-        // Update filtered data
-        applyFiltersAndSearch(updatedAdmins);
-
-        setSuccess("Admin updated successfully!");
+        // Create new admin
+        response = await createAdmin(adminDataToSend);
+        successMessage = `Admin ${response.data?.firstName || formData.firstName} created successfully`;
       }
 
+      console.log("Admin operation response:", response);
+
+      // Extract admin data from response
+      const adminResponse = response.data || response;
+
+      toast({
+        title: currentView === "edit" ? "Admin Updated" : "Admin Created",
+        description: successMessage,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Refresh admin list
+      const fetchAdmins = async () => {
+        try {
+          const adminsResponse = await getAllAdmins();
+          const admins = adminsResponse.data?.admins || adminsResponse.data || adminsResponse?.admins || adminsResponse || [];
+          const sortedAdmins = admins.sort(
+            (a, b) => new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id)
+          );
+          setAdminData(sortedAdmins);
+          setFilteredData(sortedAdmins);
+        } catch (err) {
+          console.error("Error refreshing admins:", err);
+        }
+      };
+
+      await fetchAdmins();
+
+      setSuccess(successMessage);
+      
       // Reset form and go back to list
       setFormData({
-        name: "",
+        firstName: "",
+        lastName: "",
+        phone: "",
         email: "",
-        role: "admin",
         password: "",
+        confirmPassword: "",
+        profileImage: "",
+        role: "admin"
       });
       setEditingAdmin(null);
+      setCurrentView("list");
 
-      // Wait a bit before going back to list to show success message
-      setTimeout(() => {
-        setCurrentView("list");
-      }, 1500);
     } catch (err) {
       console.error("API Error:", err);
       const errorMessage =
@@ -419,38 +442,38 @@ function AdminManagement() {
     setLoading(false);
   };
 
-  // Helper function to apply filters and search
-  const applyFiltersAndSearch = (admins) => {
-    let filtered = admins;
+  // Auto-hide success/error messages after 3 seconds
+  useEffect(() => {
+    if (success || error) {
+      const timer = setTimeout(() => {
+        setSuccess("");
+        setError("");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, error]);
 
-    // Apply role/status filter
-    switch (activeFilter) {
-      case "super":
-        filtered = admins.filter((admin) => admin.role === "super admin");
-        break;
+  // Get status color with background
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
       case "active":
-        filtered = admins.filter((admin) => admin.status === "active");
-        break;
-      case "admins":
-        filtered = admins.filter((admin) => admin.role === "admin");
-        break;
+        return { color: "white", bg: "#9d4edd" };
+      case "inactive":
+        return { color: "white", bg: "red.500" };
+      case "pending":
+        return { color: "white", bg: "yellow.500" };
       default:
-        filtered = admins;
+        return { color: "white", bg: "#9d4edd" };
     }
+  };
 
-    // Apply search filter
-    if (searchTerm.trim() !== "") {
-      filtered = filtered.filter(
-        (admin) =>
-          admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          admin.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          admin.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (admin.status &&
-            admin.status.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+  // Get verification badge
+  const getVerificationBadge = (isVerified) => {
+    if (isVerified) {
+      return { text: "Verified", color: "green" };
+    } else {
+      return { text: "Not Verified", color: "red" };
     }
-
-    setFilteredData(filtered);
   };
 
   // Card click handlers
@@ -486,7 +509,38 @@ function AdminManagement() {
   // Render Form View (Add/Edit)
   if (currentView === "add" || currentView === "edit") {
     return (
-      <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} height="100vh" overflow="hidden">
+      <Flex 
+        flexDirection="column" 
+        pt={{ base: "120px", md: "75px" }} 
+        height="100vh" 
+        overflow="auto"
+        css={{
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+            borderRadius: '24px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: 'transparent',
+            borderRadius: '24px',
+            transition: 'background 0.3s ease',
+          },
+          '&:hover::-webkit-scrollbar-thumb': {
+            background: '#cbd5e1',
+          },
+          '&:hover::-webkit-scrollbar-thumb:hover': {
+            background: '#94a3b8',
+          },
+          // For Firefox
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'transparent transparent',
+          '&:hover': {
+            scrollbarColor: '#cbd5e1 transparent',
+          },
+        }}
+      >
         <Card bg="white" shadow="xl" height="100%" display="flex" flexDirection="column">
           <CardHeader bg="white" flexShrink={0}>
             <Flex align="center" mb={4}>
@@ -533,84 +587,170 @@ function AdminManagement() {
                 {success}
               </Text>
             )}
-            <FormControl mb="24px">
-              <FormLabel htmlFor="name" color="gray.700">Name</FormLabel>
-              <Input
-                id="name"
-                name="name"
-                placeholder="Admin Name"
-                onChange={handleInputChange}
-                value={formData.name}
-                borderColor={`${customColor}50`}
-                _hover={{ borderColor: customColor }}
-                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                bg="white"
-              />
-            </FormControl>
-            <FormControl mb="24px">
-              <FormLabel htmlFor="email" color="gray.700">Email</FormLabel>
-              <Input
-                id="email"
-                name="email"
-                placeholder="Admin Email"
-                onChange={handleInputChange}
-                value={formData.email}
-                borderColor={`${customColor}50`}
-                _hover={{ borderColor: customColor }}
-                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                bg="white"
-              />
-            </FormControl>
-            <FormControl mb="24px">
-              <FormLabel htmlFor="role" color="gray.700">Role</FormLabel>
-              <Input
-                id="role"
-                name="role"
-                value="admin"
-                isReadOnly
-                bg="gray.50"
-                color="gray.600"
-                cursor="not-allowed"
-                _hover={{ cursor: "not-allowed" }}
-                borderColor="gray.300"
-              />
-            </FormControl>
-            <FormControl mb="24px">
-              <FormLabel htmlFor="password" color="gray.700">
-                {currentView === "add"
-                  ? "Password"
-                  : "Password (leave blank to keep current)"}
-              </FormLabel>
-              <InputGroup>
+            
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+              <FormControl isRequired>
+                <FormLabel htmlFor="firstName" color="gray.700">First Name</FormLabel>
                 <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder={
-                    currentView === "add"
-                      ? "Admin Password"
-                      : "New Password (optional)"
-                  }
+                  id="firstName"
+                  name="firstName"
+                  placeholder="First Name"
                   onChange={handleInputChange}
-                  value={formData.password}
+                  value={formData.firstName}
                   borderColor={`${customColor}50`}
                   _hover={{ borderColor: customColor }}
                   _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
                   bg="white"
                 />
-                <InputRightElement>
-                  <IconButton
-                    variant="ghost"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
-                    onClick={() => setShowPassword(!showPassword)}
-                    color="gray.500"
-                    _hover={{ color: customColor, bg: "transparent" }}
-                    size="sm"
-                  />
-                </InputRightElement>
-              </InputGroup>
+              </FormControl>
+              
+              <FormControl isRequired>
+                <FormLabel htmlFor="lastName" color="gray.700">Last Name</FormLabel>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  placeholder="Last Name"
+                  onChange={handleInputChange}
+                  value={formData.lastName}
+                  borderColor={`${customColor}50`}
+                  _hover={{ borderColor: customColor }}
+                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  bg="white"
+                />
+              </FormControl>
+            </SimpleGrid>
+
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+              <FormControl isRequired>
+                <FormLabel htmlFor="email" color="gray.700">Email</FormLabel>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Email Address"
+                  onChange={handleInputChange}
+                  value={formData.email}
+                  borderColor={`${customColor}50`}
+                  _hover={{ borderColor: customColor }}
+                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  bg="white"
+                />
+              </FormControl>
+              
+              <FormControl>
+                <FormLabel htmlFor="phone" color="gray.700">Phone</FormLabel>
+                <Input
+                  id="phone"
+                  name="phone"
+                  placeholder="Phone Number"
+                  onChange={handleInputChange}
+                  value={formData.phone}
+                  borderColor={`${customColor}50`}
+                  _hover={{ borderColor: customColor }}
+                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  bg="white"
+                />
+              </FormControl>
+            </SimpleGrid>
+
+            <FormControl mb="24px">
+              <FormLabel htmlFor="role" color="gray.700">Role</FormLabel>
+              <Select
+                id="role"
+                name="role"
+                onChange={handleInputChange}
+                value={formData.role}
+                borderColor={`${customColor}50`}
+                _hover={{ borderColor: customColor }}
+                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                bg="white"
+              >
+                <option value="admin">Admin</option>
+                <option value="super admin">Super Admin</option>
+              </Select>
             </FormControl>
+
+            <FormControl mb="24px">
+              <FormLabel htmlFor="profileImage" color="gray.700">Profile Image URL</FormLabel>
+              <Input
+                id="profileImage"
+                name="profileImage"
+                placeholder="Profile Image URL"
+                onChange={handleInputChange}
+                value={formData.profileImage}
+                borderColor={`${customColor}50`}
+                _hover={{ borderColor: customColor }}
+                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                bg="white"
+              />
+            </FormControl>
+
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+              <FormControl isRequired={currentView === "add"}>
+                <FormLabel htmlFor="password" color="gray.700">
+                  {currentView === "add" ? "Password *" : "New Password (optional)"}
+                </FormLabel>
+                <InputGroup>
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={currentView === "add" ? "Password" : "New Password"}
+                    onChange={handleInputChange}
+                    value={formData.password}
+                    borderColor={`${customColor}50`}
+                    _hover={{ borderColor: customColor }}
+                    _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                    bg="white"
+                  />
+                  <InputRightElement>
+                    <IconButton
+                      variant="ghost"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
+                      onClick={() => setShowPassword(!showPassword)}
+                      color="gray.500"
+                      _hover={{ color: customColor, bg: "transparent" }}
+                      size="sm"
+                    />
+                  </InputRightElement>
+                </InputGroup>
+              </FormControl>
+
+              {currentView === "add" && (
+                <FormControl isRequired>
+                  <FormLabel htmlFor="confirmPassword" color="gray.700">
+                    Confirm Password *
+                  </FormLabel>
+                  <InputGroup>
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm Password"
+                      onChange={handleInputChange}
+                      value={formData.confirmPassword}
+                      borderColor={`${customColor}50`}
+                      _hover={{ borderColor: customColor }}
+                      _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                      bg="white"
+                    />
+                    <InputRightElement>
+                      <IconButton
+                        variant="ghost"
+                        aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                        icon={showConfirmPassword ? <ViewOffIcon /> : <ViewIcon />}
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        color="gray.500"
+                        _hover={{ color: customColor, bg: "transparent" }}
+                        size="sm"
+                      />
+                    </InputRightElement>
+                  </InputGroup>
+                </FormControl>
+              )}
+            </SimpleGrid>
+
             <Flex justify="flex-end" mt={6} flexShrink={0}>
               <Button 
                 variant="outline" 
@@ -641,9 +781,35 @@ function AdminManagement() {
   return (
     <Flex 
       flexDirection="column" 
-      pt={{ base: "5px", md: "10px" }} 
+      pt={{ base: "5px", md: "45px" }} 
       height="100vh" 
-      overflow="hidden"
+      overflow="auto"
+      css={{
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: 'transparent',
+          borderRadius: '24px',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: 'transparent',
+          borderRadius: '24px',
+          transition: 'background 0.3s ease',
+        },
+        '&:hover::-webkit-scrollbar-thumb': {
+          background: '#cbd5e1',
+        },
+        '&:hover::-webkit-scrollbar-thumb:hover': {
+          background: '#94a3b8',
+        },
+        // For Firefox
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'transparent transparent',
+        '&:hover': {
+          scrollbarColor: '#cbd5e1 transparent',
+        },
+      }}
     >
       {/* Fixed Statistics Cards */}
       <Box mb="24px">
@@ -660,24 +826,28 @@ function AdminManagement() {
               height: '6px',
             },
             '&::-webkit-scrollbar-track': {
-              background: '#f1f1f1',
+              background: 'transparent',
             },
             '&::-webkit-scrollbar-thumb': {
-              background: customColor,
+              background: 'transparent',
               borderRadius: '3px',
+              transition: 'background 0.3s ease',
             },
-            '&::-webkit-scrollbar-thumb:hover': {
-              background: customHoverColor,
+            '&:hover::-webkit-scrollbar-thumb': {
+              background: '#cbd5e1',
+            },
+            '&:hover::-webkit-scrollbar-thumb:hover': {
+              background: '#94a3b8',
             },
           }}
         >
-          {/* Super Admins Card */}
+          {/* Total Admins Card */}
           <Card
             minH="83px"
             cursor="pointer"
-            onClick={() => handleCardClick("super")}
-            border={activeFilter === "super" ? "2px solid" : "1px solid"}
-            borderColor={activeFilter === "super" ? customColor : `${customColor}30`}
+            onClick={() => handleCardClick("all")}
+            border={activeFilter === "all" ? "2px solid" : "1px solid"}
+            borderColor={activeFilter === "all" ? customColor : `${customColor}30`}
             transition="all 0.2s ease-in-out"
             bg="white"
             position="relative"
@@ -714,26 +884,23 @@ function AdminManagement() {
                     fontWeight="bold"
                     pb="0px"
                   >
-                    Super Admins
+                    Total Admins
                   </StatLabel>
                   <Flex>
                     <StatNumber fontSize={{ base: "lg", md: "xl" }} color={textColor}>
-                      {adminData.filter((a) => a.role === "super admin").length}
+                      {adminData.length}
                     </StatNumber>
                   </Flex>
                 </Stat>
-                <IconBox 
-                  as="box" 
-                  h={{ base: "35px", md: "45px" }} 
-                  w={{ base: "35px", md: "45px" }} 
+                <IconBox
+                  as="box"
+                  h={{ base: "35px", md: "45px" }}
+                  w={{ base: "35px", md: "45px" }}
                   bg={customColor}
                   transition="all 0.2s ease-in-out"
-                  _groupHover={{
-                    transform: "scale(1.1)",
-                  }}
                 >
                   <Icon
-                    as={MdAdminPanelSettings}
+                    as={FaUsers}
                     h={{ base: "18px", md: "24px" }}
                     w={{ base: "18px", md: "24px" }}
                     color="white"
@@ -743,7 +910,7 @@ function AdminManagement() {
             </CardBody>
           </Card>
 
-          {/* Active Status Card */}
+          {/* Active Admins Card */}
           <Card
             minH="83px"
             cursor="pointer"
@@ -786,7 +953,7 @@ function AdminManagement() {
                     fontWeight="bold"
                     pb="2px"
                   >
-                    Active Status
+                    Active Admins
                   </StatLabel>
                   <Flex>
                     <StatNumber fontSize={{ base: "lg", md: "xl" }} color={textColor}>
@@ -815,13 +982,13 @@ function AdminManagement() {
             </CardBody>
           </Card>
 
-          {/* Admins Only Card */}
+          {/* Super Admins Card */}
           <Card
             minH="83px"
             cursor="pointer"
-            onClick={() => handleCardClick("admins")}
-            border={activeFilter === "admins" ? "2px solid" : "1px solid"}
-            borderColor={activeFilter === "admins" ? customColor : `${customColor}30`}
+            onClick={() => handleCardClick("super")}
+            border={activeFilter === "super" ? "2px solid" : "1px solid"}
+            borderColor={activeFilter === "super" ? customColor : `${customColor}30`}
             transition="all 0.2s ease-in-out"
             bg="white"
             position="relative"
@@ -858,11 +1025,11 @@ function AdminManagement() {
                     fontWeight="bold"
                     pb="2px"
                   >
-                    Admins Only
+                    Super Admins
                   </StatLabel>
                   <Flex>
                     <StatNumber fontSize={{ base: "lg", md: "xl" }} color={textColor}>
-                      {adminData.filter((a) => a.role === "admin").length}
+                      {adminData.filter((a) => a.role === "super admin").length}
                     </StatNumber>
                   </Flex>
                 </Stat>
@@ -877,7 +1044,7 @@ function AdminManagement() {
                   }}
                 >
                   <Icon
-                    as={FaUsers}
+                    as={MdAdminPanelSettings}
                     h={{ base: "18px", md: "24px" }}
                     w={{ base: "18px", md: "24px" }}
                     color="white"
@@ -919,10 +1086,10 @@ function AdminManagement() {
         {/* Active Filter Display */}
         <Flex justify="space-between" align="center" mb={4}>
           <Text fontSize="lg" fontWeight="bold" color={textColor}>
-            {activeFilter === "super" && "Super Admins"}
             {activeFilter === "active" && "Active Admins"}
-            {activeFilter === "admins" && "Admins Only"}
-            {activeFilter === "all" && "All Administrators"}
+            {activeFilter === "inactive" && "Inactive Admins"}
+            {activeFilter === "super" && "Super Admins"}
+            {activeFilter === "all" && "All Admins"}
           </Text>
           {activeFilter !== "all" && (
             <Button
@@ -942,6 +1109,7 @@ function AdminManagement() {
 
       {/* Fixed Table Container */}
       <Box 
+        mt={-8}
         flex="1" 
         display="flex" 
         flexDirection="column" 
@@ -970,13 +1138,13 @@ function AdminManagement() {
             <Flex justify="space-between" align="center" flexWrap="wrap" gap={4}>
               {/* Title */}
               <Heading size="md" flexShrink={0} color="gray.700">
-                👤 Administrators Table
+                👤 Admins Table
               </Heading>
 
               {/* Search Bar */}
               <Flex align="center" flex="1" maxW="400px">
                 <Input
-                  placeholder="Search by name, email, role, or status..."
+                  placeholder="Search by name, email, phone, or role..."
                   value={searchTerm}
                   onChange={handleSearchChange}
                   size="sm"
@@ -1018,7 +1186,7 @@ function AdminManagement() {
             </Flex>
           </CardHeader>
           
-          {/* Table Content Area - Scrollable Body with Fixed Header and Pagination */}
+          {/* Table Content Area - Scrollable Body with Fixed Header */}
           <CardBody 
             bg="white" 
             flex="1" 
@@ -1030,130 +1198,132 @@ function AdminManagement() {
             {tableLoading ? (
               <Flex justify="center" align="center" py={10} flex="1">
                 <Spinner size="xl" color={customColor} />
-                <Text ml={4}>Loading administrators...</Text>
+                <Text ml={4}>Loading admins...</Text>
               </Flex>
             ) : (
               <Box flex="1" display="flex" flexDirection="column" overflow="hidden">
                 {currentItems.length > 0 ? (
                   <>
-                    {/* Table Container - Dynamic height with scrollable content */}
+                    {/* Fixed Table Container - Exact height for 5 rows */}
                     <Box 
                       flex="1"
                       display="flex"
                       flexDirection="column"
-                      minH={{ base: "calc(100vh - 400px)", md: "calc(100vh - 450px)" }}
-                      maxH={{ base: "calc(100vh - 400px)", md: "calc(100vh - 450px)" }}
+                      height="400px" // Fixed height for exactly 5 rows
                       overflow="hidden"
-                      position="relative"
                     >
                       {/* Scrollable Table Area */}
                       <Box
                         flex="1"
-                        overflowY="auto"
-                        overflowX="auto"
+                        overflowY="hidden"
+                        overflowX="hidden"
+                        _hover={{
+                          overflowY: "auto",
+                          overflowX: "auto",
+                        }}
                         css={{
                           '&::-webkit-scrollbar': {
                             width: '8px',
                             height: '8px',
                           },
                           '&::-webkit-scrollbar-track': {
-                            background: '#f1f1f1',
+                            background: 'transparent',
                           },
                           '&::-webkit-scrollbar-thumb': {
-                            background: customColor,
+                            background: 'transparent',
                             borderRadius: '4px',
+                            transition: 'background 0.3s ease',
                           },
-                          '&::-webkit-scrollbar-thumb:hover': {
-                            background: customHoverColor,
+                          '&:hover::-webkit-scrollbar-thumb': {
+                            background: '#cbd5e1',
                           },
-                        }}
-                        _hover={{
-                          '&::-webkit-scrollbar-thumb': {
-                            background: customColor,
-                          }
+                          '&:hover::-webkit-scrollbar-thumb:hover': {
+                            background: '#94a3b8',
+                          },
                         }}
                       >
                         <Table variant="simple" size="md">
                           {/* Fixed Header */}
-                        <Thead>
-  <Tr>
-    <Th 
-      color="gray.700" 
-      borderColor={`${customColor}30`}
-      position="sticky"
-      top={0}
-      bg={`${customColor}90`}
-      zIndex={10}
-      fontWeight="bold"
-      fontSize="sm"
-      py={3}
-      borderBottom="2px solid"
-      borderBottomColor={`${customColor}50`}
-    >
-      Name
-    </Th>
-    <Th 
-      color="gray.700" 
-      borderColor={`${customColor}30`}
-      position="sticky"
-      top={0}
-      bg={`${customColor}90`}
-      zIndex={10}
-      fontWeight="bold"
-      fontSize="sm"
-      py={3}
-      borderBottom="2px solid"
-      borderBottomColor={`${customColor}50`}
-    >
-      Email
-    </Th>
-    <Th 
-      color="gray.700" 
-      borderColor={`${customColor}30`}
-      position="sticky"
-      top={0}
-      bg={`${customColor}90`}
-      zIndex={10}
-      fontWeight="bold"
-      fontSize="sm"
-      py={3}
-      borderBottom="2px solid"
-      borderBottomColor={`${customColor}50`}
-    >
-      Role
-    </Th>
-    <Th 
-      color="gray.700" 
-      borderColor={`${customColor}30`}
-      position="sticky"
-      top={0}
-      bg={`${customColor}90`}
-      zIndex={10}
-      fontWeight="bold"
-      fontSize="sm"
-      py={3}
-      borderBottom="2px solid"
-      borderBottomColor={`${customColor}50`}
-    >
-      Status
-    </Th>
-    <Th 
-      color="gray.700" 
-      borderColor={`${customColor}30`}
-      position="sticky"
-      top={0}
-      bg={`${customColor}90`}
-      zIndex={10}
-      fontWeight="bold"
-      fontSize="sm"
-      py={3}
-      borderBottom="2px solid"
-      borderBottomColor={`${customColor}50`}
-    >
-      Actions
-    </Th>
-  </Tr>
-</Thead>
+                          <Thead>
+                            <Tr>
+                              <Th 
+                                color="gray.100" 
+                                borderColor={`${customColor}30`}
+                                position="sticky"
+                                top={0}
+                                bg={`${customColor}`}
+                                zIndex={10}
+                                fontWeight="bold"
+                                fontSize="sm"
+                                py={3}
+                                borderBottom="2px solid"
+                                borderBottomColor={`${customColor}50`}
+                              >
+                                Admin
+                              </Th>
+                              <Th 
+                                color="gray.100" 
+                                borderColor={`${customColor}30`}
+                                position="sticky"
+                                top={0}
+                                bg={`${customColor}`}
+                                zIndex={10}
+                                fontWeight="bold"
+                                fontSize="sm"
+                                py={3}
+                                borderBottom="2px solid"
+                                borderBottomColor={`${customColor}50`}
+                              >
+                               Email
+                              </Th>
+                              <Th 
+                                color="gray.100" 
+                                borderColor={`${customColor}30`}
+                                position="sticky"
+                                top={0}
+                                bg={`${customColor}`}
+                                zIndex={10}
+                                fontWeight="bold"
+                                fontSize="sm"
+                                py={3}
+                                borderBottom="2px solid"
+                                borderBottomColor={`${customColor}50`}
+                              >
+                                Role
+                              </Th>
+                              <Th 
+                                color="gray.100" 
+                                borderColor={`${customColor}30`}
+                                position="sticky"
+                                top={0}
+                                bg={`${customColor}`}
+                                zIndex={10}
+                                fontWeight="bold"
+                                fontSize="sm"
+                                py={3}
+                                borderBottom="2px solid"
+                                borderBottomColor={`${customColor}50`}
+                              >
+                                Status
+                              </Th>
+                              <Th 
+                                color="gray.100" 
+                                borderColor={`${customColor}30`}
+                                position="sticky"
+                                top={0}
+                                bg={`${customColor}`}
+                                zIndex={10}
+                                fontWeight="bold"
+                                fontSize="sm"
+                                py={3}
+                                borderBottom="2px solid"
+                                borderBottomColor={`${customColor}50`}
+                              >
+                                Actions
+                              </Th>
+                            </Tr>
+                          </Thead>
+
                           {/* Scrollable Body */}
                           <Tbody>
                             {displayItems.map((admin, index) => {
@@ -1173,6 +1343,7 @@ function AdminManagement() {
                               }
 
                               const statusColors = getStatusColor(admin.status);
+                              const verification = getVerificationBadge(admin.isVerified);
                               return (
                                 <Tr 
                                   key={admin._id || index}
@@ -1182,9 +1353,39 @@ function AdminManagement() {
                                   borderColor={`${customColor}20`}
                                   height="60px"
                                 >
-                                  <Td borderColor={`${customColor}20`}>{admin.name}</Td>
-                                  <Td borderColor={`${customColor}20`}>{admin.email}</Td>
-                                  <Td borderColor={`${customColor}20`}>{admin.role}</Td>
+                                  <Td borderColor={`${customColor}20`}>
+                                    <Flex align="center">
+                                      <Avatar
+                                        size="sm"
+                                        name={`${admin.name}`}
+                                        src={admin.profileImage}
+                                        mr={3}
+                                      />
+                                      <Box>
+                                        <Text fontWeight="medium">{`${admin.name}`}</Text>
+                                      </Box>
+                                    </Flex>
+                                  </Td>
+                                  <Td borderColor={`${customColor}20`}>
+                                    <Box>
+                                      <Text>{admin.email}</Text>
+                                    </Box>
+                                  </Td>
+                                  <Td borderColor={`${customColor}20`}>
+                                    <Badge
+                                      colorScheme={
+                                        admin.role === "super admin" ? "purple" :
+                                        admin.role === "admin" ? "blue" : "gray"
+                                      }
+                                      px={3}
+                                      py={1}
+                                      borderRadius="full"
+                                      fontSize="sm"
+                                      fontWeight="bold"
+                                    >
+                                      {admin.role || "admin"}
+                                    </Badge>
+                                  </Td>
                                   <Td borderColor={`${customColor}20`}>
                                     <Badge
                                       bg={statusColors.bg}
@@ -1217,48 +1418,29 @@ function AdminManagement() {
                           </Tbody>
                         </Table>
                       </Box>
+                    </Box>
 
-                      {/* Fixed Pagination Bar - Always visible at bottom */}
+                    {/* Pagination Bar - Positioned at bottom right corner */}
+                    {currentItems.length > 0 && (
                       <Box 
-                        position="sticky"
-                        bottom="0"
-                        left="0"
-                        right="0"
                         flexShrink={0}
                         p="16px"
                         borderTop="1px solid"
                         borderColor={`${customColor}20`}
                         bg="white"
-                        boxShadow="0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06)"
-                        zIndex={10}
                       >
                         <Flex
-                          justify="space-between"
+                          justify="flex-end" // Align to the right
                           align="center"
-                          direction={{ base: "column", sm: "row" }}
                           gap={3}
                         >
-                          <Text 
-                            fontSize="sm" 
-                            color="gray.600" 
-                            alignSelf={{ base: "center", sm: "start" }}
-                            mb={{ base: 2, sm: 0 }}
-                            textAlign={{ base: "center", sm: "left" }}
-                          >
-                            Showing {indexOfFirstItem + 1} to{" "}
-                            {Math.min(indexOfLastItem, filteredData.length)} of{" "}
-                            {filteredData.length} entries
-                            {searchTerm && ` (filtered from ${adminData.length} total)`}
+                          {/* Page Info */}
+                          <Text fontSize="sm" color="gray.600" display={{ base: "none", sm: "block" }}>
+                            Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length} admins
                           </Text>
-                          
-                          {/* Centered Pagination Controls */}
-                          <Flex 
-                            align="center" 
-                            gap={3} 
-                            justify="center"
-                            flex="1"
-                            maxW="400px"
-                          >
+
+                          {/* Pagination Controls */}
+                          <Flex align="center" gap={2}>
                             <Button
                               size="sm"
                               onClick={handlePrevPage}
@@ -1276,21 +1458,19 @@ function AdminManagement() {
                                 color: "gray.400",
                                 borderColor: "gray.300"
                               }}
-                              flexShrink={0}
                             >
                               <Text display={{ base: "none", sm: "block" }}>Previous</Text>
-                              <Text display={{ base: "block", sm: "none" }}>Prev</Text>
                             </Button>
 
-                            {/* Page Number Display - Centered with 1/X format */}
+                            {/* Page Number Display */}
                             <Flex 
                               align="center" 
                               gap={2}
                               bg={`${customColor}10`}
-                              px={4}
-                              py={2}
-                              borderRadius="8px"
-                              minW="120px"
+                              px={3}
+                              py={1}
+                              borderRadius="6px"
+                              minW="80px"
                               justify="center"
                             >
                               <Text fontSize="sm" fontWeight="bold" color={customColor}>
@@ -1321,17 +1501,13 @@ function AdminManagement() {
                                 color: "gray.400",
                                 borderColor: "gray.300"
                               }}
-                              flexShrink={0}
                             >
-                              Next
+                              <Text display={{ base: "none", sm: "block" }}>Next</Text>
                             </Button>
                           </Flex>
-
-                          {/* Empty flex box to balance the layout */}
-                          <Box flex="1" display={{ base: "none", sm: "block" }} />
                         </Flex>
                       </Box>
-                    </Box>
+                    )}
                   </>
                 ) : (
                   <Flex 
@@ -1346,11 +1522,11 @@ function AdminManagement() {
                     <Text textAlign="center" color="gray.500" fontSize="lg">
                       {dataLoaded
                         ? adminData.length === 0
-                          ? "No administrators found."
+                          ? "No admins found."
                           : searchTerm
-                          ? "No administrators match your search."
-                          : "No administrators match the selected filter."
-                        : "Loading administrators..."}
+                          ? "No admins match your search."
+                          : "No admins match the selected filter."
+                        : "Loading admins..."}
                     </Text>
                   </Flex>
                 )}

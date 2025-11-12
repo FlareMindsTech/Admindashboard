@@ -168,11 +168,18 @@ function UserManagement() {
         // Handle different response formats
         const users = response.data?.users || response.data || response?.users || response || [];
 
-        // Sort users in descending order (newest first)
-        const sortedUsers = users.sort(
-          (a, b) =>
-            new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id)
-        );
+        // Sort users in alphabetical order by first name, then last name
+        const sortedUsers = users.sort((a, b) => {
+          const nameA = `${a.firstName || ''} ${a.lastName || ''}`.toLowerCase().trim();
+          const nameB = `${b.firstName || ''} ${b.lastName || ''}`.toLowerCase().trim();
+          
+          // If names are the same, sort by email as fallback
+          if (nameA === nameB) {
+            return (a.email || '').toLowerCase().localeCompare((b.email || '').toLowerCase());
+          }
+          
+          return nameA.localeCompare(nameB);
+        });
 
         setUserData(sortedUsers);
         setFilteredData(sortedUsers);
@@ -200,7 +207,7 @@ function UserManagement() {
     }
   }, [currentUser, toast]);
 
-  // Apply filters and search
+  // Apply filters and search - UPDATED to maintain alphabetical order
   useEffect(() => {
     if (!dataLoaded) return;
 
@@ -237,7 +244,19 @@ function UserManagement() {
         );
       }
 
-      setFilteredData(filtered);
+      // Maintain alphabetical order after filtering
+      const sortedFilteredData = filtered.sort((a, b) => {
+        const nameA = `${a.firstName || ''} ${a.lastName || ''}`.toLowerCase().trim();
+        const nameB = `${b.firstName || ''} ${b.lastName || ''}`.toLowerCase().trim();
+        
+        if (nameA === nameB) {
+          return (a.email || '').toLowerCase().localeCompare((b.email || '').toLowerCase());
+        }
+        
+        return nameA.localeCompare(nameB);
+      });
+
+      setFilteredData(sortedFilteredData);
       setTableLoading(false);
     }, 500);
 
@@ -393,14 +412,24 @@ function UserManagement() {
         isClosable: true,
       });
 
-      // Refresh user list
+      // Refresh user list with alphabetical sorting
       const fetchUsers = async () => {
         try {
           const usersResponse = await getAllUsers();
           const users = usersResponse.data?.users || usersResponse.data || usersResponse?.users || usersResponse || [];
-          const sortedUsers = users.sort(
-            (a, b) => new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id)
-          );
+          
+          // Sort users in alphabetical order
+          const sortedUsers = users.sort((a, b) => {
+            const nameA = `${a.firstName || ''} ${a.lastName || ''}`.toLowerCase().trim();
+            const nameB = `${b.firstName || ''} ${b.lastName || ''}`.toLowerCase().trim();
+            
+            if (nameA === nameB) {
+              return (a.email || '').toLowerCase().localeCompare((b.email || '').toLowerCase());
+            }
+            
+            return nameA.localeCompare(nameB);
+          });
+
           setUserData(sortedUsers);
           setFilteredData(sortedUsers);
         } catch (err) {
@@ -509,7 +538,38 @@ function UserManagement() {
   // Render Form View (Add/Edit)
   if (currentView === "add" || currentView === "edit") {
     return (
-      <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} height="100vh" overflow="hidden">
+      <Flex 
+        flexDirection="column" 
+        pt={{ base: "120px", md: "75px" }} 
+        height="100vh" 
+        overflow="hidden"
+        css={{
+          '&:hover': {
+            overflowY: 'auto',
+          },
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: 'transparent',
+            borderRadius: '4px',
+          },
+          '&:hover::-webkit-scrollbar-thumb': {
+            background: 'rgba(123, 44, 191, 0.3)',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            background: 'rgba(123, 44, 191, 0.5)',
+          },
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'transparent transparent',
+          '&:hover': {
+            scrollbarColor: 'rgba(123, 44, 191, 0.3) transparent',
+          },
+        }}
+      >
         <Card bg="white" shadow="xl" height="100%" display="flex" flexDirection="column">
           <CardHeader bg="white" flexShrink={0}>
             <Flex align="center" mb={4}>
@@ -751,9 +811,35 @@ function UserManagement() {
   return (
     <Flex 
       flexDirection="column" 
-      pt={{ base: "5px", md: "10px" }} 
+      pt={{ base: "5px", md: "45px" }} 
       height="100vh" 
       overflow="hidden"
+      css={{
+        '&:hover': {
+          overflowY: 'auto',
+        },
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: 'transparent',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: 'transparent',
+          borderRadius: '4px',
+        },
+        '&:hover::-webkit-scrollbar-thumb': {
+          background: 'rgba(123, 44, 191, 0.3)',
+        },
+        '&::-webkit-scrollbar-thumb:hover': {
+          background: 'rgba(123, 44, 191, 0.5)',
+        },
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'transparent transparent',
+        '&:hover': {
+          scrollbarColor: 'rgba(123, 44, 191, 0.3) transparent',
+        },
+      }}
     >
       {/* Fixed Statistics Cards */}
       <Box mb="24px">
@@ -770,20 +856,28 @@ function UserManagement() {
               height: '6px',
             },
             '&::-webkit-scrollbar-track': {
-              background: '#f1f1f1',
+              background: 'transparent',
             },
             '&::-webkit-scrollbar-thumb': {
-              background: customColor,
+              background: 'transparent',
               borderRadius: '3px',
             },
+            '&:hover::-webkit-scrollbar-thumb': {
+              background: 'rgba(123, 44, 191, 0.3)',
+            },
             '&::-webkit-scrollbar-thumb:hover': {
-              background: customHoverColor,
+              background: 'rgba(123, 44, 191, 0.5)',
+            },
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'transparent transparent',
+            '&:hover': {
+              scrollbarColor: 'rgba(123, 44, 191, 0.3) transparent',
             },
           }}
         >
           {/* Total Users Card */}
           <Card
-            minH="83px"
+            minH="13px"  // reduced height
             cursor="pointer"
             onClick={() => handleCardClick("all")}
             border={activeFilter === "all" ? "2px solid" : "1px solid"}
@@ -792,8 +886,8 @@ function UserManagement() {
             bg="white"
             position="relative"
             overflow="hidden"
-            w={{ base: "32%", md: "30%", lg: "25%" }}
-            minW="100px"
+            w={{ base: "28%", md: "22%", lg: "18%" }} // reduced width
+            minW="90px"
             flex="1"
             _before={{
               content: '""',
@@ -807,19 +901,19 @@ function UserManagement() {
               transition: "opacity 0.2s ease-in-out",
             }}
             _hover={{
-              transform: "translateY(-4px)",
-              shadow: "xl",
+              transform: "translateY(-3px)",
+              shadow: "lg",
               _before: {
                 opacity: 1,
               },
               borderColor: customColor,
             }}
           >
-            <CardBody position="relative" zIndex={1} p={{ base: 3, md: 4 }}>
+            <CardBody position="relative" zIndex={1} p={{ base: 2, md: 3 }}> {/* reduced padding */}
               <Flex flexDirection="row" align="center" justify="space-between" w="100%">
                 <Stat me="auto">
                   <StatLabel
-                    fontSize={{ base: "sm", md: "md" }}
+                    fontSize={{ base: "xs", md: "sm" }} // smaller text
                     color="gray.600"
                     fontWeight="bold"
                     pb="0px"
@@ -827,25 +921,22 @@ function UserManagement() {
                     Total Users
                   </StatLabel>
                   <Flex>
-                    <StatNumber fontSize={{ base: "lg", md: "xl" }} color={textColor}>
+                    <StatNumber fontSize={{ base: "md", md: "lg" }} color={textColor}>
                       {userData.length}
                     </StatNumber>
                   </Flex>
                 </Stat>
-                <IconBox 
-                  as="box" 
-                  h={{ base: "35px", md: "45px" }} 
-                  w={{ base: "35px", md: "45px" }} 
+                <IconBox
+                  as="box"
+                  h={{ base: "10px", md: "40px" }} // smaller icon box
+                  w={{ base: "10px", md: "40px" }}
                   bg={customColor}
                   transition="all 0.2s ease-in-out"
-                  _groupHover={{
-                    transform: "scale(1.1)",
-                  }}
                 >
                   <Icon
                     as={FaUsers}
-                    h={{ base: "18px", md: "24px" }}
-                    w={{ base: "18px", md: "24px" }}
+                    h={{ base: "16px", md: "20px" }} // smaller icon
+                    w={{ base: "16px", md: "20px" }}
                     color="white"
                   />
                 </IconBox>
@@ -1052,6 +1143,7 @@ function UserManagement() {
 
       {/* Fixed Table Container */}
       <Box 
+      mt={-8}
         flex="1" 
         display="flex" 
         flexDirection="column" 
@@ -1128,7 +1220,7 @@ function UserManagement() {
             </Flex>
           </CardHeader>
           
-          {/* Table Content Area - Scrollable Body with Fixed Header and Pagination */}
+          {/* Table Content Area - Scrollable Body with Fixed Header */}
           <CardBody 
             bg="white" 
             flex="1" 
@@ -1146,17 +1238,15 @@ function UserManagement() {
               <Box flex="1" display="flex" flexDirection="column" overflow="hidden">
                 {currentItems.length > 0 ? (
                   <>
-                    {/* Table Container - Dynamic height with scrollable content */}
+                    {/* Fixed Table Container - Exact height for 5 rows */}
                     <Box 
                       flex="1"
                       display="flex"
                       flexDirection="column"
-                      minH={{ base: "calc(100vh - 400px)", md: "calc(100vh - 450px)" }}
-                      maxH={{ base: "calc(100vh - 400px)", md: "calc(100vh - 450px)" }}
+                      height="400px" // Fixed height for exactly 5 rows
                       overflow="hidden"
-                      position="relative"
                     >
-                      {/* Scrollable Table Area - Scrollbars only show on hover */}
+                      {/* Scrollable Table Area */}
                       <Box
                         flex="1"
                         overflowY="hidden"
@@ -1171,14 +1261,22 @@ function UserManagement() {
                             height: '8px',
                           },
                           '&::-webkit-scrollbar-track': {
-                            background: '#f1f1f1',
+                            background: 'transparent',
                           },
                           '&::-webkit-scrollbar-thumb': {
-                            background: customColor,
+                            background: 'transparent',
                             borderRadius: '4px',
                           },
+                          '&:hover::-webkit-scrollbar-thumb': {
+                            background: 'rgba(123, 44, 191, 0.3)',
+                          },
                           '&::-webkit-scrollbar-thumb:hover': {
-                            background: customHoverColor,
+                            background: 'rgba(123, 44, 191, 0.5)',
+                          },
+                          scrollbarWidth: 'thin',
+                          scrollbarColor: 'transparent transparent',
+                          '&:hover': {
+                            scrollbarColor: 'rgba(123, 44, 191, 0.3) transparent',
                           },
                         }}
                       >
@@ -1187,11 +1285,11 @@ function UserManagement() {
                           <Thead>
                             <Tr>
                               <Th 
-                                color="gray.700" 
+                                color="gray.100" 
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
-                                bg={`${customColor}90`}
+                                bg={`${customColor}`}
                                 zIndex={10}
                                 fontWeight="bold"
                                 fontSize="sm"
@@ -1199,14 +1297,14 @@ function UserManagement() {
                                 borderBottom="2px solid"
                                 borderBottomColor={`${customColor}50`}
                               >
-                                User
+                                User 
                               </Th>
                               <Th 
-                                color="gray.700" 
+                                color="gray.100" 
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
-                                bg={`${customColor}90`}
+                                bg={`${customColor}`}
                                 zIndex={10}
                                 fontWeight="bold"
                                 fontSize="sm"
@@ -1217,11 +1315,11 @@ function UserManagement() {
                                 Contact
                               </Th>
                               <Th 
-                                color="gray.700" 
+                                color="gray.100" 
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
-                                bg={`${customColor}90`}
+                                bg={`${customColor}`}
                                 zIndex={10}
                                 fontWeight="bold"
                                 fontSize="sm"
@@ -1232,11 +1330,11 @@ function UserManagement() {
                                 Role
                               </Th>
                               <Th 
-                                color="gray.700" 
+                                color="gray.100" 
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
-                                bg={`${customColor}90`}
+                                bg={`${customColor}`}
                                 zIndex={10}
                                 fontWeight="bold"
                                 fontSize="sm"
@@ -1246,12 +1344,12 @@ function UserManagement() {
                               >
                                 Status
                               </Th>
-                              <Th 
-                                color="gray.700" 
+                              {/* <Th 
+                                color="gray.100" 
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
-                                bg={`${customColor}90`}
+                                bg={`${customColor}`}
                                 zIndex={10}
                                 fontWeight="bold"
                                 fontSize="sm"
@@ -1260,7 +1358,7 @@ function UserManagement() {
                                 borderBottomColor={`${customColor}50`}
                               >
                                 Actions
-                              </Th>
+                              </Th> */}
                             </Tr>
                           </Thead>
 
@@ -1345,7 +1443,7 @@ function UserManagement() {
                                       {user.status || "active"}
                                     </Badge>
                                   </Td>
-                                  <Td borderColor={`${customColor}20`}>
+                                  {/* <Td borderColor={`${customColor}20`}>
                                     <IconButton
                                       aria-label="Edit user"
                                       icon={<FaEdit />}
@@ -1357,55 +1455,36 @@ function UserManagement() {
                                       size="sm"
                                       onClick={() => handleEditUser(user)}
                                     />
-                                  </Td>
+                                  </Td> */}
                                 </Tr>
                               );
                             })}
                           </Tbody>
                         </Table>
                       </Box>
+                    </Box>
 
-                      {/* Fixed Pagination Bar - Always visible at bottom */}
+                    {/* Pagination Bar - Positioned at bottom right corner */}
+                    {currentItems.length > 0 && (
                       <Box 
-                        position="sticky"
-                        bottom="0"
-                        left="0"
-                        right="0"
                         flexShrink={0}
                         p="16px"
                         borderTop="1px solid"
                         borderColor={`${customColor}20`}
                         bg="white"
-                        boxShadow="0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06)"
-                        zIndex={10}
                       >
                         <Flex
-                          justify="space-between"
+                          justify="flex-end" // Align to the right
                           align="center"
-                          direction={{ base: "column", sm: "row" }}
                           gap={3}
                         >
-                          <Text 
-                            fontSize="sm" 
-                            color="gray.600" 
-                            alignSelf={{ base: "center", sm: "start" }}
-                            mb={{ base: 2, sm: 0 }}
-                            textAlign={{ base: "center", sm: "left" }}
-                          >
-                            Showing {indexOfFirstItem + 1} to{" "}
-                            {Math.min(indexOfLastItem, filteredData.length)} of{" "}
-                            {filteredData.length} entries
-                            {searchTerm && ` (filtered from ${userData.length} total)`}
+                          {/* Page Info */}
+                          <Text fontSize="sm" color="gray.600" display={{ base: "none", sm: "block" }}>
+                            Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length} users
                           </Text>
-                          
-                          {/* Centered Pagination Controls */}
-                          <Flex 
-                            align="center" 
-                            gap={3} 
-                            justify="center"
-                            flex="1"
-                            maxW="400px"
-                          >
+
+                          {/* Pagination Controls */}
+                          <Flex align="center" gap={2}>
                             <Button
                               size="sm"
                               onClick={handlePrevPage}
@@ -1423,21 +1502,19 @@ function UserManagement() {
                                 color: "gray.400",
                                 borderColor: "gray.300"
                               }}
-                              flexShrink={0}
                             >
                               <Text display={{ base: "none", sm: "block" }}>Previous</Text>
-                              <Text display={{ base: "block", sm: "none" }}>Prev</Text>
                             </Button>
 
-                            {/* Page Number Display - Centered with 1/X format */}
+                            {/* Page Number Display */}
                             <Flex 
                               align="center" 
                               gap={2}
                               bg={`${customColor}10`}
-                              px={4}
-                              py={2}
-                              borderRadius="8px"
-                              minW="120px"
+                              px={3}
+                              py={1}
+                              borderRadius="6px"
+                              minW="80px"
                               justify="center"
                             >
                               <Text fontSize="sm" fontWeight="bold" color={customColor}>
@@ -1468,17 +1545,13 @@ function UserManagement() {
                                 color: "gray.400",
                                 borderColor: "gray.300"
                               }}
-                              flexShrink={0}
                             >
-                              Next
+                              <Text display={{ base: "none", sm: "block" }}>Next</Text>
                             </Button>
                           </Flex>
-
-                          {/* Empty flex box to balance the layout */}
-                          <Box flex="1" display={{ base: "none", sm: "block" }} />
                         </Flex>
                       </Box>
-                    </Box>
+                    )}
                   </>
                 ) : (
                   <Flex 

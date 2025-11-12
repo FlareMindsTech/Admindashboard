@@ -31,26 +31,6 @@ import { getAllOrders } from '../utils/axiosInstance';
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
 
-// Tamil Nadu Districts Data with SVG paths
-const tamilNaduDistricts = {
-  "Chennai": { path: "M450,200 L460,210 L470,200 L460,190 Z", center: [455, 205] },
-  "Coimbatore": { path: "M350,250 L370,240 L380,260 L360,270 Z", center: [365, 255] },
-  "Madurai": { path: "M400,300 L420,290 L430,310 L410,320 Z", center: [415, 305] },
-  "Salem": { path: "M380,220 L400,210 L410,230 L390,240 Z", center: [395, 225] },
-  "Tiruchirappalli": { path: "M420,280 L440,270 L450,290 L430,300 Z", center: [435, 285] },
-  "Tiruppur": { path: "M360,240 L380,230 L390,250 L370,260 Z", center: [375, 245] },
-  "Erode": { path: "M370,260 L390,250 L400,270 L380,280 Z", center: [385, 265] },
-  "Vellore": { path: "M410,180 L430,170 L440,190 L420,200 Z", center: [425, 185] },
-  "Thoothukudi": { path: "M380,350 L400,340 L410,360 L390,370 Z", center: [395, 355] },
-  "Tirunelveli": { path: "M370,330 L390,320 L400,340 L380,350 Z", center: [385, 335] },
-  "Dindigul": { path: "M390,290 L410,280 L420,300 L400,310 Z", center: [405, 295] },
-  "Thanjavur": { path: "M440,300 L460,290 L470,310 L450,320 Z", center: [455, 305] },
-  "Kanchipuram": { path: "M430,200 L450,190 L460,210 L440,220 Z", center: [445, 205] },
-  "Cuddalore": { path: "M450,250 L470,240 L480,260 L460,270 Z", center: [465, 255] },
-  "Virudhunagar": { path: "M370,310 L390,300 L400,320 L380,330 Z", center: [385, 315] },
-  "Kanyakumari": { path: "M350,370 L370,360 L380,380 L360,390 Z", center: [365, 375] }
-};
-
 // Helper function to match city names to districts
 const matchDistrictFromCity = (cityName) => {
   if (!cityName) return 'Other Districts';
@@ -89,11 +69,8 @@ const matchDistrictFromCity = (cityName) => {
 };
 
 // Enhanced function to extract district from address
-// Enhanced function to extract district from address
 const extractDistrictFromAddress = (order) => {
-  // First, check if we have direct city/district fields in the order
   if (order.city) {
-    console.log(`🏙️ Found city in order data:`, order.city);
     const cityDistrict = matchDistrictFromCity(order.city);
     if (cityDistrict !== 'Other Districts') {
       return cityDistrict;
@@ -101,53 +78,41 @@ const extractDistrictFromAddress = (order) => {
   }
 
   if (order.district) {
-    console.log(`🗺️ Found district in order data:`, order.district);
     const directDistrict = matchDistrictFromCity(order.district);
     if (directDistrict !== 'Other Districts') {
       return directDistrict;
     }
   }
 
-  // Handle address field - it might be an object or string
   let addressText = '';
-  
-  // If address is an object, try to extract text from common fields
+ 
   if (order.address && typeof order.address === 'object') {
-    console.log("📍 Address is an object:", order.address);
     addressText = order.address.street || 
                   order.address.addressLine1 || 
                   order.address.fullAddress || 
                   order.address.city || 
                   JSON.stringify(order.address);
   } 
-  // If shippingAddress is an object
   else if (order.shippingAddress && typeof order.shippingAddress === 'object') {
-    console.log("📍 Shipping address is an object:", order.shippingAddress);
     addressText = order.shippingAddress.street || 
                   order.shippingAddress.addressLine1 || 
                   order.shippingAddress.fullAddress || 
                   order.shippingAddress.city || 
                   JSON.stringify(order.shippingAddress);
   }
-  // If address is a string
   else if (typeof order.address === 'string') {
     addressText = order.address;
   }
-  // If shippingAddress is a string
   else if (typeof order.shippingAddress === 'string') {
     addressText = order.shippingAddress;
   }
 
-  console.log("📍 Final address text to process:", addressText);
-
   if (!addressText) {
-    console.log("❌ No address information found");
     return 'Unknown';
   }
 
   const addressLower = addressText.toLowerCase();
   
-  // District mapping for Tamil Nadu
   const districtKeywords = {
     "Chennai": ["chennai", "madras"],
     "Coimbatore": ["coimbatore", "covai"],
@@ -169,19 +134,16 @@ const extractDistrictFromAddress = (order) => {
 
   for (const [district, keywords] of Object.entries(districtKeywords)) {
     if (keywords.some(keyword => addressLower.includes(keyword))) {
-      console.log(`✅ Found district in address: ${district}`);
       return district;
     }
   }
 
-  console.log("❓ Could not identify district from address");
   return 'Other Districts';
 };
-// Process orders data with enhanced district extraction
-// Process orders data with enhanced district extraction
+
+// Process orders data
 const processOrdersData = (orders) => {
   if (!orders || !Array.isArray(orders)) {
-    console.log("❌ No orders data provided");
     return {
       totalOrders: 0,
       districts: [],
@@ -191,15 +153,12 @@ const processOrdersData = (orders) => {
     };
   }
 
-  console.log(`🔄 Processing ${orders.length} orders...`);
-
   const districtOrders = {};
   let totalOrders = 0;
   let totalRevenue = 0;
   const recentOrders = [];
 
-  // Process each order
-  orders.forEach((order, index) => {
+  orders.forEach((order) => {
     if (order.status && (order.status.toLowerCase() === 'confirmed' || 
                          order.status.toLowerCase() === 'completed' || 
                          order.status.toLowerCase() === 'delivered' || 
@@ -207,9 +166,7 @@ const processOrdersData = (orders) => {
       totalOrders++;
       totalRevenue += order.totalAmount || order.price || 0;
       
-      // Use enhanced district extraction that checks multiple fields
       const district = extractDistrictFromAddress(order);
-      console.log(`📋 Order ${index + 1}: ${district}`);
       
       if (!districtOrders[district]) {
         districtOrders[district] = 0;
@@ -217,11 +174,9 @@ const processOrdersData = (orders) => {
       
       districtOrders[district]++;
 
-      // Handle address formatting for display
       let displayAddress = 'No address provided';
       if (order.address) {
         if (typeof order.address === 'object') {
-          // Format object address for display
           displayAddress = order.address.street || 
                           order.address.addressLine1 || 
                           order.address.fullAddress || 
@@ -242,7 +197,6 @@ const processOrdersData = (orders) => {
         }
       }
 
-      // Add to recent orders for display
       recentOrders.push({
         id: order.id || order._id || Math.random().toString(36).substr(2, 9),
         address: displayAddress,
@@ -253,9 +207,6 @@ const processOrdersData = (orders) => {
     }
   });
 
-  console.log("📊 Raw district orders:", districtOrders);
-
-  // Convert to array format and calculate percentages
   const districts = Object.keys(districtOrders).map(district => {
     const ordersCount = districtOrders[district];
     const percentage = totalOrders > 0 ? (ordersCount / totalOrders) * 100 : 0;
@@ -267,40 +218,372 @@ const processOrdersData = (orders) => {
     };
   });
 
-  // Filter out "Unknown" and "Other Districts", sort by order count
   const filteredDistricts = districts
     .filter(district => !['Unknown', 'Other Districts'].includes(district.name))
     .sort((a, b) => b.orders - a.orders);
 
   const topDistricts = filteredDistricts.slice(0, 4);
 
-  const result = {
+  return {
     totalOrders,
     totalRevenue,
     districts: filteredDistricts,
     topDistricts,
-    recentOrders: recentOrders.slice(0, 5) // Get only latest 5 orders
+    recentOrders: recentOrders.slice(0, 5)
+  };
+};
+
+// Modern 3D City Map Component
+const ModernCityMap = ({ districts, onDistrictHover, hoveredDistrict, loading }) => {
+  const getDistrictData = (districtName) => {
+    return districts.find(district => district.name === districtName) || { orders: 0, percentage: 0 };
   };
 
-  console.log("✅ Final dashboard data:", result);
-  return result;
+  // City zones with 3D building data
+  const cityZones = [
+    // Central Business District (High density)
+    { 
+      name: "Chennai", 
+      center: [460, 200],
+      buildings: [
+        { x: 450, y: 190, width: 25, height: 40, floors: 12, color: "#e2e8f0" },
+        { x: 480, y: 185, width: 20, height: 35, floors: 10, color: "#f1f5f9" },
+        { x: 465, y: 210, width: 30, height: 45, floors: 15, color: "#cbd5e1" },
+        { x: 440, y: 205, width: 22, height: 38, floors: 11, color: "#f1f5f9" },
+        { x: 475, y: 195, width: 18, height: 32, floors: 9, color: "#e2e8f0" }
+      ],
+      pins: [
+        { x: 455, y: 180, intensity: 1.0 },
+        { x: 470, y: 175, intensity: 0.8 },
+        { x: 465, y: 190, intensity: 0.9 },
+        { x: 450, y: 195, intensity: 0.7 }
+      ]
+    },
+    // Commercial Zone
+    { 
+      name: "Coimbatore", 
+      center: [350, 250],
+      buildings: [
+        { x: 340, y: 240, width: 22, height: 35, floors: 8, color: "#f1f5f9" },
+        { x: 365, y: 235, width: 28, height: 42, floors: 13, color: "#e2e8f0" },
+        { x: 355, y: 255, width: 20, height: 30, floors: 7, color: "#f1f5f9" },
+        { x: 370, y: 245, width: 25, height: 38, floors: 11, color: "#cbd5e1" }
+      ],
+      pins: [
+        { x: 345, y: 230, intensity: 0.6 },
+        { x: 360, y: 240, intensity: 0.8 },
+        { x: 355, y: 250, intensity: 0.5 }
+      ]
+    },
+    // Urban Center
+    { 
+      name: "Madurai", 
+      center: [400, 300],
+      buildings: [
+        { x: 390, y: 290, width: 26, height: 40, floors: 12, color: "#cbd5e1" },
+        { x: 415, y: 285, width: 24, height: 36, floors: 10, color: "#f1f5f9" },
+        { x: 405, y: 305, width: 30, height: 44, floors: 14, color: "#e2e8f0" },
+        { x: 395, y: 310, width: 20, height: 32, floors: 8, color: "#f1f5f9" }
+      ],
+      pins: [
+        { x: 395, y: 280, intensity: 0.7 },
+        { x: 410, y: 290, intensity: 0.9 },
+        { x: 400, y: 300, intensity: 0.6 }
+      ]
+    },
+    // Industrial Area
+    { 
+      name: "Salem", 
+      center: [380, 220],
+      buildings: [
+        { x: 370, y: 210, width: 32, height: 28, floors: 6, color: "#e2e8f0" },
+        { x: 390, y: 215, width: 28, height: 25, floors: 5, color: "#f1f5f9" },
+        { x: 375, y: 225, width: 35, height: 30, floors: 7, color: "#cbd5e1" }
+      ],
+      pins: [
+        { x: 375, y: 210, intensity: 0.4 },
+        { x: 385, y: 220, intensity: 0.5 }
+      ]
+    },
+    // Residential Zone
+    { 
+      name: "Tiruchirappalli", 
+      center: [420, 280],
+      buildings: [
+        { x: 410, y: 270, width: 18, height: 25, floors: 4, color: "#f1f5f9" },
+        { x: 430, y: 265, width: 20, height: 28, floors: 5, color: "#e2e8f0" },
+        { x: 415, y: 285, width: 22, height: 30, floors: 6, color: "#f1f5f9" },
+        { x: 425, y: 275, width: 16, height: 22, floors: 3, color: "#e2e8f0" }
+      ],
+      pins: [
+        { x: 415, y: 265, intensity: 0.5 },
+        { x: 425, y: 275, intensity: 0.7 },
+        { x: 420, y: 285, intensity: 0.4 }
+      ]
+    }
+  ];
+
+  if (loading) {
+    return (
+      <Flex justify="center" align="center" height="100%" bg="gray.50" borderRadius="lg">
+        <VStack spacing={3}>
+          <Spinner size="lg" color="#DC2626" />
+          <Text color="gray.500" fontSize="sm">Loading city data...</Text>
+        </VStack>
+      </Flex>
+    );
+  }
+
+  return (
+    <Box position="relative" width="100%" height="100%">
+      <svg
+        viewBox="0 0 800 500"
+        width="100%"
+        height="100%"
+        style={{ maxHeight: '300px' }}
+      >
+        <defs>
+          {/* Gradients */}
+          <linearGradient id="cityBg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#f8fafc" />
+            <stop offset="100%" stopColor="#f1f5f9" />
+          </linearGradient>
+          
+          <linearGradient id="buildingShadow" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#000000" stopOpacity="0.1" />
+            <stop offset="100%" stopColor="#000000" stopOpacity="0.05" />
+          </linearGradient>
+
+          {/* Glow effects */}
+          <filter id="pinGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+            <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 0.2 0 0 0  0 0 0.2 0 0  0 0 0 0.8 -0.3" result="glow"/>
+          </filter>
+
+          <filter id="buildingShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="2" dy="4" stdDeviation="3" floodColor="#000000" floodOpacity="0.15"/>
+          </filter>
+        </defs>
+
+        {/* Background */}
+        <rect width="100%" height="100%" fill="url(#cityBg)" />
+
+        {/* Main Roads */}
+        <g opacity="0.6">
+          {/* Horizontal main roads */}
+          <path d="M50,150 L750,150" stroke="#cbd5e1" strokeWidth="8" fill="none" />
+          <path d="M100,250 L700,250" stroke="#cbd5e1" strokeWidth="6" fill="none" />
+          <path d="M150,350 L650,350" stroke="#cbd5e1" strokeWidth="8" fill="none" />
+          
+          {/* Vertical main roads */}
+          <path d="M200,100 L200,400" stroke="#cbd5e1" strokeWidth="6" fill="none" />
+          <path d="M400,50 L400,450" stroke="#cbd5e1" strokeWidth="10" fill="none" />
+          <path d="M600,100 L600,400" stroke="#cbd5e1" strokeWidth="6" fill="none" />
+          
+          {/* Secondary roads */}
+          <path d="M300,180 L500,180" stroke="#e2e8f0" strokeWidth="4" fill="none" strokeDasharray="2,4" />
+          <path d="M300,320 L500,320" stroke="#e2e8f0" strokeWidth="4" fill="none" strokeDasharray="2,4" />
+          <path d="M280,200 L280,300" stroke="#e2e8f0" strokeWidth="3" fill="none" strokeDasharray="1,3" />
+          <path d="M520,200 L520,300" stroke="#e2e8f0" strokeWidth="3" fill="none" strokeDasharray="1,3" />
+        </g>
+
+        {/* Draw 3D Buildings */}
+        {cityZones.map((zone) => (
+          <g key={zone.name} opacity={hoveredDistrict === zone.name ? 1 : 0.8}>
+            {zone.buildings.map((building, index) => (
+              <g key={index}>
+                {/* Building shadow */}
+                <rect
+                  x={building.x + 3}
+                  y={building.y + 3}
+                  width={building.width}
+                  height={building.height}
+                  fill="url(#buildingShadow)"
+                  opacity="0.3"
+                />
+                
+                {/* Building main structure */}
+                <rect
+                  x={building.x}
+                  y={building.y}
+                  width={building.width}
+                  height={building.height}
+                  fill={building.color}
+                  stroke="#94a3b8"
+                  strokeWidth="0.5"
+                  filter="url(#buildingShadow)"
+                />
+                
+                {/* Building windows */}
+                {Array.from({ length: building.floors }).map((_, floor) => (
+                  <g key={floor}>
+                    {Array.from({ length: Math.floor(building.width / 8) }).map((_, windowIndex) => (
+                      <rect
+                        key={windowIndex}
+                        x={building.x + 4 + windowIndex * 8}
+                        y={building.y + 4 + floor * 6}
+                        width="4"
+                        height="3"
+                        fill="#cbd5e1"
+                        opacity="0.6"
+                      />
+                    ))}
+                  </g>
+                ))}
+              </g>
+            ))}
+          </g>
+        ))}
+
+        {/* Red Map Pins */}
+        {cityZones.map((zone) => {
+          const districtData = getDistrictData(zone.name);
+          const intensity = districtData.percentage > 0 ? Math.min(districtData.percentage / 20, 1) : 0.3;
+          
+          return zone.pins.map((pin, pinIndex) => (
+            <g key={`${zone.name}-${pinIndex}`} opacity={intensity}>
+              {/* Pin glow */}
+              <circle
+                cx={pin.x}
+                cy={pin.y}
+                r="12"
+                fill="#DC2626"
+                opacity="0.2"
+                filter="url(#pinGlow)"
+              />
+              
+              {/* Pin outer circle */}
+              <circle
+                cx={pin.x}
+                cy={pin.y}
+                r="8"
+                fill="#DC2626"
+                opacity="0.4"
+              />
+              
+              {/* Pin main */}
+              <circle
+                cx={pin.x}
+                cy={pin.y}
+                r="5"
+                fill="#DC2626"
+                stroke="#FFFFFF"
+                strokeWidth="2"
+                onMouseEnter={() => onDistrictHover(zone.name)}
+                onMouseLeave={() => onDistrictHover(null)}
+                style={{ cursor: 'pointer' }}
+              />
+              
+              {/* Pin highlight */}
+              <circle
+                cx={pin.x - 1}
+                cy={pin.y - 1}
+                r="1.5"
+                fill="#FFFFFF"
+                opacity="0.8"
+              />
+            </g>
+          ));
+        })}
+
+        {/* Data visualization overlay */}
+        <g opacity="0.1">
+          {/* Data flow lines */}
+          <path d="M460,200 L400,300" stroke="#DC2626" strokeWidth="2" strokeDasharray="3,3" />
+          <path d="M460,200 L350,250" stroke="#DC2626" strokeWidth="2" strokeDasharray="3,3" />
+          <path d="M400,300 L420,280" stroke="#DC2626" strokeWidth="2" strokeDasharray="3,3" />
+          <path d="M350,250 L380,220" stroke="#DC2626" strokeWidth="2" strokeDasharray="3,3" />
+        </g>
+      </svg>
+
+      {/* Info Panel */}
+      <Box
+        position="absolute"
+        top="20px"
+        right="20px"
+        bg="white"
+        p={4}
+        borderRadius="xl"
+        boxShadow="xl"
+        border="1px solid"
+        borderColor="gray.200"
+        minW="200px"
+        backdropFilter="blur(10px)"
+      >
+        <VStack spacing={3} align="stretch">
+          <Text fontSize="lg" fontWeight="bold" color="gray.800">
+            Order Analytics
+          </Text>
+          
+          <Box>
+            <Text fontSize="sm" color="gray.600" mb={1}>Total Orders</Text>
+            <Text fontSize="2xl" fontWeight="bold" color="#DC2626">
+              {districts.reduce((sum, district) => sum + district.orders, 0).toLocaleString()}
+            </Text>
+          </Box>
+
+          <Box>
+            <Text fontSize="sm" color="gray.600" mb={2}>Top Districts</Text>
+            <VStack spacing={2} align="stretch">
+              {districts.slice(0, 3).map((district, index) => (
+                <Flex key={district.name} justify="space-between" align="center">
+                  <Text fontSize="sm" color="gray.700" noOfLines={1}>
+                    {district.name}
+                  </Text>
+                  <Badge colorScheme="red" fontSize="xs">
+                    {district.orders}
+                  </Badge>
+                </Flex>
+              ))}
+            </VStack>
+          </Box>
+        </VStack>
+      </Box>
+
+      {/* Hover Tooltip */}
+      {hoveredDistrict && (
+        <Box
+          position="absolute"
+          bottom="20px"
+          left="20px"
+          bg="white"
+          p={3}
+          borderRadius="lg"
+          boxShadow="lg"
+          border="1px solid"
+          borderColor="gray.200"
+          minW="140px"
+          backdropFilter="blur(10px)"
+        >
+          <Text fontSize="sm" fontWeight="bold" color="gray.800" mb={1}>
+            {hoveredDistrict}
+          </Text>
+          <HStack spacing={2} mb={1}>
+            <Box w="6px" h="6px" bg="#DC2626" borderRadius="full" />
+            <Text fontSize="xs" color="gray.600">
+              {getDistrictData(hoveredDistrict)?.orders || 0} orders
+            </Text>
+          </HStack>
+          <Text fontSize="xs" color="gray.500">
+            {getDistrictData(hoveredDistrict)?.percentage || 0}% of total
+          </Text>
+        </Box>
+      )}
+    </Box>
+  );
 };
+
 // Recent Orders Component
 const RecentOrders = ({ orders, loading }) => {
-  const accent = '#FF7A59';
+  const accent = '#DC2626';
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'delivered':
-        return 'green';
-      case 'completed':
-        return 'blue';
-      case 'confirmed':
-        return 'orange';
-      case 'pending':
-        return 'yellow';
-      default:
-        return 'gray';
+      case 'delivered': return 'green';
+      case 'completed': return 'blue';
+      case 'confirmed': return 'orange';
+      case 'pending': return 'yellow';
+      default: return 'gray';
     }
   };
 
@@ -326,7 +609,20 @@ const RecentOrders = ({ orders, loading }) => {
   }
 
   return (
-    <VStack spacing={3} align="stretch" maxH="200px" overflowY="auto">
+    <VStack spacing={3} align="stretch" maxH="200px" overflowY="auto" css={{
+      '&::-webkit-scrollbar': {
+        width: '4px',
+      },
+      '&::-webkit-scrollbar-track': {
+        width: '6px',
+        background: '#f1f1f1',
+        borderRadius: '24px',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        background: '#cbd5e1',
+        borderRadius: '24px',
+      },
+    }}>
       {orders.map((order) => (
         <Box 
           key={order.id}
@@ -356,11 +652,7 @@ const RecentOrders = ({ orders, loading }) => {
           </Text>
           
           <Flex justify="space-between" align="center">
-            <Badge 
-              variant="subtle" 
-              colorScheme="gray" 
-              fontSize="xs"
-            >
+            <Badge variant="subtle" colorScheme="gray" fontSize="xs">
               {order.district}
             </Badge>
             <Text fontSize="xs" color="gray.500">
@@ -373,196 +665,16 @@ const RecentOrders = ({ orders, loading }) => {
   );
 };
 
-// Tamil Nadu Map Component
-const TamilNaduMap = ({ districts, onDistrictHover, hoveredDistrict, loading }) => {
-  const getDistrictColor = (percentage) => {
-    if (percentage >= 20) return '#FF7A59';
-    if (percentage >= 10) return '#FF9D7A';
-    if (percentage >= 5) return '#FFC0A6';
-    if (percentage >= 2) return '#FFE2D3';
-    return '#F5F5F5';
-  };
-
-  const getDistrictOpacity = (districtName) => {
-    return hoveredDistrict === districtName ? 1 : 0.8;
-  };
-
-  const getDistrictData = (districtName) => {
-    return districts.find(district => district.name === districtName) || { orders: 0, percentage: 0 };
-  };
-
-  if (loading) {
-    return (
-      <Flex justify="center" align="center" height="100%" bg="gray.50" borderRadius="lg">
-        <VStack spacing={3}>
-          <Spinner size="lg" color="#FF7A59" />
-          <Text color="gray.500" fontSize="sm">Loading district data...</Text>
-        </VStack>
-      </Flex>
-    );
-  }
-
-  return (
-    <Box position="relative" width="100%" height="100%">
-      <svg
-        viewBox="0 0 800 600"
-        width="100%"
-        height="100%"
-        style={{ maxHeight: '240px' }}
-      >
-        {/* Background */}
-        <rect width="100%" height="100%" fill="#fef3f2" />
-        
-        {/* Draw each district */}
-        {Object.entries(tamilNaduDistricts).map(([districtName, districtData]) => {
-          const districtInfo = getDistrictData(districtName);
-          
-          return (
-            <Tooltip 
-              key={districtName}
-              label={
-                <Box textAlign="center">
-                  <Text fontWeight="bold">{districtName}</Text>
-                  <Text>Orders: {districtInfo.orders}</Text>
-                  <Text>Percentage: {districtInfo.percentage}%</Text>
-                </Box>
-              } 
-              hasArrow 
-              bg="white" 
-              color="gray.800"
-              borderRadius="md"
-              boxShadow="lg"
-            >
-              <path
-                d={districtData.path}
-                fill={getDistrictColor(districtInfo.percentage)}
-                stroke="#FFFFFF"
-                strokeWidth="2"
-                opacity={getDistrictOpacity(districtName)}
-                onMouseEnter={() => onDistrictHover(districtName)}
-                onMouseLeave={() => onDistrictHover(null)}
-                style={{ 
-                  cursor: 'pointer', 
-                  transition: 'all 0.3s ease',
-                  transform: hoveredDistrict === districtName ? 'scale(1.05)' : 'scale(1)',
-                  transformOrigin: 'center'
-                }}
-              />
-            </Tooltip>
-          );
-        })}
-
-        {/* Legend */}
-        <g transform="translate(600, 30)">
-          <text x="0" y="0" fontSize="12" fontWeight="bold" fill="#4A5568">
-            Order Density
-          </text>
-          <rect x="0" y="15" width="15" height="15" fill="#FF7A59" />
-          <text x="20" y="27" fontSize="10" fill="#4A5568">High (20%+)</text>
-          <rect x="0" y="35" width="15" height="15" fill="#FF9D7A" />
-          <text x="20" y="47" fontSize="10" fill="#4A5568">Medium (10-20%)</text>
-          <rect x="0" y="55" width="15" height="15" fill="#FFC0A6" />
-          <text x="20" y="67" fontSize="10" fill="#4A5568">Low (5-10%)</text>
-          <rect x="0" y="75" width="15" height="15" fill="#FFE2D3" />
-          <text x="20" y="87" fontSize="10" fill="#4A5568">Very Low (2-5%)</text>
-        </g>
-
-        {/* Title */}
-        <text x="400" y="50" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#2D3748">
-          Tamil Nadu - Order Distribution
-        </text>
-      </svg>
-    </Box>
-  );
-};
-
-// District Summary Component
-const DistrictSummary = ({ districts, totalOrders, loading }) => {
-  const accent = '#FF7A59';
-
-  if (loading) {
-    return (
-      <Flex justify="center" align="center" height="100%">
-        <Spinner size="sm" color={accent} />
-      </Flex>
-    );
-  }
-
-  if (districts.length === 0) {
-    return (
-      <Text color="gray.500" textAlign="center" fontSize="sm">
-        No district data available
-      </Text>
-    );
-  }
-
-  return (
-    <SimpleGrid columns={2} spacing={4}>
-      {districts.map((district, index) => (
-        <Box 
-          key={district.name} 
-          textAlign="center" 
-          p={3} 
-          borderRadius="lg" 
-          bg="white"
-          boxShadow="sm"
-          border="1px solid"
-          borderColor="gray.100"
-        >
-          <Text fontSize="lg" fontWeight="bold" color={accent}>
-            {district.orders}
-          </Text>
-          <Text fontSize="xs" color="gray.600" noOfLines={1} fontWeight="medium">
-            {district.name}
-          </Text>
-          <Text fontSize="xs" color="gray.500">
-            {district.percentage}%
-          </Text>
-          <Progress
-            value={district.percentage}
-            max={districts[0]?.percentage || 100}
-            size="xs"
-            colorScheme="orange"
-            mt={2}
-            borderRadius="full"
-          />
-        </Box>
-      ))}
-    </SimpleGrid>
-  );
-};
-
 // ApexCharts Configuration
 const donutChartOptions = {
-  chart: {
-    type: 'donut',
-  },
+  chart: { type: 'donut' },
   labels: ['Electronics', 'Fashion', 'Home', 'Beauty'],
-  colors: ['#FF7A59', '#FFD166', '#52C7B8', '#8AB4FF'],
-  legend: {
-    show: false,
-  },
-  dataLabels: {
-    enabled: false,
-  },
+  colors: ['#DC2626', '#EA580C', '#D97706', '#CA8A04'],
+  legend: { show: false },
+  dataLabels: { enabled: false },
   plotOptions: {
-    pie: {
-      donut: {
-        size: '65%',
-      }
-    }
-  },
-  responsive: [{
-    breakpoint: 480,
-    options: {
-      chart: {
-        width: 200
-      },
-      legend: {
-        position: 'bottom'
-      }
-    }
-  }]
+    pie: { donut: { size: '65%' } }
+  }
 };
 
 const donutChartSeries = [52, 30, 22, 16];
@@ -571,73 +683,38 @@ const lineChartOptions = {
   chart: {
     height: 350,
     type: 'line',
-    zoom: {
-      enabled: false
-    },
-    toolbar: {
-      show: false
-    }
+    zoom: { enabled: false },
+    toolbar: { show: false }
   },
-  colors: ['#FF7A59', '#8AB4FF', '#52C7B8'],
-  stroke: {
-    width: 3,
-    curve: 'smooth'
-  },
-  markers: {
-    size: 2,
-  },
+  colors: ['#DC2626', '#EA580C', '#D97706'],
+  stroke: { width: 3, curve: 'smooth' },
+  markers: { size: 2 },
   xaxis: {
     categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-    axisBorder: {
-      show: false
-    },
-    axisTicks: {
-      show: false
-    }
+    axisBorder: { show: false },
+    axisTicks: { show: false }
   },
   yaxis: {
     min: 0,
-    labels: {
-      formatter: function (val) {
-        return val.toFixed(0);
-      }
-    }
+    labels: { formatter: (val) => val.toFixed(0) }
   },
-  grid: {
-    borderColor: '#f1f1f1',
-  },
+  grid: { borderColor: '#f1f1f1' },
   legend: {
     position: 'bottom',
-    horizontalAlign: 'center',
-    itemMargin: {
-      horizontal: 10,
-      vertical: 5
-    },
-    markers: {
-      radius: 12
-    }
+    horizontalAlign: 'center'
   }
 };
 
 const lineChartSeries = [
-  {
-    name: "Women's Kurta",
-    data: [12, 18, 25, 35, 40, 55, 60, 75, 80, 95, 110, 125]
-  },
-  {
-    name: 'Fashion',
-    data: [8, 12, 16, 22, 28, 32, 38, 42, 48, 52, 60, 72]
-  },
-  {
-    name: 'Home Kurta',
-    data: [6, 9, 12, 18, 21, 26, 30, 34, 39, 44, 50, 58]
-  }
+  { name: "Women's Kurta", data: [12, 18, 25, 35, 40, 55, 60, 75, 80, 95, 110, 125] },
+  { name: 'Fashion', data: [8, 12, 16, 22, 28, 32, 38, 42, 48, 52, 60, 72] },
+  { name: 'Home Kurta', data: [6, 9, 12, 18, 21, 26, 30, 34, 39, 44, 50, 58] }
 ];
 
 export default function EcommerceDashboard() {
-  const bg = useColorModeValue('linear-gradient(180deg,#f6fbfb 0%,#eef8f8 100%)', 'gray.800');
+  const bg = useColorModeValue('linear-gradient(180deg,#fafafa 0%,#f5f5f5 100%)', 'gray.800');
   const cardBg = useColorModeValue('white', 'gray.700');
-  const accent = '#FF7A59';
+  const accent = '#DC2626';
 
   const [hoveredDistrict, setHoveredDistrict] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -649,62 +726,27 @@ export default function EcommerceDashboard() {
     recentOrders: []
   });
 
-  // Fetch and process orders data from backend
-  // Fetch and process orders data from backend
-const fetchOrdersData = async () => {
-  try {
-    setLoading(true);
-    console.log("📦 Fetching orders data from backend...");
-
-    // 1️⃣ Fetch orders from API
-    const response = await getAllOrders();
-
-    // 2️⃣ Handle multiple possible response formats
-    const orders =
-      response.data?.orders ||
-      response.data ||
-      response?.orders ||
-      response ||
-      [];
-
-    console.log(`📊 Processing ${orders.length} orders from backend...`);
-
-    // 3️⃣ Log the structure of first few orders to understand data format
-    if (orders.length > 0) {
-      console.log("🔍 Sample order structure:", orders.slice(0, 3));
-      
-      // Specifically check address structure
-      orders.slice(0, 3).forEach((order, index) => {
-        console.log(`📍 Order ${index} address field:`, order.address);
-        console.log(`📍 Order ${index} address type:`, typeof order.address);
-        console.log(`📍 Order ${index} shippingAddress:`, order.shippingAddress);
-        console.log(`📍 Order ${index} shippingAddress type:`, typeof order.shippingAddress);
+  const fetchOrdersData = async () => {
+    try {
+      setLoading(true);
+      const response = await getAllOrders();
+      const orders = response.data?.orders || response.data || response?.orders || response || [];
+      const processedData = processOrdersData(orders);
+      setOrderData(processedData);
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+      setOrderData({
+        totalOrders: 0,
+        totalRevenue: 0,
+        districts: [],
+        topDistricts: [],
+        recentOrders: [],
       });
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // 4️⃣ Process the orders data for dashboard visualization
-    const processedData = processOrdersData(orders);
-    console.log('🗺️ Processed district data from backend:', processedData);
-
-    // 5️⃣ Update React state
-    setOrderData(processedData);
-    
-  } catch (err) {
-    console.error("❌ Error fetching orders from backend:", err);
-
-    // fallback data
-    setOrderData({
-      totalOrders: 0,
-      totalRevenue: 0,
-      districts: [],
-      topDistricts: [],
-      recentOrders: [],
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-  // Manual refresh function
   const handleRefreshData = () => {
     fetchOrdersData();
   };
@@ -718,28 +760,36 @@ const fetchOrdersData = async () => {
   };
 
   return (
-    <Box minH="100vh" p={8} bgGradient={bg}>
-      <Flex justify="space-between" align="center" mb={6}>
-        <Box>
-          <Heading size="lg">Welcome back!</Heading>
-          <Text color="gray.600">Your E-commerce Overview</Text>
-        </Box>
-
-        <HStack spacing={4}>
-          <Input placeholder="Search orders, addresses..." maxW="380px" bg={cardBg} boxShadow="sm" />
-          <IconButton 
-            aria-label="Refresh data" 
-            icon={<FiRefreshCw />} 
-            onClick={handleRefreshData}
-            isLoading={loading}
-          />
-          <IconButton aria-label="notifications" icon={<FiBell />} />
-          <Avatar name="Admin" size="sm" src="https://i.pravatar.cc/150?img=3" />
-        </HStack>
-      </Flex>
-
+    <Box 
+      minH="100vh" 
+      mt={9}
+      p={3}
+      overflow="auto"
+      css={{
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          width: '10px',
+          background: '#f1f1f1',
+          borderRadius: '24px',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: '#cbd5e1',
+          borderRadius: '24px',
+          transition: 'background 0.3s ease',
+        },
+        '&::-webkit-scrollbar-thumb:hover': {
+          background: '#94a3b8',
+        },
+        // For Firefox
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#cbd5e1 transparent',
+      }}
+    >
+      {/* Stats Cards Row */}
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={6}>
-        <Card bg={cardBg} boxShadow="sm" borderRadius="xl">
+        <Card bg={cardBg} boxShadow="lg" borderRadius="xl">
           <CardBody>
             <HStack justify="space-between">
               <Box>
@@ -754,7 +804,7 @@ const fetchOrdersData = async () => {
                 </Stat>
               </Box>
               <Box>
-                <Flex align="center" justify="center" w={12} h={12} borderRadius="xl" bg="#FFF5F2">
+                <Flex align="center" justify="center" w={12} h={12} borderRadius="xl" bg="#FEE2E2">
                   <FiShoppingCart size={20} color={accent} />
                 </Flex>
               </Box>
@@ -762,7 +812,7 @@ const fetchOrdersData = async () => {
           </CardBody>
         </Card>
 
-        <Card bg={cardBg} boxShadow="sm" borderRadius="xl">
+        <Card bg={cardBg} boxShadow="lg" borderRadius="xl">
           <CardBody>
             <HStack justify="space-between">
               <Box>
@@ -777,15 +827,15 @@ const fetchOrdersData = async () => {
                 </Stat>
               </Box>
               <Box>
-                <Flex align="center" justify="center" w={12} h={12} borderRadius="xl" bg="#F0F9FF">
-                  <FiDollarSign size={20} color="#2B6CB0" />
+                <Flex align="center" justify="center" w={12} h={12} borderRadius="xl" bg="#FEF3C7">
+                  <FiDollarSign size={20} color="#D97706" />
                 </Flex>
               </Box>
             </HStack>
           </CardBody>
         </Card>
 
-        <Card bg={cardBg} boxShadow="sm" borderRadius="xl">
+        <Card bg={cardBg} boxShadow="lg" borderRadius="xl">
           <CardBody>
             <HStack justify="space-between">
               <Box>
@@ -800,8 +850,8 @@ const fetchOrdersData = async () => {
                 </Stat>
               </Box>
               <Box>
-                <Flex align="center" justify="center" w={12} h={12} borderRadius="xl" bg="#F6FFFA">
-                  <FiMapPin size={20} color="#38A169" />
+                <Flex align="center" justify="center" w={12} h={12} borderRadius="xl" bg="#DCFCE7">
+                  <FiMapPin size={20} color="#16A34A" />
                 </Flex>
               </Box>
             </HStack>
@@ -809,133 +859,105 @@ const fetchOrdersData = async () => {
         </Card>
       </SimpleGrid>
 
-      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} minH="320px">
-        {/* Left: Donut Chart */}
-        <Card bg={cardBg} boxShadow="sm" borderRadius="xl" gridColumn={{ md: 'span 1' }}>
-          <CardBody>
-            <Heading size="sm" mb={4} color="gray.700">Sales by Category</Heading>
-            <Flex align="center" justify="space-between" height="200px">
-              <Box w="60%" height="100%">
-                <ReactApexChart
-                  options={donutChartOptions}
-                  series={donutChartSeries}
-                  type="donut"
-                  height="100%"
+      {/* Main Content Grid - Made scrollable */}
+      <Box 
+        overflowY="auto"
+        maxH="calc(100vh - 200px)"
+        css={{
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: '#f1f1f1',
+            borderRadius: '24px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: '#cbd5e1',
+            borderRadius: '24px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            background: '#94a3b8',
+          },
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#cbd5e1 transparent',
+        }}
+      >
+        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} minH="600px">
+          {/* Left: Donut Chart */}
+          <Card bg={cardBg} boxShadow="lg" borderRadius="xl" gridColumn={{ md: 'span 1' }}>
+            <CardBody>
+              <Heading size="sm" mb={4} color="gray.700">Sales by Category</Heading>
+              <Flex align="center" justify="space-between" height="200px">
+                <Box w="60%" height="100%">
+                  <ReactApexChart options={donutChartOptions} series={donutChartSeries} type="donut" height="100%" />
+                </Box>
+                <VStack spacing={3} align="flex-start">
+                  <Text fontWeight="bold" fontSize="xl" color="gray.800">₹1,20,000</Text>
+                  <Text fontSize="sm" color="gray.500">Total Sales</Text>
+                  {donutChartOptions.labels.map((label, i) => (
+                    <HStack key={label} spacing={3}>
+                      <Box w={3} h={3} bg={donutChartOptions.colors[i]} borderRadius="full" />
+                      <Text fontSize="sm" color="gray.700">
+                        {label} <Text as="span" color="gray.500">₹{donutChartSeries[i]}K</Text>
+                      </Text>
+                    </HStack>
+                  ))}
+                </VStack>
+              </Flex>
+            </CardBody>
+          </Card>
+
+          {/* Center: Modern 3D City Map */}
+          <Card bg={cardBg} boxShadow="lg" borderRadius="xl" gridColumn={{ md: 'span 2' }}>
+            <CardBody>
+              <Flex justify="space-between" align="center" mb={4}>
+                <Heading size="sm" color="gray.700">Order Distribution Map</Heading>
+                <Badge colorScheme="red" fontSize="sm">
+                  Total Orders: {loading ? '...' : orderData.totalOrders}
+                </Badge>
+              </Flex>
+              
+              <Box 
+                h="300px" 
+                borderRadius="lg" 
+                bg="white"
+                border="1px solid"
+                borderColor="gray.200"
+                overflow="hidden"
+                position="relative"
+              >
+                <ModernCityMap 
+                  districts={orderData.districts}
+                  onDistrictHover={handleDistrictHover}
+                  hoveredDistrict={hoveredDistrict}
+                  loading={loading}
                 />
               </Box>
-              <VStack spacing={3} align="flex-start">
-                <Text fontWeight="bold" fontSize="xl" color="gray.800">
-                  ₹1,20,000
-                </Text>
-                <Text fontSize="sm" color="gray.500">Total Sales</Text>
-                {donutChartOptions.labels.map((label, i) => (
-                  <HStack key={label} spacing={3}>
-                    <Box w={3} h={3} bg={donutChartOptions.colors[i]} borderRadius="full" />
-                    <Text fontSize="sm" color="gray.700">
-                      {label} <Text as="span" color="gray.500">₹{donutChartSeries[i]}K</Text>
-                    </Text>
-                  </HStack>
-                ))}
-              </VStack>
-            </Flex>
-          </CardBody>
-        </Card>
+            </CardBody>
+          </Card>
 
-        {/* Center: Tamil Nadu District Map */}
-        <Card bg={cardBg} boxShadow="sm" borderRadius="xl" gridColumn={{ md: 'span 2' }}>
-          <CardBody>
-            <Flex justify="space-between" align="center" mb={4}>
-              <Heading size="sm" color="gray.700">Order Distribution Map</Heading>
-              <Badge colorScheme="orange" fontSize="sm">
-                Total Orders: {loading ? '...' : orderData.totalOrders}
-              </Badge>
-            </Flex>
-            
-            <Box 
-              h="240px" 
-              borderRadius="lg" 
-              bgGradient="linear(to-r, #fef3f2, #f3fff9)" 
-              border="1px solid"
-              borderColor="gray.200"
-              overflow="hidden"
-              position="relative"
-            >
-              <TamilNaduMap 
-                districts={orderData.districts}
-                onDistrictHover={handleDistrictHover}
-                hoveredDistrict={hoveredDistrict}
-                loading={loading}
-              />
-              
-              {/* Hover Info Display */}
-              {hoveredDistrict && (
-                <Box
-                  position="absolute"
-                  top="10px"
-                  left="10px"
-                  bg="white"
-                  p={3}
-                  borderRadius="md"
-                  boxShadow="lg"
-                  border="1px solid"
-                  borderColor="gray.200"
-                >
-                  <Text fontSize="sm" fontWeight="bold" color="gray.800">
-                    {hoveredDistrict}
-                  </Text>
-                  <Text fontSize="xs" color="gray.600">
-                    {orderData.districts.find(d => d.name === hoveredDistrict)?.orders || 0} orders
-                  </Text>
-                  <Text fontSize="xs" color="gray.500">
-                    {orderData.districts.find(d => d.name === hoveredDistrict)?.percentage || 0}%
-                  </Text>
-                </Box>
-              )}
-            </Box>
+          {/* Bottom Left: Recent Orders */}
+          <Card bg={cardBg} boxShadow="lg" borderRadius="xl" gridColumn={{ md: 'span 1' }}>
+            <CardBody>
+              <Flex align="center" mb={4}>
+                <FiPackage color={accent} style={{ marginRight: '8px' }} />
+                <Heading size="sm" color="gray.700">Recent Orders</Heading>
+              </Flex>
+              <RecentOrders orders={orderData.recentOrders} loading={loading} />
+            </CardBody>
+          </Card>
 
-            {/* District Summary Grid */}
-            <Box mt={4}>
-              <Text fontSize="sm" fontWeight="bold" color="gray.700" mb={3}>
-                Top Performing Districts
-              </Text>
-              <DistrictSummary 
-                districts={orderData.topDistricts}
-                totalOrders={orderData.totalOrders}
-                loading={loading}
-              />
-            </Box>
-          </CardBody>
-        </Card>
-
-        {/* Bottom Left: Recent Orders with Addresses */}
-        <Card bg={cardBg} boxShadow="sm" borderRadius="xl" gridColumn={{ md: 'span 1' }}>
-          <CardBody>
-            <Flex align="center" mb={4}>
-              <FiPackage color={accent} style={{ marginRight: '8px' }} />
-              <Heading size="sm" color="gray.700">Recent Orders</Heading>
-            </Flex>
-            <RecentOrders 
-              orders={orderData.recentOrders}
-              loading={loading}
-            />
-          </CardBody>
-        </Card>
-
-        {/* Bottom Right: Trend */}
-        <Card bg={cardBg} boxShadow="sm" borderRadius="xl" gridColumn={{ md: 'span 2' }}>
-          <CardBody>
-            <Heading size="sm" mb={4} color="gray.700">Sales Trend</Heading>
-            <Box height="240px">
-              <ReactApexChart
-                options={lineChartOptions}
-                series={lineChartSeries}
-                type="line"
-                height="100%"
-              />
-            </Box>
-          </CardBody>
-        </Card>
-      </SimpleGrid>
+          {/* Bottom Right: Trend */}
+          <Card bg={cardBg} boxShadow="lg" borderRadius="xl" gridColumn={{ md: 'span 2' }}>
+            <CardBody>
+              <Heading size="sm" mb={4} color="gray.700">Sales Trend</Heading>
+              <Box height="240px">
+                <ReactApexChart options={lineChartOptions} series={lineChartSeries} type="line" height="100%" />
+              </Box>
+            </CardBody>
+          </Card>
+        </SimpleGrid>
+      </Box>
     </Box>
   );
 }

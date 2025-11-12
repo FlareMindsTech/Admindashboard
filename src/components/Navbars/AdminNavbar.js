@@ -53,11 +53,11 @@ export default function AdminNavbar(props) {
     <>
       {/* Background Layer - Same color as navbar */}
       <Box
-        position="static"
+        position="fixed"
         top="0"
         left="0"
         right="0"
-        h={{ base: "0px", md: "130px", lg: "140px", xl: "160px" }}
+        h={{ base: "0px", md: "130px", lg: "100px", xl: "120px" }}
         bg="#7b2cbf" // Same purple color as navbar
         zIndex="-1"
       />
@@ -69,7 +69,7 @@ export default function AdminNavbar(props) {
         align="center"
         justify="space-between"
         w={{ base: "100%", md: "100%", lg: "100%" }}
-        minH={{ base: "80px", md: "80px", lg: "90px" }}
+        minH={{ base: "80px", md: "60px", lg: "70px" }}
         px={{ base: "20px", md: "25px", lg: paddingX }}
         top="0"
         right="0"

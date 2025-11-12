@@ -348,3 +348,23 @@ export const getAllOrders = async () => {
     throw error;
   }
 };
+
+// =========================================================
+// 4. Payment APIs
+// =========================================================
+
+export const getAllPayments = async () => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/payments/all`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json", token },
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    throw error;
+  }
+};

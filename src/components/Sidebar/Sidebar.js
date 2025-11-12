@@ -35,9 +35,9 @@ function Sidebar(props) {
   const mainPanel = React.useRef();
   const variantChange = "0.2s linear";
 
-  const activeBg = useColorModeValue("white", "navy.700");
+  const activeBg = useColorModeValue("#7b2cbf", "#7b2cbf"); // Purple background when active
   const inactiveBg = useColorModeValue("white", "navy.700");
-  const activeColor = useColorModeValue("gray.700", "white");
+  const activeColor = useColorModeValue("white", "white"); // White text when active
   const inactiveColor = useColorModeValue("gray.400", "gray.400");
   const sidebarActiveShadow = "0px 7px 11px rgba(0, 0, 0, 0.04)";
   const sidebarBg = useColorModeValue("white", "navy.800");
@@ -133,9 +133,11 @@ function Sidebar(props) {
               bg={isActive ? activeBg : "transparent"}
               color={isActive ? activeColor : inactiveColor}
               boxShadow={isActive ? sidebarActiveShadow : "none"}
-              _hover="none"
+              _hover={{
+                bg: isActive ? activeBg : "gray.50",
+              }}
               _active={{
-                bg: "inherit",
+                bg: activeBg,
                 transform: "none",
                 borderColor: "transparent",
               }}
@@ -143,8 +145,8 @@ function Sidebar(props) {
             >
               <Flex>
                 <IconBox
-                  bg={isActive ? "blue.500" : inactiveBg}
-                  color={isActive ? "white" : "blue.500"}
+                  bg={isActive ? "white" : inactiveBg} // White background when active
+                  color={isActive ? "#7b2cbf" : "blue.500"} // Purple icon when active, blue when inactive
                   h={{
                     base: "24px",  // 320px - 480px
                     sm: "26px",    // 481px - 767px
@@ -166,6 +168,7 @@ function Sidebar(props) {
                     lg: "12px",    // 1025px - 1280px
                     xl: "12px"     // 1281px +
                   }}
+                  transition="all 0.2s ease-in-out"
                 >
                   {prop.icon}
                 </IconBox>
@@ -332,9 +335,9 @@ export function SidebarResponsive(props) {
   const { logo, routes, hamburgerColor, isOpen, onOpen, onClose } = props;
   const mainPanel = React.useRef();
 
-  const activeBg = useColorModeValue("white", "navy.700");
+  const activeBg = useColorModeValue("#7b2cbf", "#7b2cbf"); // Purple background when active
   const inactiveBg = useColorModeValue("white", "navy.700");
-  const activeColor = useColorModeValue("gray.700", "white");
+  const activeColor = useColorModeValue("white", "white"); // White text when active
   const inactiveColor = useColorModeValue("gray.400", "white");
   const sidebarActiveShadow = useColorModeValue(
     "0px 7px 11px rgba(0, 0, 0, 0.04)",
@@ -414,9 +417,11 @@ export function SidebarResponsive(props) {
               bg={isActive ? activeBg : "transparent"}
               color={isActive ? activeColor : inactiveColor}
               boxShadow={isActive ? sidebarActiveShadow : "none"}
-              _hover="none"
+              _hover={{
+                bg: isActive ? activeBg : "gray.50",
+              }}
               _active={{
-                bg: "inherit",
+                bg: activeBg,
                 transform: "none",
                 borderColor: "transparent",
               }}
@@ -424,8 +429,8 @@ export function SidebarResponsive(props) {
             >
               <Flex>
                 <IconBox
-                  bg={isActive ? "blue.500" : inactiveBg}
-                  color={isActive ? "white" : "blue.500"}
+                  bg={isActive ? "white" : inactiveBg} // White background when active
+                  color={isActive ? "#7b2cbf" : "blue.500"} // Purple icon when active, blue when inactive
                   h={{
                     base: "24px",  // 320px - 480px
                     sm: "26px",    // 481px - 767px
@@ -441,6 +446,7 @@ export function SidebarResponsive(props) {
                     sm: "10px",    // 481px - 767px
                     md: "12px"     // 768px - 1024px
                   }}
+                  transition="all 0.2s ease-in-out"
                 >
                   {prop.icon}
                 </IconBox>
