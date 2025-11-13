@@ -219,11 +219,11 @@ function UserManagement() {
 
       // Apply role/status filter
       switch (activeFilter) {
-        case "active":
-          filtered = userData.filter((user) => user.status === "active");
+        case "Active":
+          filtered = userData.filter((user) => user.status === "Active");
           break;
-        case "inactive":
-          filtered = userData.filter((user) => user.status === "inactive");
+        case "Inactive":
+          filtered = userData.filter((user) => user.status === "Inactive");
           break;
         case "verified":
           filtered = userData.filter((user) => user.isVerified === true);
@@ -542,31 +542,31 @@ function UserManagement() {
         flexDirection="column" 
         pt={{ base: "120px", md: "75px" }} 
         height="100vh" 
-        overflow="hidden"
+        overflow="auto"
         css={{
-          '&:hover': {
-            overflowY: 'auto',
-          },
           '&::-webkit-scrollbar': {
             width: '8px',
           },
           '&::-webkit-scrollbar-track': {
             background: 'transparent',
+            borderRadius: '24px',
           },
           '&::-webkit-scrollbar-thumb': {
             background: 'transparent',
-            borderRadius: '4px',
+            borderRadius: '24px',
+            transition: 'background 0.3s ease',
           },
           '&:hover::-webkit-scrollbar-thumb': {
-            background: 'rgba(123, 44, 191, 0.3)',
+            background: '#cbd5e1',
           },
-          '&::-webkit-scrollbar-thumb:hover': {
-            background: 'rgba(123, 44, 191, 0.5)',
+          '&:hover::-webkit-scrollbar-thumb:hover': {
+            background: '#94a3b8',
           },
+          // For Firefox
           scrollbarWidth: 'thin',
           scrollbarColor: 'transparent transparent',
           '&:hover': {
-            scrollbarColor: 'rgba(123, 44, 191, 0.3) transparent',
+            scrollbarColor: '#cbd5e1 transparent',
           },
         }}
       >
@@ -813,31 +813,31 @@ function UserManagement() {
       flexDirection="column" 
       pt={{ base: "5px", md: "45px" }} 
       height="100vh" 
-      overflow="hidden"
+      overflow="auto"
       css={{
-        '&:hover': {
-          overflowY: 'auto',
-        },
         '&::-webkit-scrollbar': {
           width: '8px',
         },
         '&::-webkit-scrollbar-track': {
           background: 'transparent',
+          borderRadius: '24px',
         },
         '&::-webkit-scrollbar-thumb': {
           background: 'transparent',
-          borderRadius: '4px',
+          borderRadius: '24px',
+          transition: 'background 0.3s ease',
         },
         '&:hover::-webkit-scrollbar-thumb': {
-          background: 'rgba(123, 44, 191, 0.3)',
+          background: '#cbd5e1',
         },
-        '&::-webkit-scrollbar-thumb:hover': {
-          background: 'rgba(123, 44, 191, 0.5)',
+        '&:hover::-webkit-scrollbar-thumb:hover': {
+          background: '#94a3b8',
         },
+        // For Firefox
         scrollbarWidth: 'thin',
         scrollbarColor: 'transparent transparent',
         '&:hover': {
-          scrollbarColor: 'rgba(123, 44, 191, 0.3) transparent',
+          scrollbarColor: '#cbd5e1 transparent',
         },
       }}
     >
@@ -861,23 +861,19 @@ function UserManagement() {
             '&::-webkit-scrollbar-thumb': {
               background: 'transparent',
               borderRadius: '3px',
+              transition: 'background 0.3s ease',
             },
             '&:hover::-webkit-scrollbar-thumb': {
-              background: 'rgba(123, 44, 191, 0.3)',
+              background: '#cbd5e1',
             },
-            '&::-webkit-scrollbar-thumb:hover': {
-              background: 'rgba(123, 44, 191, 0.5)',
-            },
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'transparent transparent',
-            '&:hover': {
-              scrollbarColor: 'rgba(123, 44, 191, 0.3) transparent',
+            '&:hover::-webkit-scrollbar-thumb:hover': {
+              background: '#94a3b8',
             },
           }}
         >
           {/* Total Users Card */}
           <Card
-            minH="13px"  // reduced height
+            minH="83px"
             cursor="pointer"
             onClick={() => handleCardClick("all")}
             border={activeFilter === "all" ? "2px solid" : "1px solid"}
@@ -886,8 +882,8 @@ function UserManagement() {
             bg="white"
             position="relative"
             overflow="hidden"
-            w={{ base: "28%", md: "22%", lg: "18%" }} // reduced width
-            minW="90px"
+            w={{ base: "32%", md: "30%", lg: "25%" }}
+            minW="100px"
             flex="1"
             _before={{
               content: '""',
@@ -901,19 +897,19 @@ function UserManagement() {
               transition: "opacity 0.2s ease-in-out",
             }}
             _hover={{
-              transform: "translateY(-3px)",
-              shadow: "lg",
+              transform: "translateY(-4px)",
+              shadow: "xl",
               _before: {
                 opacity: 1,
               },
               borderColor: customColor,
             }}
           >
-            <CardBody position="relative" zIndex={1} p={{ base: 2, md: 3 }}> {/* reduced padding */}
+            <CardBody position="relative" zIndex={1} p={{ base: 3, md: 4 }}>
               <Flex flexDirection="row" align="center" justify="space-between" w="100%">
                 <Stat me="auto">
                   <StatLabel
-                    fontSize={{ base: "xs", md: "sm" }} // smaller text
+                    fontSize={{ base: "sm", md: "md" }}
                     color="gray.600"
                     fontWeight="bold"
                     pb="0px"
@@ -921,22 +917,22 @@ function UserManagement() {
                     Total Users
                   </StatLabel>
                   <Flex>
-                    <StatNumber fontSize={{ base: "md", md: "lg" }} color={textColor}>
+                    <StatNumber fontSize={{ base: "lg", md: "xl" }} color={textColor}>
                       {userData.length}
                     </StatNumber>
                   </Flex>
                 </Stat>
                 <IconBox
                   as="box"
-                  h={{ base: "10px", md: "40px" }} // smaller icon box
-                  w={{ base: "10px", md: "40px" }}
+                  h={{ base: "35px", md: "45px" }}
+                  w={{ base: "35px", md: "45px" }}
                   bg={customColor}
                   transition="all 0.2s ease-in-out"
                 >
                   <Icon
                     as={FaUsers}
-                    h={{ base: "16px", md: "20px" }} // smaller icon
-                    w={{ base: "16px", md: "20px" }}
+                    h={{ base: "18px", md: "24px" }}
+                    w={{ base: "18px", md: "24px" }}
                     color="white"
                   />
                 </IconBox>
@@ -948,9 +944,9 @@ function UserManagement() {
           <Card
             minH="83px"
             cursor="pointer"
-            onClick={() => handleCardClick("active")}
-            border={activeFilter === "active" ? "2px solid" : "1px solid"}
-            borderColor={activeFilter === "active" ? customColor : `${customColor}30`}
+            onClick={() => handleCardClick("Active")}
+            border={activeFilter === "Active" ? "2px solid" : "1px solid"}
+            borderColor={activeFilter === "Active" ? customColor : `${customColor}30`}
             transition="all 0.2s ease-in-out"
             bg="white"
             position="relative"
@@ -991,7 +987,7 @@ function UserManagement() {
                   </StatLabel>
                   <Flex>
                     <StatNumber fontSize={{ base: "lg", md: "xl" }} color={textColor}>
-                      {userData.filter((a) => a.status === "active").length}
+                      {userData.filter((a) => a.status === "Active").length}
                     </StatNumber>
                   </Flex>
                 </Stat>
@@ -1120,8 +1116,8 @@ function UserManagement() {
         {/* Active Filter Display */}
         <Flex justify="space-between" align="center" mb={4}>
           <Text fontSize="lg" fontWeight="bold" color={textColor}>
-            {activeFilter === "active" && "Active Users"}
-            {activeFilter === "inactive" && "Inactive Users"}
+            {activeFilter === "Active" && "Active Users"}
+            {activeFilter === "Inactive" && "Inactive Users"}
             {activeFilter === "verified" && "Verified Users"}
             {activeFilter === "all" && "All Users"}
           </Text>
@@ -1141,30 +1137,31 @@ function UserManagement() {
         </Flex>
       </Box>
 
-      {/* Fixed Table Container */}
+      {/* Table Container - Removed background box */}
       <Box 
-      mt={-8}
+        mt={-8}
         flex="1" 
         display="flex" 
         flexDirection="column" 
         p={2}
         pt={0}
         overflow="hidden"
-        bg="white"
       >
+        {/* Table Card with transparent background */}
         <Card 
           shadow="xl" 
-          bg="white" 
+          bg="transparent"
           display="flex" 
           flexDirection="column"
           height="100%"
           minH="0"
+          border="none"
         >
-          {/* Fixed Table Header */}
+          {/* Table Header */}
           <CardHeader 
             p="5px" 
             pb="5px"
-            bg="white" 
+            bg="transparent"
             flexShrink={0}
             borderBottom="1px solid"
             borderColor={`${customColor}20`}
@@ -1222,7 +1219,7 @@ function UserManagement() {
           
           {/* Table Content Area - Scrollable Body with Fixed Header */}
           <CardBody 
-            bg="white" 
+            bg="transparent"
             flex="1" 
             display="flex" 
             flexDirection="column" 
@@ -1266,21 +1263,17 @@ function UserManagement() {
                           '&::-webkit-scrollbar-thumb': {
                             background: 'transparent',
                             borderRadius: '4px',
+                            transition: 'background 0.3s ease',
                           },
                           '&:hover::-webkit-scrollbar-thumb': {
-                            background: 'rgba(123, 44, 191, 0.3)',
+                            background: '#cbd5e1',
                           },
-                          '&::-webkit-scrollbar-thumb:hover': {
-                            background: 'rgba(123, 44, 191, 0.5)',
-                          },
-                          scrollbarWidth: 'thin',
-                          scrollbarColor: 'transparent transparent',
-                          '&:hover': {
-                            scrollbarColor: 'rgba(123, 44, 191, 0.3) transparent',
+                          '&:hover::-webkit-scrollbar-thumb:hover': {
+                            background: '#94a3b8',
                           },
                         }}
                       >
-                        <Table variant="simple" size="md">
+                        <Table variant="simple" size="md" bg="transparent">
                           {/* Fixed Header */}
                           <Thead>
                             <Tr>
@@ -1363,14 +1356,14 @@ function UserManagement() {
                           </Thead>
 
                           {/* Scrollable Body */}
-                          <Tbody>
+                          <Tbody bg="transparent">
                             {displayItems.map((user, index) => {
                               // Handle empty rows
                               if (user.isEmpty) {
                                 return (
                                   <Tr 
                                     key={user._id}
-                                    bg="white"
+                                    bg="transparent"
                                     height="60px"
                                   >
                                     <Td borderColor={`${customColor}20`} colSpan={5}>
@@ -1385,7 +1378,7 @@ function UserManagement() {
                               return (
                                 <Tr 
                                   key={user._id || index}
-                                  bg="white"
+                                  bg="transparent"
                                   _hover={{ bg: `${customColor}10` }}
                                   borderBottom="1px"
                                   borderColor={`${customColor}20`}
@@ -1440,7 +1433,7 @@ function UserManagement() {
                                       fontSize="sm"
                                       fontWeight="bold"
                                     >
-                                      {user.status || "active"}
+                                      {user.status || "Active"}
                                     </Badge>
                                   </Td>
                                   {/* <Td borderColor={`${customColor}20`}>
@@ -1471,7 +1464,7 @@ function UserManagement() {
                         p="16px"
                         borderTop="1px solid"
                         borderColor={`${customColor}20`}
-                        bg="white"
+                        bg="transparent"
                       >
                         <Flex
                           justify="flex-end" // Align to the right
@@ -1562,6 +1555,7 @@ function UserManagement() {
                     borderColor={`${customColor}30`}
                     borderRadius="md"
                     flex="1"
+                    bg="transparent"
                   >
                     <Text textAlign="center" color="gray.500" fontSize="lg">
                       {dataLoaded

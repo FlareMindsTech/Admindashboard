@@ -212,11 +212,11 @@ function AdminManagement() {
 
       // Apply role/status filter
       switch (activeFilter) {
-        case "active":
-          filtered = adminData.filter((admin) => admin.status === "active");
+        case "Active":
+          filtered = adminData.filter((admin) => admin.status === "Active");
           break;
-        case "inactive":
-          filtered = adminData.filter((admin) => admin.status === "inactive");
+        case "Inactive":
+          filtered = adminData.filter((admin) => admin.status === "Inactive");
           break;
         case "super":
           filtered = adminData.filter((admin) => admin.role === "super admin");
@@ -456,9 +456,9 @@ function AdminManagement() {
   // Get status color with background
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case "active":
+      case "Active":
         return { color: "white", bg: "#9d4edd" };
-      case "inactive":
+      case "Inactive":
         return { color: "white", bg: "red.500" };
       case "pending":
         return { color: "white", bg: "yellow.500" };
@@ -914,9 +914,9 @@ function AdminManagement() {
           <Card
             minH="83px"
             cursor="pointer"
-            onClick={() => handleCardClick("active")}
-            border={activeFilter === "active" ? "2px solid" : "1px solid"}
-            borderColor={activeFilter === "active" ? customColor : `${customColor}30`}
+            onClick={() => handleCardClick("Active")}
+            border={activeFilter === "Active" ? "2px solid" : "1px solid"}
+            borderColor={activeFilter === "Active" ? customColor : `${customColor}30`}
             transition="all 0.2s ease-in-out"
             bg="white"
             position="relative"
@@ -957,7 +957,7 @@ function AdminManagement() {
                   </StatLabel>
                   <Flex>
                     <StatNumber fontSize={{ base: "lg", md: "xl" }} color={textColor}>
-                      {adminData.filter((a) => a.status === "active").length}
+                      {adminData.filter((a) => a.status === "Active").length}
                     </StatNumber>
                   </Flex>
                 </Stat>
@@ -1086,8 +1086,8 @@ function AdminManagement() {
         {/* Active Filter Display */}
         <Flex justify="space-between" align="center" mb={4}>
           <Text fontSize="lg" fontWeight="bold" color={textColor}>
-            {activeFilter === "active" && "Active Admins"}
-            {activeFilter === "inactive" && "Inactive Admins"}
+            {activeFilter === "Active" && "Active Admins"}
+            {activeFilter === "Inactive" && "Inactive Admins"}
             {activeFilter === "super" && "Super Admins"}
             {activeFilter === "all" && "All Admins"}
           </Text>
@@ -1107,7 +1107,7 @@ function AdminManagement() {
         </Flex>
       </Box>
 
-      {/* Fixed Table Container */}
+      {/* Table Container - Removed background box */}
       <Box 
         mt={-8}
         flex="1" 
@@ -1116,21 +1116,22 @@ function AdminManagement() {
         p={2}
         pt={0}
         overflow="hidden"
-        bg="white"
       >
+        {/* Table Card with transparent background */}
         <Card 
           shadow="xl" 
-          bg="white" 
+          bg="transparent"
           display="flex" 
           flexDirection="column"
           height="100%"
           minH="0"
+          border="none"
         >
-          {/* Fixed Table Header */}
+          {/* Table Header */}
           <CardHeader 
             p="5px" 
             pb="5px"
-            bg="white" 
+            bg="transparent"
             flexShrink={0}
             borderBottom="1px solid"
             borderColor={`${customColor}20`}
@@ -1188,7 +1189,7 @@ function AdminManagement() {
           
           {/* Table Content Area - Scrollable Body with Fixed Header */}
           <CardBody 
-            bg="white" 
+            bg="transparent"
             flex="1" 
             display="flex" 
             flexDirection="column" 
@@ -1242,7 +1243,7 @@ function AdminManagement() {
                           },
                         }}
                       >
-                        <Table variant="simple" size="md">
+                        <Table variant="simple" size="md" bg="transparent">
                           {/* Fixed Header */}
                           <Thead>
                             <Tr>
@@ -1325,14 +1326,14 @@ function AdminManagement() {
                           </Thead>
 
                           {/* Scrollable Body */}
-                          <Tbody>
+                          <Tbody bg="transparent">
                             {displayItems.map((admin, index) => {
                               // Handle empty rows
                               if (admin.isEmpty) {
                                 return (
                                   <Tr 
                                     key={admin._id}
-                                    bg="white"
+                                    bg="transparent"
                                     height="60px"
                                   >
                                     <Td borderColor={`${customColor}20`} colSpan={5}>
@@ -1347,7 +1348,7 @@ function AdminManagement() {
                               return (
                                 <Tr 
                                   key={admin._id || index}
-                                  bg="white"
+                                  bg="transparent"
                                   _hover={{ bg: `${customColor}10` }}
                                   borderBottom="1px"
                                   borderColor={`${customColor}20`}
@@ -1427,7 +1428,7 @@ function AdminManagement() {
                         p="16px"
                         borderTop="1px solid"
                         borderColor={`${customColor}20`}
-                        bg="white"
+                        bg="transparent"
                       >
                         <Flex
                           justify="flex-end" // Align to the right
@@ -1518,6 +1519,7 @@ function AdminManagement() {
                     borderColor={`${customColor}30`}
                     borderRadius="md"
                     flex="1"
+                    bg="transparent"
                   >
                     <Text textAlign="center" color="gray.500" fontSize="lg">
                       {dataLoaded

@@ -1,3 +1,4 @@
+//axiosInstance.js
 import axios from "axios";
 
 // --- Configuration ---
@@ -328,10 +329,6 @@ export const updateUser = async (userId, updatedData) => {
 };
 
 
-// =========================================================
-// 4. Order APIs
-// =========================================================
-
 
 export const getAllOrders = async () => {
   try {
@@ -340,31 +337,109 @@ export const getAllOrders = async () => {
       method: "GET",
       headers: { "Content-Type": "application/json", token },
     });
-
     if (!response.ok) throw new Error(`Error: ${response.status}`);
     return await response.json();
   } catch (error) {
-    console.error("Error fetching orders:", error);
+    console.error("Error fetching Orders:", error);
     throw error;
   }
 };
 
-// =========================================================
-// 4. Payment APIs
-// =========================================================
-
-export const getAllPayments = async () => {
+export const createOrders = async (categoryData) => {
   try {
     const token = getToken();
-    const response = await fetch(`${BASE_URL}/payments/all`, {
-      method: "GET",
+    const response = await fetch(`${BASE_URL}/Orders/create`, {
+      method: "POST",
       headers: { "Content-Type": "application/json", token },
+      body: JSON.stringify(categoryData),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error creating category:", error);
+    throw error;
+  }
+};
+
+export const updateOrders = async (orderId, updatedData) => {
+  try {
+    const token = getToken();
+
+    const response = await fetch(`${BASE_URL}/orders/update/${orderId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        token,
+      },
+      body: JSON.stringify(updatedData), // use passed data dynamically
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error updating order: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating order:", error);
+    throw error;
+  }
+};
+
+
+// Upload Product image
+
+// Add this function to your existing axiosInstance.js file, after the existing uploadImage function
+
+// Upload Product Image with productId
+export const uploadProductImage = async (productId, file) => {
+  try {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("productId", productId);
+
+    const res = await fetch(`${BASE_URL}/products/upload`, {
+      method: "POST",
+      headers: { 
+        token: `${token}`,
+        // Don't set Content-Type for FormData, let browser set it
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Upload failed response:", errorText);
+      throw new Error(`Image upload failed: ${res.status} ${res.statusText}`);
+    }
+    
+    return await res.json();
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    throw error;
+  }
+};
+
+// Delete Product Image
+export const deleteProductImage = async (productId, public_id) => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/products/delete-image`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token: `${token}`,
+      },
+      body: JSON.stringify({ productId, public_id }),
     });
 
     if (!response.ok) throw new Error(`Error: ${response.status}`);
     return await response.json();
   } catch (error) {
-    console.error("Error fetching payments:", error);
+    console.error("Error deleting image:", error);
     throw error;
   }
 };
