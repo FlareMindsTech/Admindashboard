@@ -12,6 +12,7 @@ import {
   deleteProducts,
   uploadProductImage,
   deleteProductImage,
+  getAllOrders,
 } from "../utils/axiosInstance";
 
 import {
@@ -69,9 +70,10 @@ import {
   FaCheckCircle,
   FaChevronLeft,
   FaChevronRight,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
-import { MdCategory, MdInventory } from "react-icons/md";
+import { MdCategory, MdInventory, MdWarning } from "react-icons/md";
 
 export default function ProductManagement() {
   const textColor = useColorModeValue("gray.700", "white");
@@ -85,6 +87,7 @@ export default function ProductManagement() {
   const [currentUser, setCurrentUser] = useState(null);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]); // Added orders state
   const [currentView, setCurrentView] = useState("categories");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -95,6 +98,7 @@ export default function ProductManagement() {
   // Loading states
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false); // Added orders loading state
   const [isLoadingData, setIsLoadingData] = useState(false);
 
   // Search and Filter states - FIXED: Added searchTerm state
@@ -144,6 +148,70 @@ export default function ProductManagement() {
   
   const totalCategoryPages = Math.ceil(filteredCategories.length / itemsPerPage);
   const totalProductPages = Math.ceil(filteredProducts.length / itemsPerPage);
+
+  // Function to calculate available stock for a product
+  const calculateAvailableStock = useCallback((product) => {
+    if (!product || !orders.length) {
+      return product?.stock || product?.variants?.[0]?.stock || 0;
+    }
+
+    const totalOrderedQuantity = orders.reduce((total, order) => {
+      // Check if order is confirmed/delivered/completed
+      const validStatus = order.status && 
+        (order.status.toLowerCase() === 'confirmed' || 
+         order.status.toLowerCase() === 'completed' || 
+         order.status.toLowerCase() === 'delivered' ||
+         order.status.toLowerCase() === 'pending');
+
+      if (!validStatus) return total;
+
+      // Search for this product in order items
+      let orderedQty = 0;
+
+      // Check different possible item arrays
+      const items = order.items || order.orderItems || order.products || order.orderProducts || [];
+      
+      items.forEach(item => {
+        // Check if this item matches the current product
+        const itemProductId = item.productId?._id || item.productId || item.product?._id || item.product;
+        const itemName = item.name || item.productId?.name || item.product?.name;
+        
+        if (itemProductId === product._id || itemName === product.name) {
+          orderedQty += item.quantity || item.qty || 0;
+        }
+      });
+
+      return total + orderedQty;
+    }, 0);
+
+    const totalStock = product.stock || product.variants?.[0]?.stock || 0;
+    const availableStock = Math.max(0, totalStock - totalOrderedQuantity);
+
+    return availableStock;
+  }, [orders]);
+
+  // Function to get low stock products
+  const getLowStockProducts = useCallback(() => {
+    return products.filter(product => {
+      const availableStock = calculateAvailableStock(product);
+      return availableStock <= 10; // Consider low stock if 10 or less items available
+    });
+  }, [products, calculateAvailableStock]);
+
+  // Function to get out of stock products
+  const getOutOfStockProducts = useCallback(() => {
+    return products.filter(product => {
+      const availableStock = calculateAvailableStock(product);
+      return availableStock <= 0;
+    });
+  }, [products, calculateAvailableStock]);
+
+  // Calculate total available stock across all products
+  const calculateTotalAvailableStock = useCallback(() => {
+    return products.reduce((total, product) => {
+      return total + calculateAvailableStock(product);
+    }, 0);
+  }, [products, calculateAvailableStock]);
 
   // Search handler functions - FIXED: Added proper search handlers
   const handleSearchChange = (e) => {
@@ -316,20 +384,39 @@ export default function ProductManagement() {
     setCurrentUser(storedUser);
   }, [navigate, toast]);
 
-  // Fetch categories + products
+  // Fetch categories + products + orders
   const fetchData = useCallback(async () => {
     try {
       setIsLoadingData(true);
       setIsLoadingCategories(true);
       setIsLoadingProducts(true);
+      setIsLoadingOrders(true);
 
-      const [categoryData, productData] = await Promise.all([
+      const [categoryData, productData, ordersData] = await Promise.all([
         getAllCategories(),
-        getAllProducts()
+        getAllProducts(),
+        getAllOrders() // Fetch orders to calculate available stock
       ]);
 
       setCategories(categoryData.categories || categoryData.data || []);
       setProducts(productData.products || productData.data || []);
+      
+      // Extract orders array from response
+      let ordersArray = [];
+      if (Array.isArray(ordersData)) {
+        ordersArray = ordersData;
+      } else if (ordersData && Array.isArray(ordersData.orders)) {
+        ordersArray = ordersData.orders;
+      } else if (ordersData && Array.isArray(ordersData.data)) {
+        ordersArray = ordersData.data;
+      } else {
+        // Try to find array in response object
+        const maybeArray = Object.values(ordersData || {}).find((v) => Array.isArray(v));
+        if (Array.isArray(maybeArray)) {
+          ordersArray = maybeArray;
+        }
+      }
+      setOrders(ordersArray);
       
     } catch (err) {
       toast({
@@ -343,6 +430,7 @@ export default function ProductManagement() {
       setIsLoadingData(false);
       setIsLoadingCategories(false);
       setIsLoadingProducts(false);
+      setIsLoadingOrders(false);
     }
   }, [toast]);
 
@@ -632,11 +720,78 @@ export default function ProductManagement() {
     </Box>
   );
 
+  // Stock status badge component
+  const StockStatusBadge = ({ product }) => {
+    const availableStock = calculateAvailableStock(product);
+    const totalStock = product.stock || product.variants?.[0]?.stock || 0;
+    
+    if (availableStock <= 0) {
+      return (
+        <Badge colorScheme="red" fontSize="xs" px={2} py={1}>
+          <Flex align="center" gap={1}>
+            <FaExclamationTriangle size={10} />
+            Out of Stock
+          </Flex>
+        </Badge>
+      );
+    } else if (availableStock <= 10) {
+      return (
+        <Badge colorScheme="orange" fontSize="xs" px={2} py={1}>
+          <Flex align="center" gap={1}>
+            <MdWarning size={12} />
+            Low Stock ({availableStock})
+          </Flex>
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge colorScheme="green" fontSize="xs" px={2} py={1}>
+          In Stock ({availableStock})
+        </Badge>
+      );
+    }
+  };
+
+  // Global scrollbar styles for mobile
+  const globalScrollbarStyles = {
+    '&::-webkit-scrollbar': {
+      width: '6px',
+      height: '6px',
+    },
+    '&::-webkit-scrollbar-track': {
+      background: 'transparent',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      background: 'transparent',
+      borderRadius: '3px',
+      transition: 'background 0.3s ease',
+    },
+    '&:hover::-webkit-scrollbar-thumb': {
+      background: '#cbd5e1',
+    },
+    '&:hover::-webkit-scrollbar-thumb:hover': {
+      background: '#94a3b8',
+    },
+  };
+
   // Render Form Views (Add/Edit Category/Product)
   if (currentView === "addCategory" || currentView === "editCategory" || currentView === "addProduct") {
     return (
-      <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} height="100vh" overflow="hidden">
-        <Card bg="white" shadow="xl" height="100%" display="flex" flexDirection="column">
+      <Flex 
+        flexDirection="column" 
+        pt={{ base: "120px", md: "75px" }} 
+        height="100vh" 
+        overflow="hidden"
+        css={globalScrollbarStyles}
+      >
+        <Card 
+          bg="white" 
+          shadow="xl" 
+          height="100%" 
+          display="flex" 
+          flexDirection="column"
+          overflow="hidden"
+        >
           <CardHeader bg="white" flexShrink={0}>
             <Flex align="center" mb={4}>
               <Button
@@ -657,10 +812,15 @@ export default function ProductManagement() {
               </Heading>
             </Flex>
           </CardHeader>
-          <CardBody bg="white" flex="1" overflow="auto">
+          <CardBody 
+            bg="white" 
+            flex="1" 
+            overflow="auto"
+            css={globalScrollbarStyles}
+          >
             {/* Category Form */}
             {(currentView === "addCategory" || currentView === "editCategory") && (
-              <>
+              <Box p={4}>
                 <FormControl mb="20px">
                   <FormLabel htmlFor="name" color="gray.700" fontSize="sm">Name *</FormLabel>
                   <Input
@@ -712,276 +872,258 @@ export default function ProductManagement() {
                     {currentView === "addCategory" ? "Create Category" : "Update Category"}
                   </Button>
                 </Flex>
-              </>
+              </Box>
             )}
 
             {/* Product Form */}
             {currentView === "addProduct" && (
-  <Box 
-    flex="1" 
-    display="flex" 
-    flexDirection="column" 
-    overflow="hidden"
-    bg="transparent"
-  >
-    {/* Scrollable Form Container */}
-    <Box
-      flex="1"
-      overflowY="auto"
-      overflowX="hidden"
-      css={{
-        '&::-webkit-scrollbar': {
-          width: '6px',
-        },
-        '&::-webkit-scrollbar-track': {
-          background: 'transparent',
-        },
-        '&::-webkit-scrollbar-thumb': {
-          background: 'transparent',
-          borderRadius: '3px',
-          transition: 'background 0.3s ease',
-        },
-        '&:hover::-webkit-scrollbar-thumb': {
-          background: '#cbd5e1',
-        },
-        '&:hover::-webkit-scrollbar-thumb:hover': {
-          background: '#94a3b8',
-        },
-      }}
-      pr={2} // Add some padding for scrollbar
-    >
-      <Box p={4}>
-        {!selectedCategory && (
-          <FormControl mb="20px">
-            <FormLabel htmlFor="category" color="gray.700" fontSize="sm">Category *</FormLabel>
-            <Select
-              id="category"
-              placeholder="Select category"
-              value={selectedCategory?._id || ""}
-              onChange={(e) => {
-                const category = categories.find(c => c._id === e.target.value);
-                setSelectedCategory(category);
-              }}
-              borderColor={`${customColor}50`}
-              _hover={{ borderColor: customColor }}
-              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-              bg="white"
-              size="sm"
-            >
-              {categories.map((cat) => (
-                <option key={cat._id} value={cat._id}>{cat.name}</option>
-              ))}
-            </Select>
-          </FormControl>
-        )}
+              <Box 
+                flex="1" 
+                display="flex" 
+                flexDirection="column" 
+                overflow="hidden"
+                bg="transparent"
+              >
+                {/* Scrollable Form Container */}
+                <Box
+                  flex="1"
+                  overflowY="auto"
+                  overflowX="hidden"
+                  css={globalScrollbarStyles}
+                  pr={2}
+                >
+                  <Box p={4}>
+                    {!selectedCategory && (
+                      <FormControl mb="20px">
+                        <FormLabel htmlFor="category" color="gray.700" fontSize="sm">Category *</FormLabel>
+                        <Select
+                          id="category"
+                          placeholder="Select category"
+                          value={selectedCategory?._id || ""}
+                          onChange={(e) => {
+                            const category = categories.find(c => c._id === e.target.value);
+                            setSelectedCategory(category);
+                          }}
+                          borderColor={`${customColor}50`}
+                          _hover={{ borderColor: customColor }}
+                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                          bg="white"
+                          size="sm"
+                        >
+                          {categories.map((cat) => (
+                            <option key={cat._id} value={cat._id}>{cat.name}</option>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    )}
 
-        <Grid templateColumns={["1fr", "1fr 1fr"]} gap={4} mb={4}>
-          <FormControl isRequired>
-            <FormLabel color="gray.700" fontSize="sm">Product Name *</FormLabel>
-            <Input
-              value={newProduct.name}
-              onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-              placeholder="Enter product name"
-              borderColor={`${customColor}50`}
-              _hover={{ borderColor: customColor }}
-              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-              bg="white"
-              size="sm"
-            />
-          </FormControl>
+                    <Grid templateColumns={["1fr", "1fr 1fr"]} gap={4} mb={4}>
+                      <FormControl isRequired>
+                        <FormLabel color="gray.700" fontSize="sm">Product Name *</FormLabel>
+                        <Input
+                          value={newProduct.name}
+                          onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                          placeholder="Enter product name"
+                          borderColor={`${customColor}50`}
+                          _hover={{ borderColor: customColor }}
+                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                          bg="white"
+                          size="sm"
+                        />
+                      </FormControl>
 
-          <FormControl isRequired>
-            <FormLabel color="gray.700" fontSize="sm">Price *</FormLabel>
-            <Input
-              type="number"
-              value={newProduct.price}
-              onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-              placeholder="Enter price"
-              min="0"
-              step="0.01"
-              borderColor={`${customColor}50`}
-              _hover={{ borderColor: customColor }}
-              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-              bg="white"
-              size="sm"
-            />
-          </FormControl>
+                      <FormControl isRequired>
+                        <FormLabel color="gray.700" fontSize="sm">Price *</FormLabel>
+                        <Input
+                          type="number"
+                          value={newProduct.price}
+                          onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                          placeholder="Enter price"
+                          min="0"
+                          step="0.01"
+                          borderColor={`${customColor}50`}
+                          _hover={{ borderColor: customColor }}
+                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                          bg="white"
+                          size="sm"
+                        />
+                      </FormControl>
 
-          <FormControl isRequired>
-            <FormLabel color="gray.700" fontSize="sm">Stock *</FormLabel>
-            <Input
-              type="number"
-              value={newProduct.stock}
-              onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })}
-              placeholder="Enter stock quantity"
-              min="0"
-              borderColor={`${customColor}50`}
-              _hover={{ borderColor: customColor }}
-              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-              bg="white"
-              size="sm"
-            />
-          </FormControl>
+                      <FormControl isRequired>
+                        <FormLabel color="gray.700" fontSize="sm">Stock *</FormLabel>
+                        <Input
+                          type="number"
+                          value={newProduct.stock}
+                          onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })}
+                          placeholder="Enter stock quantity"
+                          min="0"
+                          borderColor={`${customColor}50`}
+                          _hover={{ borderColor: customColor }}
+                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                          bg="white"
+                          size="sm"
+                        />
+                      </FormControl>
 
-          <FormControl>
-            <FormLabel color="gray.700" fontSize="sm">Color</FormLabel>
-            <Select
-              value={newProduct.color}
-              onChange={(e) => setNewProduct({ ...newProduct, color: e.target.value })}
-              borderColor={`${customColor}50`}
-              _hover={{ borderColor: customColor }}
-              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-              bg="white"
-              size="sm"
-            >
-              <option value="">Select Color</option>
-              <option value="Red">Red</option>
-              <option value="Blue">Blue</option>
-              <option value="Green">Green</option>
-              <option value="Black">Black</option>
-              <option value="White">White</option>
-              <option value="Yellow">Yellow</option>
-              <option value="Pink">Pink</option>
-              <option value="Gray">Gray</option>
-              <option value="Maroon">Maroon</option>
-              <option value="Purple">Purple</option>
-            </Select>
-          </FormControl>
+                      <FormControl>
+                        <FormLabel color="gray.700" fontSize="sm">Color</FormLabel>
+                        <Select
+                          value={newProduct.color}
+                          onChange={(e) => setNewProduct({ ...newProduct, color: e.target.value })}
+                          borderColor={`${customColor}50`}
+                          _hover={{ borderColor: customColor }}
+                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                          bg="white"
+                          size="sm"
+                        >
+                          <option value="">Select Color</option>
+                          <option value="Red">Red</option>
+                          <option value="Blue">Blue</option>
+                          <option value="Green">Green</option>
+                          <option value="Black">Black</option>
+                          <option value="White">White</option>
+                          <option value="Yellow">Yellow</option>
+                          <option value="Pink">Pink</option>
+                          <option value="Gray">Gray</option>
+                          <option value="Maroon">Maroon</option>
+                          <option value="Purple">Purple</option>
+                        </Select>
+                      </FormControl>
 
-          <FormControl>
-            <FormLabel color="gray.700" fontSize="sm">Size</FormLabel>
-            <Select
-              value={newProduct.size}
-              onChange={(e) => setNewProduct({ ...newProduct, size: e.target.value })}
-              borderColor={`${customColor}50`}
-              _hover={{ borderColor: customColor }}
-              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-              bg="white"
-              size="sm"
-            >
-              <option value="">Select Size</option>
-              <option value="XS">XS</option>
-              <option value="S">S</option>
-              <option value="M">M</option>
-              <option value="L">L</option>
-              <option value="XL">XL</option>
-              <option value="XXL">XXL</option>
-            </Select>
-          </FormControl>
-        </Grid>
+                      <FormControl>
+                        <FormLabel color="gray.700" fontSize="sm">Size</FormLabel>
+                        <Select
+                          value={newProduct.size}
+                          onChange={(e) => setNewProduct({ ...newProduct, size: e.target.value })}
+                          borderColor={`${customColor}50`}
+                          _hover={{ borderColor: customColor }}
+                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                          bg="white"
+                          size="sm"
+                        >
+                          <option value="">Select Size</option>
+                          <option value="XS">XS</option>
+                          <option value="S">S</option>
+                          <option value="M">M</option>
+                          <option value="L">L</option>
+                          <option value="XL">XL</option>
+                          <option value="XXL">XXL</option>
+                        </Select>
+                      </FormControl>
+                    </Grid>
 
-        <FormControl mb="20px">
-          <FormLabel color="gray.700" fontSize="sm">Description</FormLabel>
-          <Textarea
-            value={newProduct.description}
-            onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-            placeholder="Enter product description"
-            rows={3}
-            borderColor={`${customColor}50`}
-            _hover={{ borderColor: customColor }}
-            _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-            bg="white"
-            size="sm"
-          />
-        </FormControl>
+                    <FormControl mb="20px">
+                      <FormLabel color="gray.700" fontSize="sm">Description</FormLabel>
+                      <Textarea
+                        value={newProduct.description}
+                        onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                        placeholder="Enter product description"
+                        rows={3}
+                        borderColor={`${customColor}50`}
+                        _hover={{ borderColor: customColor }}
+                        _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                        bg="white"
+                        size="sm"
+                      />
+                    </FormControl>
 
-        {/* Image Upload Section */}
-        <FormControl mb="20px">
-          <FormLabel color="gray.700" fontSize="sm">Product Images</FormLabel>
-          
-          {/* Image Upload Input */}
-          <Input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleImageUpload}
-            borderColor={`${customColor}50`}
-            _hover={{ borderColor: customColor }}
-            _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-            bg="white"
-            size="sm"
-            mb={3}
-          />
-          <Text fontSize="xs" color="gray.500">
-            Upload product images (multiple images supported)
-          </Text>
+                    {/* Image Upload Section */}
+                    <FormControl mb="20px">
+                      <FormLabel color="gray.700" fontSize="sm">Product Images</FormLabel>
+                      
+                      {/* Image Upload Input */}
+                      <Input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        borderColor={`${customColor}50`}
+                        _hover={{ borderColor: customColor }}
+                        _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                        bg="white"
+                        size="sm"
+                        mb={3}
+                      />
+                      <Text fontSize="xs" color="gray.500">
+                        Upload product images (multiple images supported)
+                      </Text>
 
-          {/* Display Current Images */}
-          {newProduct.images && newProduct.images.length > 0 && (
-            <Box mt={3}>
-              <Text fontSize="sm" color="gray.700" mb={2}>
-                Current Images:
-              </Text>
-              <Flex wrap="wrap" gap={3}>
-                {newProduct.images.map((img, index) => (
-                  <Box 
-                    key={img.public_id || index} 
-                    position="relative" 
-                    border="1px" 
-                    borderColor="gray.200" 
-                    borderRadius="md" 
-                    p={1}
-                  >
-                    <Image
-                      src={img.url || img.preview || img}
-                      alt={`Product image ${index + 1}`}
-                      boxSize="50px"
-                      objectFit="cover"
-                      borderRadius="md"
-                    />
-                    <IconButton
-                      aria-label="Remove image"
-                      icon={<FaTrash />}
-                      size="xs"
-                      colorScheme="red"
-                      position="absolute"
-                      top={-1}
-                      right={-1}
-                      onClick={() => handleRemoveImage(img.public_id || index)}
-                    />
+                      {/* Display Current Images */}
+                      {newProduct.images && newProduct.images.length > 0 && (
+                        <Box mt={3}>
+                          <Text fontSize="sm" color="gray.700" mb={2}>
+                            Current Images:
+                          </Text>
+                          <Flex wrap="wrap" gap={3}>
+                            {newProduct.images.map((img, index) => (
+                              <Box 
+                                key={img.public_id || index} 
+                                position="relative" 
+                                border="1px" 
+                                borderColor="gray.200" 
+                                borderRadius="md" 
+                                p={1}
+                              >
+                                <Image
+                                  src={img.url || img.preview || img}
+                                  alt={`Product image ${index + 1}`}
+                                  boxSize="50px"
+                                  objectFit="cover"
+                                  borderRadius="md"
+                                />
+                                <IconButton
+                                  aria-label="Remove image"
+                                  icon={<FaTrash />}
+                                  size="xs"
+                                  colorScheme="red"
+                                  position="absolute"
+                                  top={-1}
+                                  right={-1}
+                                  onClick={() => handleRemoveImage(img.public_id || index)}
+                                />
+                              </Box>
+                            ))}
+                          </Flex>
+                        </Box>
+                      )}
+                    </FormControl>
                   </Box>
-                ))}
-              </Flex>
-            </Box>
-          )}
-        </FormControl>
-      </Box>
-    </Box>
+                </Box>
 
-    {/* Fixed Footer with Buttons */}
-    <Box 
-      flexShrink={0} 
-      p={4} 
-      borderTop="1px solid" 
-      borderColor={`${customColor}20`}
-      bg="transparent"
-    >
-      <Flex justify="flex-end">
-        <Button 
-          variant="outline" 
-          mr={3} 
-          onClick={handleResetProduct}
-          border="1px"
-          borderColor="gray.300"
-          size="sm"
-        >
-          Reset
-        </Button>
-        <Button
-          bg={customColor}
-          _hover={{ bg: customHoverColor }}
-          color="white"
-          onClick={handleSubmitProduct}
-          isLoading={isSubmitting}
-          isDisabled={!selectedCategory}
-          size="sm"
-        >
-          {selectedProduct ? "Update Product" : "Create Product"}
-        </Button>
-      </Flex>
-    </Box>
-  </Box>
-)}
+                {/* Fixed Footer with Buttons */}
+                <Box 
+                  flexShrink={0} 
+                  p={4} 
+                  borderTop="1px solid" 
+                  borderColor={`${customColor}20`}
+                  bg="transparent"
+                >
+                  <Flex justify="flex-end">
+                    <Button 
+                      variant="outline" 
+                      mr={3} 
+                      onClick={handleResetProduct}
+                      border="1px"
+                      borderColor="gray.300"
+                      size="sm"
+                    >
+                      Reset
+                    </Button>
+                    <Button
+                      bg={customColor}
+                      _hover={{ bg: customHoverColor }}
+                      color="white"
+                      onClick={handleSubmitProduct}
+                      isLoading={isSubmitting}
+                      isDisabled={!selectedCategory}
+                      size="sm"
+                    >
+                      {selectedProduct ? "Update Product" : "Create Product"}
+                    </Button>
+                  </Flex>
+                </Box>
+              </Box>
+            )}
           </CardBody>
         </Card>
       </Flex>
@@ -995,12 +1137,17 @@ export default function ProductManagement() {
       pt={{ base: "120px", md: "45px" }} 
       height="100vh" 
       overflow="hidden"
+      css={globalScrollbarStyles}
     >
       {/* Fixed Statistics Cards */}
-      <Box>
+      <Box
+        flexShrink={0}
+        p={4}
+        pb={0}
+      >
         <Grid
-          templateColumns={{ sm: "1fr", md: "1fr 1fr 1fr" }}
-          gap="20px"
+          templateColumns={{ base: "1fr 1fr", md: "1fr 1fr 1fr 1fr" }}
+          gap="15px"
           mb="20px"
         >
           {/* All Categories Card */}
@@ -1135,7 +1282,7 @@ export default function ProductManagement() {
             </CardBody>
           </Card>
 
-          {/* Product Stock Details Card */}
+          {/* Available Stock Card */}
           <Card
             minH="75px"
             cursor="pointer"
@@ -1175,15 +1322,18 @@ export default function ProductManagement() {
                     fontWeight="bold"
                     pb="1px"
                   >
-                    Total Stock
+                    Available Stock
                   </StatLabel>
                   <Flex>
                     <StatNumber fontSize="md" color={textColor}>
-                      {isLoadingProducts ? <Spinner size="xs" /> : 
-                        products.reduce((total, prod) => total + (prod.stock || prod.variants?.[0]?.stock || 0), 0)
+                      {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
+                        calculateTotalAvailableStock().toLocaleString()
                       }
                     </StatNumber>
                   </Flex>
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    {getLowStockProducts().length} low stock
+                  </Text>
                 </Stat>
                 <IconBox 
                   as="box" 
@@ -1202,10 +1352,81 @@ export default function ProductManagement() {
               </Flex>
             </CardBody>
           </Card>
+
+          {/* Stock Alerts Card */}
+          <Card
+            minH="75px"
+            cursor="pointer"
+            onClick={() => setCurrentView("products")}
+            border={currentView === "products" ? "2px solid" : "1px solid"}
+            borderColor={currentView === "products" ? customColor : `${customColor}30`}
+            transition="all 0.2s ease-in-out"
+            bg="white"
+            position="relative"
+            overflow="hidden"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: "translateY(-2px)",
+              shadow: "lg",
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}
+          >
+            <CardBody position="relative" zIndex={1} p={4}>
+              <Flex flexDirection="row" align="center" justify="center" w="100%">
+                <Stat me="auto">
+                  <StatLabel
+                    fontSize="xs"
+                    color="gray.600"
+                    fontWeight="bold"
+                    pb="1px"
+                  >
+                    Stock Alerts
+                  </StatLabel>
+                  <Flex>
+                    <StatNumber fontSize="md" color={textColor}>
+                      {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
+                        getOutOfStockProducts().length
+                      }
+                    </StatNumber>
+                  </Flex>
+                  <Text fontSize="xs" color="red.500" mt={1}>
+                    {getOutOfStockProducts().length} out of stock
+                  </Text>
+                </Stat>
+                <IconBox 
+                  as="box" 
+                  h={"35px"} 
+                  w={"35px"} 
+                  bg="red.500"
+                  transition="all 0.2s ease-in-out"
+                >
+                  <Icon
+                    as={FaExclamationTriangle}
+                    h={"14px"}
+                    w={"14px"}
+                    color="white"
+                  />
+                </IconBox>
+              </Flex>
+            </CardBody>
+          </Card>
         </Grid>
       </Box>
 
-      {/* Fixed Table Container */}
+      {/* Scrollable Table Container */}
       <Box 
         flex="1" 
         display="flex" 
@@ -1213,7 +1434,6 @@ export default function ProductManagement() {
         p={4}
         pt={0}
         overflow="hidden"
-        bg="white"
       >
         <Card 
           shadow="lg" 
@@ -1222,6 +1442,7 @@ export default function ProductManagement() {
           flexDirection="column"
           height="100%"
           minH="0"
+          overflow="hidden"
         >
           {/* Fixed Table Header */}
           <CardHeader 
@@ -1240,7 +1461,7 @@ export default function ProductManagement() {
               </Heading>
 
               {/* Search Bar - FIXED: Using searchTerm state */}
-              <Flex align="center" flex="1" maxW="350px">
+              <Flex align="center" flex="1" maxW="350px" minW="200px">
                 <Input
                   placeholder={
                     currentView === "categories" 
@@ -1303,7 +1524,7 @@ export default function ProductManagement() {
             </Flex>
           </CardHeader>
           
-          {/* Table Content Area */}
+          {/* Scrollable Table Content Area */}
           <CardBody 
             bg="white" 
             flex="1" 
@@ -1327,38 +1548,13 @@ export default function ProductManagement() {
                       flex="1"
                       display="flex"
                       flexDirection="column"
-                      height="400px"
                       overflow="hidden"
                     >
                       {/* Scrollable Table Area */}
                       <Box
                         flex="1"
-                        overflowY="hidden"
-                        overflowX="hidden"
-                        _hover={{
-                          overflowY: "auto",
-                          overflowX: "auto",
-                        }}
-                        css={{
-                          '&::-webkit-scrollbar': {
-                            width: '8px',
-                            height: '8px',
-                          },
-                          '&::-webkit-scrollbar-track': {
-                            background: 'transparent',
-                          },
-                          '&::-webkit-scrollbar-thumb': {
-                            background: 'transparent',
-                            borderRadius: '4px',
-                            transition: 'background 0.3s ease',
-                          },
-                          '&:hover::-webkit-scrollbar-thumb': {
-                            background: '#cbd5e1',
-                          },
-                          '&:hover::-webkit-scrollbar-thumb:hover': {
-                            background: '#94a3b8',
-                          },
-                        }}
+                        overflow="auto"
+                        css={globalScrollbarStyles}
                       >
                         <Table variant="simple" size="md" bg="transparent">
                           {/* Fixed Header */}
@@ -1424,21 +1620,7 @@ export default function ProductManagement() {
                               >
                                 Status
                               </Th>
-                              <Th 
-                                color="gray.100" 
-                                borderColor={`${customColor}30`}
-                                position="sticky"
-                                top={0}
-                                bg={`${customColor}`}
-                                zIndex={10}
-                                fontWeight="bold"
-                                fontSize="sm"
-                                py={3}
-                                borderBottom="2px solid"
-                                borderBottomColor={`${customColor}50`}
-                              >
-                                Add Product
-                              </Th>
+                              
                               <Th 
                                 color="gray.100" 
                                 borderColor={`${customColor}30`}
@@ -1493,26 +1675,7 @@ export default function ProductManagement() {
                                       {cat.status || "Active"}
                                     </Badge>
                                   </Td>
-                                  <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
-                                    <Button
-                                      bg="white"
-                                      color={customColor}
-                                      border="1px"
-                                      borderColor={customColor}
-                                      _hover={{ bg: customColor, color: "white" }}
-                                      size="sm"
-                                      onClick={() => { 
-                                        setSelectedCategory(cat); 
-                                        setSelectedProduct(null);
-                                        setNewProduct(initialProduct);
-                                        setCurrentView("add"); 
-                                      }}
-                                      fontSize="sm"
-                                      px={3}
-                                    >
-                                      + Add Product
-                                    </Button>
-                                  </Td>
+                                 
                                   <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
                                     <Flex gap={2}>
                                       <IconButton
@@ -1658,38 +1821,13 @@ export default function ProductManagement() {
                       flex="1"
                       display="flex"
                       flexDirection="column"
-                      height="400px"
                       overflow="hidden"
                     >
                       {/* Scrollable Table Area */}
                       <Box
                         flex="1"
-                        overflowY="hidden"
-                        overflowX="hidden"
-                        _hover={{
-                          overflowY: "auto",
-                          overflowX: "auto",
-                        }}
-                        css={{
-                          '&::-webkit-scrollbar': {
-                            width: '8px',
-                            height: '8px',
-                          },
-                          '&::-webkit-scrollbar-track': {
-                            background: 'transparent',
-                          },
-                          '&::-webkit-scrollbar-thumb': {
-                            background: 'transparent',
-                            borderRadius: '4px',
-                            transition: 'background 0.3s ease',
-                          },
-                          '&:hover::-webkit-scrollbar-thumb': {
-                            background: '#cbd5e1',
-                          },
-                          '&:hover::-webkit-scrollbar-thumb:hover': {
-                            background: '#94a3b8',
-                          },
-                        }}
+                        overflow="auto"
+                        css={globalScrollbarStyles}
                       >
                         <Table variant="simple" size="md" bg="transparent">
                           {/* Fixed Header */}
@@ -1768,7 +1906,7 @@ export default function ProductManagement() {
                                 borderBottom="2px solid"
                                 borderBottomColor={`${customColor}50`}
                               >
-                                Stock
+                                Stock Status
                               </Th>
                               <Th 
                                 color="gray.100" 
@@ -1791,75 +1929,85 @@ export default function ProductManagement() {
                           {/* Scrollable Body */}
                           <Tbody bg="transparent">
                             {currentProducts.length > 0 ? (
-                              currentProducts.map((prod, idx) => (
-                                <Tr 
-                                  key={prod._id || idx}
-                                  bg="transparent"
-                                  _hover={{ bg: `${customColor}10` }}
-                                  borderBottom="1px"
-                                  borderColor={`${customColor}20`}
-                                  height="60px"
-                                >
-                                  <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
-                                    {indexOfFirstItem + idx + 1}
-                                  </Td>
-                                  <Td borderColor={`${customColor}20`} fontWeight="medium" fontSize="sm" py={3}>
-                                    <Text noOfLines={1} maxW="150px">
-                                      {prod.name}
-                                    </Text>
-                                  </Td>
-                                  <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
-                                    <Text noOfLines={1} maxW="120px">
-                                      {prod.category?.name || 
-                                      categories.find(c => c._id === prod.category)?.name || 
-                                      "N/A"}
-                                    </Text>
-                                  </Td>
-                                  <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
-                                    ₹{prod.price || prod.variants?.[0]?.price || "-"}
-                                  </Td>
-                                  <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
-                                    {prod.stock || prod.variants?.[0]?.stock || "-"}
-                                  </Td>
-                                  <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
-                                    <Flex gap={2}>
-                                      <IconButton
-                                        aria-label="View product"
-                                        icon={<FaEye />}
-                                        bg="white"
-                                        color="blue.500"
-                                        border="1px"
-                                        borderColor="blue.500"
-                                        _hover={{ bg: "blue.500", color: "white" }}
-                                        size="sm"
-                                        onClick={() => handleViewProduct(prod)}
-                                      />
-                                      <IconButton
-                                        aria-label="Edit product"
-                                        icon={<FaEdit />}
-                                        bg="white"
-                                        color={customColor}
-                                        border="1px"
-                                        borderColor={customColor}
-                                        _hover={{ bg: customColor, color: "white" }}
-                                        size="sm"
-                                        onClick={() => handleEditProduct(prod)}
-                                      />
-                                      <IconButton
-                                        aria-label="Delete product"
-                                        icon={<FaTrash />}
-                                        bg="white"
-                                        color="red.500"
-                                        border="1px"
-                                        borderColor="red.500"
-                                        _hover={{ bg: "red.500", color: "white" }}
-                                        size="sm"
-                                        onClick={() => handleDeleteProduct(prod._id)}
-                                      />
-                                    </Flex>
-                                  </Td>
-                                </Tr>
-                              ))
+                              currentProducts.map((prod, idx) => {
+                                const availableStock = calculateAvailableStock(prod);
+                                const totalStock = prod.stock || prod.variants?.[0]?.stock || 0;
+                                
+                                return (
+                                  <Tr 
+                                    key={prod._id || idx}
+                                    bg="transparent"
+                                    _hover={{ bg: `${customColor}10` }}
+                                    borderBottom="1px"
+                                    borderColor={`${customColor}20`}
+                                    height="60px"
+                                  >
+                                    <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
+                                      {indexOfFirstItem + idx + 1}
+                                    </Td>
+                                    <Td borderColor={`${customColor}20`} fontWeight="medium" fontSize="sm" py={3}>
+                                      <Text noOfLines={1} maxW="150px">
+                                        {prod.name}
+                                      </Text>
+                                    </Td>
+                                    <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
+                                      <Text noOfLines={1} maxW="120px">
+                                        {prod.category?.name || 
+                                        categories.find(c => c._id === prod.category)?.name || 
+                                        "N/A"}
+                                      </Text>
+                                    </Td>
+                                    <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
+                                      ₹{prod.price || prod.variants?.[0]?.price || "-"}
+                                    </Td>
+                                    <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
+                                      <Flex direction="column" gap={1}>
+                                        <StockStatusBadge product={prod} />
+                                        <Text fontSize="xs" color="gray.500">
+                                          Total: {totalStock} | Available: {availableStock}
+                                        </Text>
+                                      </Flex>
+                                    </Td>
+                                    <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
+                                      <Flex gap={2}>
+                                        <IconButton
+                                          aria-label="View product"
+                                          icon={<FaEye />}
+                                          bg="white"
+                                          color="blue.500"
+                                          border="1px"
+                                          borderColor="blue.500"
+                                          _hover={{ bg: "blue.500", color: "white" }}
+                                          size="sm"
+                                          onClick={() => handleViewProduct(prod)}
+                                        />
+                                        <IconButton
+                                          aria-label="Edit product"
+                                          icon={<FaEdit />}
+                                          bg="white"
+                                          color={customColor}
+                                          border="1px"
+                                          borderColor={customColor}
+                                          _hover={{ bg: customColor, color: "white" }}
+                                          size="sm"
+                                          onClick={() => handleEditProduct(prod)}
+                                        />
+                                        <IconButton
+                                          aria-label="Delete product"
+                                          icon={<FaTrash />}
+                                          bg="white"
+                                          color="red.500"
+                                          border="1px"
+                                          borderColor="red.500"
+                                          _hover={{ bg: "red.500", color: "white" }}
+                                          size="sm"
+                                          onClick={() => handleDeleteProduct(prod._id)}
+                                        />
+                                      </Flex>
+                                    </Td>
+                                  </Tr>
+                                );
+                              })
                             ) : (
                               <Tr>
                                 <Td colSpan={6} textAlign="center" py={6}>
@@ -2036,8 +2184,19 @@ export default function ProductManagement() {
                   <Text fontSize="md" mt={1}>₹{selectedProduct.price || selectedProduct.variants?.[0]?.price || "-"}</Text>
                 </Box>
                 <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="sm">Stock:</Text>
-                  <Text fontSize="md" mt={1}>{selectedProduct.stock || selectedProduct.variants?.[0]?.stock || "-"}</Text>
+                  <Text fontWeight="bold" color="gray.600" fontSize="sm">Stock Status:</Text>
+                  <Flex direction="column" gap={1} mt={1}>
+                    <StockStatusBadge product={selectedProduct} />
+                    <Text fontSize="sm" color="gray.600">
+                      Total Stock: {selectedProduct.stock || selectedProduct.variants?.[0]?.stock || 0}
+                    </Text>
+                    <Text fontSize="sm" color="gray.600">
+                      Available: {calculateAvailableStock(selectedProduct)}
+                    </Text>
+                    <Text fontSize="sm" color="gray.600">
+                      Ordered: {(selectedProduct.stock || selectedProduct.variants?.[0]?.stock || 0) - calculateAvailableStock(selectedProduct)}
+                    </Text>
+                  </Flex>
                 </Box>
                 <Box>
                   <Text fontWeight="bold" color="gray.600" fontSize="sm">Color:</Text>

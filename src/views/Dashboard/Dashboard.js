@@ -19,13 +19,14 @@ import {
   Tooltip,
   Spinner,
   Button,
+  useBreakpointValue,
 } from '@chakra-ui/react';
 import { SearchIcon } from '@chakra-ui/icons';
 import { FiBell, FiShoppingCart, FiUsers, FiDollarSign, FiMapPin, FiPackage, FiRefreshCw } from 'react-icons/fi';
 import ReactApexChart from 'react-apexcharts';
 
 // Import your order data function
-import { getAllOrders } from '../utils/axiosInstance';
+import { getAllOrders, getAllCategories } from '../utils/axiosInstance';
 
 // Import your custom Card components
 import Card from "components/Card/Card.js";
@@ -141,39 +142,292 @@ const extractDistrictFromAddress = (order) => {
   return 'Other Districts';
 };
 
-// Process orders data
-const processOrdersData = (orders) => {
+// Enhanced function to extract category and product information with category mapping
+const extractProductInfo = (item, categoriesMap = {}) => {
+  console.log("Processing item:", item);
+  
+  // Try different possible category paths
+  let categoryId = null;
+  let categoryName = 'uncategorized';
+  let productName = 'Unknown Product';
+  
+  // Check for category in different possible locations
+  if (item.category) {
+    categoryId = item.category;
+  } else if (item.productId?.category) {
+    categoryId = item.productId.category;
+  } else if (item.product?.category) {
+    categoryId = item.product.category;
+  } else if (item.productDetails?.category) {
+    categoryId = item.productDetails.category;
+  }
+  
+  // Check for product name in different possible locations
+  if (item.name) {
+    productName = item.name;
+  } else if (item.productId?.name) {
+    productName = item.productId.name;
+  } else if (item.product?.name) {
+    productName = item.product.name;
+  } else if (item.productDetails?.name) {
+    productName = item.productDetails.name;
+  } else if (item.title) {
+    productName = item.title;
+  }
+  
+  // Map category ID to category name
+  if (categoryId && categoriesMap[categoryId]) {
+    categoryName = categoriesMap[categoryId];
+  } else if (categoryId) {
+    // If category ID exists but not in map, use the ID as fallback
+    categoryName = typeof categoryId === 'string' ? categoryId : 'uncategorized';
+  }
+  
+  // Clean up category name
+  categoryName = categoryName.toLowerCase().trim();
+  if (categoryName === '' || categoryName === 'undefined' || categoryName === 'null') {
+    categoryName = 'uncategorized';
+  }
+  
+  const finalCategoryName = categoryName.charAt(0).toUpperCase() + categoryName.slice(1);
+  
+  console.log("Extracted - Category ID:", categoryId, "Category Name:", finalCategoryName, "Product:", productName);
+  
+  return {
+    categoryId: categoryId,
+    category: finalCategoryName,
+    productName: productName,
+    price: item.price || item.unitPrice || 0,
+    quantity: item.quantity || item.qty || 1
+  };
+};
+
+// Process orders data for categories and districts
+const processOrdersData = (orders, categories = []) => {
   if (!orders || !Array.isArray(orders)) {
     return {
       totalOrders: 0,
+      totalRevenue: 0,
       districts: [],
       topDistricts: [],
       recentOrders: [],
-      totalRevenue: 0
+      categories: {},
+      categoryStats: {
+        labels: [],
+        series: [],
+        totalAmount: 0,
+        colors: [],
+        details: []
+      },
+      productStats: {
+        labels: [],
+        series: [],
+        totalAmount: 0,
+        colors: [],
+        details: []
+      },
+      lineChartData: {
+        series: [],
+        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      }
     };
   }
 
+  // Create categories map for ID to name mapping
+  const categoriesMap = {};
+  categories.forEach(cat => {
+    if (cat._id) categoriesMap[cat._id] = cat.name || 'Unknown Category';
+    if (cat.id) categoriesMap[cat.id] = cat.name || 'Unknown Category';
+  });
+
+  console.log("Categories map:", categoriesMap);
+
   const districtOrders = {};
+  const categoryData = {};
+  const productData = {};
+  const monthlyProductSales = {};
   let totalOrders = 0;
   let totalRevenue = 0;
   const recentOrders = [];
 
-  orders.forEach((order) => {
+  // Generate dynamic colors
+  const generateColors = (count) => {
+    const baseColors = [
+      '#DC2626', '#EA580C', '#D97706', '#CA8A04', '#65A30D',
+      '#059669', '#0891B2', '#7C3AED', '#DB2777', '#475569',
+      '#DC2626', '#EA580C', '#D97706', '#CA8A04', '#65A30D',
+      '#059669', '#0891B2', '#7C3AED', '#DB2777', '#475569'
+    ];
+    return baseColors.slice(0, count);
+  };
+
+  console.log("Total orders to process:", orders.length);
+
+  orders.forEach((order, orderIndex) => {
+    console.log(`Processing order ${orderIndex + 1}:`, order);
+    
     if (order.status && (order.status.toLowerCase() === 'confirmed' || 
                          order.status.toLowerCase() === 'completed' || 
                          order.status.toLowerCase() === 'delivered' || 
                          order.status.toLowerCase() === 'pending')) {
       totalOrders++;
-      totalRevenue += order.totalAmount || order.price || 0;
+      const orderAmount = order.totalAmount || order.price || order.total_amount || 0;
+      totalRevenue += orderAmount;
       
+      // Process district data
       const district = extractDistrictFromAddress(order);
-      
       if (!districtOrders[district]) {
         districtOrders[district] = 0;
       }
-      
       districtOrders[district]++;
 
+      let hasItems = false;
+
+      // Process category and product data from order items
+      const processItemArray = (items, source) => {
+        if (!items || !Array.isArray(items)) return;
+        
+        console.log(`Found ${items.length} items in ${source}:`, items);
+        
+        items.forEach((item, itemIndex) => {
+          hasItems = true;
+          const { categoryId, category, productName, price, quantity } = extractProductInfo(item, categoriesMap);
+          const itemAmount = price * quantity;
+          
+          console.log(`Item ${itemIndex + 1}:`, { categoryId, category, productName, price, quantity, itemAmount });
+
+          // Category data - now using category name instead of ID
+          if (!categoryData[category]) {
+            categoryData[category] = {
+              count: 0,
+              amount: 0,
+              items: []
+            };
+          }
+          categoryData[category].count += quantity;
+          categoryData[category].amount += itemAmount;
+          categoryData[category].items.push({
+            name: productName,
+            quantity: quantity,
+            price: price,
+            amount: itemAmount
+          });
+
+          // Product data
+          const productKey = `${productName} - ${category}`;
+          if (!productData[productKey]) {
+            productData[productKey] = {
+              name: productName,
+              category: category,
+              count: 0,
+              amount: 0,
+              items: []
+            };
+          }
+          productData[productKey].count += quantity;
+          productData[productKey].amount += itemAmount;
+          productData[productKey].items.push({
+            name: productName,
+            quantity: quantity,
+            price: price,
+            amount: itemAmount
+          });
+
+          // Monthly sales data for line chart
+          const orderDate = order.createdAt || order.orderDate || order.date || new Date();
+          const month = new Date(orderDate).getMonth(); // 0-11 for Jan-Dec
+          
+          if (!monthlyProductSales[productName]) {
+            monthlyProductSales[productName] = Array(12).fill(0);
+          }
+          monthlyProductSales[productName][month] += itemAmount;
+        });
+      };
+
+      // Try different possible item array names
+      processItemArray(order.items, 'items');
+      processItemArray(order.orderItems, 'orderItems');
+      processItemArray(order.products, 'products');
+      processItemArray(order.orderProducts, 'orderProducts');
+
+      // If no items found, try to find any array that might contain items
+      if (!hasItems) {
+        console.log("No standard item arrays found, searching for any array...");
+        Object.keys(order).forEach(key => {
+          if (Array.isArray(order[key]) && order[key].length > 0) {
+            const firstItem = order[key][0];
+            // Check if this looks like an item (has price, quantity, or name)
+            if (firstItem && (firstItem.price !== undefined || firstItem.quantity !== undefined || firstItem.name)) {
+              console.log(`Found potential items array in key: ${key}`, order[key]);
+              processItemArray(order[key], key);
+            }
+          }
+        });
+      }
+
+      // If still no items, create a generic entry from order data
+      if (!hasItems) {
+        console.log("No items found, creating generic entry from order data");
+        const orderCategoryId = order.category;
+        let categoryName = 'general';
+        
+        // Map order category ID to name
+        if (orderCategoryId && categoriesMap[orderCategoryId]) {
+          categoryName = categoriesMap[orderCategoryId];
+        } else if (orderCategoryId) {
+          categoryName = typeof orderCategoryId === 'string' ? orderCategoryId : 'general';
+        }
+        
+        categoryName = categoryName.charAt(0).toUpperCase() + categoryName.slice(1);
+        const productName = order.productName || 'Order Item';
+        
+        if (!categoryData[categoryName]) {
+          categoryData[categoryName] = {
+            count: 0,
+            amount: 0,
+            items: []
+          };
+        }
+        categoryData[categoryName].count += 1;
+        categoryData[categoryName].amount += orderAmount;
+        categoryData[categoryName].items.push({
+          name: productName,
+          quantity: 1,
+          price: orderAmount,
+          amount: orderAmount
+        });
+
+        // Product data for order-level items
+        const productKey = `${productName} - ${categoryName}`;
+        if (!productData[productKey]) {
+          productData[productKey] = {
+            name: productName,
+            category: categoryName,
+            count: 0,
+            amount: 0,
+            items: []
+          };
+        }
+        productData[productKey].count += 1;
+        productData[productKey].amount += orderAmount;
+        productData[productKey].items.push({
+          name: productName,
+          quantity: 1,
+          price: orderAmount,
+          amount: orderAmount
+        });
+
+        // Monthly sales data for line chart
+        const orderDate = order.createdAt || order.orderDate || order.date || new Date();
+        const month = new Date(orderDate).getMonth();
+        
+        if (!monthlyProductSales[productName]) {
+          monthlyProductSales[productName] = Array(12).fill(0);
+        }
+        monthlyProductSales[productName][month] += orderAmount;
+      }
+
+      // Process recent orders
       let displayAddress = 'No address provided';
       if (order.address) {
         if (typeof order.address === 'object') {
@@ -200,129 +454,121 @@ const processOrdersData = (orders) => {
       recentOrders.push({
         id: order.id || order._id || Math.random().toString(36).substr(2, 9),
         address: displayAddress,
-        amount: order.totalAmount || order.price || 0,
+        amount: orderAmount,
         status: order.status,
         district: district
       });
     }
   });
 
-  const districts = Object.keys(districtOrders).map(district => {
-    const ordersCount = districtOrders[district];
-    const percentage = totalOrders > 0 ? (ordersCount / totalOrders) * 100 : 0;
-    
-    return {
-      name: district,
-      orders: ordersCount,
-      percentage: parseFloat(percentage.toFixed(1))
-    };
-  });
+  console.log("Processed category data:", categoryData);
+  console.log("Processed product data:", productData);
+  console.log("Monthly product sales:", monthlyProductSales);
 
-  const filteredDistricts = districts
-    .filter(district => !['Unknown', 'Other Districts'].includes(district.name))
+  // Process districts data
+  const districts = Object.keys(districtOrders)
+    .filter(district => !['Unknown', 'Other Districts'].includes(district))
+    .map(district => {
+      const ordersCount = districtOrders[district];
+      const percentage = totalOrders > 0 ? (ordersCount / totalOrders) * 100 : 0;
+      
+      return {
+        name: district,
+        orders: ordersCount,
+        percentage: parseFloat(percentage.toFixed(1))
+      };
+    })
     .sort((a, b) => b.orders - a.orders);
 
-  const topDistricts = filteredDistricts.slice(0, 4);
+  const topDistricts = districts.slice(0, 4);
+
+  // Process category data for chart - now using category names
+  const categoryArray = Object.entries(categoryData)
+    .map(([categoryName, data]) => ({
+      name: categoryName,
+      value: data.amount,
+      count: data.count,
+      items: data.items,
+      color: ''
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  const categoryColors = generateColors(categoryArray.length);
+  categoryArray.forEach((category, index) => {
+    category.color = categoryColors[index] || '#6B7280';
+  });
+
+  const categoryStats = {
+    labels: categoryArray.map(cat => cat.name),
+    series: categoryArray.map(cat => parseFloat(cat.value.toFixed(2))),
+    totalAmount: categoryArray.reduce((sum, cat) => sum + cat.value, 0),
+    colors: categoryArray.map(cat => cat.color),
+    details: categoryArray
+  };
+
+  // Process product data for chart
+  const productArray = Object.entries(productData)
+    .map(([productKey, data]) => ({
+      name: data.name,
+      category: data.category,
+      value: data.amount,
+      count: data.count,
+      items: data.items,
+      color: ''
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10); // Show top 10 products
+
+  const productColors = generateColors(productArray.length);
+  productArray.forEach((product, index) => {
+    product.color = productColors[index] || '#6B7280';
+  });
+
+  const productStats = {
+    labels: productArray.map(prod => prod.name),
+    series: productArray.map(prod => parseFloat(prod.value.toFixed(2))),
+    totalAmount: productArray.reduce((sum, prod) => sum + prod.value, 0),
+    colors: productArray.map(prod => prod.color),
+    details: productArray
+  };
+
+  // Process line chart data
+  const topProductsForLineChart = Object.entries(monthlyProductSales)
+    .map(([productName, monthlyData]) => ({
+      name: productName,
+      data: monthlyData.map(amount => parseFloat(amount.toFixed(2)))
+    }))
+    .sort((a, b) => {
+      const totalA = a.data.reduce((sum, val) => sum + val, 0);
+      const totalB = b.data.reduce((sum, val) => sum + val, 0);
+      return totalB - totalA;
+    })
+    .slice(0, 5); // Top 5 products for line chart
+
+  const lineChartData = {
+    series: topProductsForLineChart,
+    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  };
+
+  console.log("Final category stats:", categoryStats);
+  console.log("Final product stats:", productStats);
+  console.log("Line chart data:", lineChartData);
 
   return {
     totalOrders,
     totalRevenue,
-    districts: filteredDistricts,
+    districts,
     topDistricts,
-    recentOrders: recentOrders.slice(0, 5)
+    recentOrders: recentOrders.slice(0, 5),
+    categories: categoryData,
+    categoryStats,
+    productStats,
+    lineChartData
   };
 };
 
-// Modern 3D City Map Component
+// Modern 3D City Map Component (simplified for brevity)
 const ModernCityMap = ({ districts, onDistrictHover, hoveredDistrict, loading }) => {
-  const getDistrictData = (districtName) => {
-    return districts.find(district => district.name === districtName) || { orders: 0, percentage: 0 };
-  };
-
-  // City zones with 3D building data
-  const cityZones = [
-    // Central Business District (High density)
-    { 
-      name: "Chennai", 
-      center: [460, 200],
-      buildings: [
-        { x: 450, y: 190, width: 25, height: 40, floors: 12, color: "#e2e8f0" },
-        { x: 480, y: 185, width: 20, height: 35, floors: 10, color: "#f1f5f9" },
-        { x: 465, y: 210, width: 30, height: 45, floors: 15, color: "#cbd5e1" },
-        { x: 440, y: 205, width: 22, height: 38, floors: 11, color: "#f1f5f9" },
-        { x: 475, y: 195, width: 18, height: 32, floors: 9, color: "#e2e8f0" }
-      ],
-      pins: [
-        { x: 455, y: 180, intensity: 1.0 },
-        { x: 470, y: 175, intensity: 0.8 },
-        { x: 465, y: 190, intensity: 0.9 },
-        { x: 450, y: 195, intensity: 0.7 }
-      ]
-    },
-    // Commercial Zone
-    { 
-      name: "Coimbatore", 
-      center: [350, 250],
-      buildings: [
-        { x: 340, y: 240, width: 22, height: 35, floors: 8, color: "#f1f5f9" },
-        { x: 365, y: 235, width: 28, height: 42, floors: 13, color: "#e2e8f0" },
-        { x: 355, y: 255, width: 20, height: 30, floors: 7, color: "#f1f5f9" },
-        { x: 370, y: 245, width: 25, height: 38, floors: 11, color: "#cbd5e1" }
-      ],
-      pins: [
-        { x: 345, y: 230, intensity: 0.6 },
-        { x: 360, y: 240, intensity: 0.8 },
-        { x: 355, y: 250, intensity: 0.5 }
-      ]
-    },
-    // Urban Center
-    { 
-      name: "Madurai", 
-      center: [400, 300],
-      buildings: [
-        { x: 390, y: 290, width: 26, height: 40, floors: 12, color: "#cbd5e1" },
-        { x: 415, y: 285, width: 24, height: 36, floors: 10, color: "#f1f5f9" },
-        { x: 405, y: 305, width: 30, height: 44, floors: 14, color: "#e2e8f0" },
-        { x: 395, y: 310, width: 20, height: 32, floors: 8, color: "#f1f5f9" }
-      ],
-      pins: [
-        { x: 395, y: 280, intensity: 0.7 },
-        { x: 410, y: 290, intensity: 0.9 },
-        { x: 400, y: 300, intensity: 0.6 }
-      ]
-    },
-    // Industrial Area
-    { 
-      name: "Salem", 
-      center: [380, 220],
-      buildings: [
-        { x: 370, y: 210, width: 32, height: 28, floors: 6, color: "#e2e8f0" },
-        { x: 390, y: 215, width: 28, height: 25, floors: 5, color: "#f1f5f9" },
-        { x: 375, y: 225, width: 35, height: 30, floors: 7, color: "#cbd5e1" }
-      ],
-      pins: [
-        { x: 375, y: 210, intensity: 0.4 },
-        { x: 385, y: 220, intensity: 0.5 }
-      ]
-    },
-    // Residential Zone
-    { 
-      name: "Tiruchirappalli", 
-      center: [420, 280],
-      buildings: [
-        { x: 410, y: 270, width: 18, height: 25, floors: 4, color: "#f1f5f9" },
-        { x: 430, y: 265, width: 20, height: 28, floors: 5, color: "#e2e8f0" },
-        { x: 415, y: 285, width: 22, height: 30, floors: 6, color: "#f1f5f9" },
-        { x: 425, y: 275, width: 16, height: 22, floors: 3, color: "#e2e8f0" }
-      ],
-      pins: [
-        { x: 415, y: 265, intensity: 0.5 },
-        { x: 425, y: 275, intensity: 0.7 },
-        { x: 420, y: 285, intensity: 0.4 }
-      ]
-    }
-  ];
-
   if (loading) {
     return (
       <Flex justify="center" align="center" height="100%" bg="gray.50" borderRadius="lg">
@@ -336,246 +582,31 @@ const ModernCityMap = ({ districts, onDistrictHover, hoveredDistrict, loading })
 
   return (
     <Box position="relative" width="100%" height="100%">
-      <svg
-        viewBox="0 0 800 500"
-        width="100%"
-        height="100%"
-        style={{ maxHeight: '300px' }}
-      >
-        <defs>
-          {/* Gradients */}
-          <linearGradient id="cityBg" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f8fafc" />
-            <stop offset="100%" stopColor="#f1f5f9" />
-          </linearGradient>
-          
-          <linearGradient id="buildingShadow" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#000000" stopOpacity="0.1" />
-            <stop offset="100%" stopColor="#000000" stopOpacity="0.05" />
-          </linearGradient>
-
-          {/* Glow effects */}
-          <filter id="pinGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
-            <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 0.2 0 0 0  0 0 0.2 0 0  0 0 0 0.8 -0.3" result="glow"/>
-          </filter>
-
-          <filter id="buildingShadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="2" dy="4" stdDeviation="3" floodColor="#000000" floodOpacity="0.15"/>
-          </filter>
-        </defs>
-
-        {/* Background */}
-        <rect width="100%" height="100%" fill="url(#cityBg)" />
-
-        {/* Main Roads */}
-        <g opacity="0.6">
-          {/* Horizontal main roads */}
-          <path d="M50,150 L750,150" stroke="#cbd5e1" strokeWidth="8" fill="none" />
-          <path d="M100,250 L700,250" stroke="#cbd5e1" strokeWidth="6" fill="none" />
-          <path d="M150,350 L650,350" stroke="#cbd5e1" strokeWidth="8" fill="none" />
-          
-          {/* Vertical main roads */}
-          <path d="M200,100 L200,400" stroke="#cbd5e1" strokeWidth="6" fill="none" />
-          <path d="M400,50 L400,450" stroke="#cbd5e1" strokeWidth="10" fill="none" />
-          <path d="M600,100 L600,400" stroke="#cbd5e1" strokeWidth="6" fill="none" />
-          
-          {/* Secondary roads */}
-          <path d="M300,180 L500,180" stroke="#e2e8f0" strokeWidth="4" fill="none" strokeDasharray="2,4" />
-          <path d="M300,320 L500,320" stroke="#e2e8f0" strokeWidth="4" fill="none" strokeDasharray="2,4" />
-          <path d="M280,200 L280,300" stroke="#e2e8f0" strokeWidth="3" fill="none" strokeDasharray="1,3" />
-          <path d="M520,200 L520,300" stroke="#e2e8f0" strokeWidth="3" fill="none" strokeDasharray="1,3" />
-        </g>
-
-        {/* Draw 3D Buildings */}
-        {cityZones.map((zone) => (
-          <g key={zone.name} opacity={hoveredDistrict === zone.name ? 1 : 0.8}>
-            {zone.buildings.map((building, index) => (
-              <g key={index}>
-                {/* Building shadow */}
-                <rect
-                  x={building.x + 3}
-                  y={building.y + 3}
-                  width={building.width}
-                  height={building.height}
-                  fill="url(#buildingShadow)"
-                  opacity="0.3"
-                />
-                
-                {/* Building main structure */}
-                <rect
-                  x={building.x}
-                  y={building.y}
-                  width={building.width}
-                  height={building.height}
-                  fill={building.color}
-                  stroke="#94a3b8"
-                  strokeWidth="0.5"
-                  filter="url(#buildingShadow)"
-                />
-                
-                {/* Building windows */}
-                {Array.from({ length: building.floors }).map((_, floor) => (
-                  <g key={floor}>
-                    {Array.from({ length: Math.floor(building.width / 8) }).map((_, windowIndex) => (
-                      <rect
-                        key={windowIndex}
-                        x={building.x + 4 + windowIndex * 8}
-                        y={building.y + 4 + floor * 6}
-                        width="4"
-                        height="3"
-                        fill="#cbd5e1"
-                        opacity="0.6"
-                      />
-                    ))}
-                  </g>
-                ))}
-              </g>
+      <Flex justify="center" align="center" height="100%" bg="gray.50" borderRadius="lg">
+        <VStack spacing={4}>
+          <Text fontSize="lg" fontWeight="bold" color="gray.700">
+            Order Distribution Map
+          </Text>
+          <Text color="gray.500" textAlign="center">
+            Visualizing orders across {districts.length} districts
+          </Text>
+          <SimpleGrid columns={2} spacing={4} mt={4}>
+            {districts.slice(0, 6).map((district, index) => (
+              <Box key={district.name} p={3} bg="white" borderRadius="md" shadow="sm">
+                <Text fontWeight="medium">{district.name}</Text>
+                <Text color="red.500" fontSize="sm">{district.orders} orders</Text>
+              </Box>
             ))}
-          </g>
-        ))}
-
-        {/* Red Map Pins */}
-        {cityZones.map((zone) => {
-          const districtData = getDistrictData(zone.name);
-          const intensity = districtData.percentage > 0 ? Math.min(districtData.percentage / 20, 1) : 0.3;
-          
-          return zone.pins.map((pin, pinIndex) => (
-            <g key={`${zone.name}-${pinIndex}`} opacity={intensity}>
-              {/* Pin glow */}
-              <circle
-                cx={pin.x}
-                cy={pin.y}
-                r="12"
-                fill="#DC2626"
-                opacity="0.2"
-                filter="url(#pinGlow)"
-              />
-              
-              {/* Pin outer circle */}
-              <circle
-                cx={pin.x}
-                cy={pin.y}
-                r="8"
-                fill="#DC2626"
-                opacity="0.4"
-              />
-              
-              {/* Pin main */}
-              <circle
-                cx={pin.x}
-                cy={pin.y}
-                r="5"
-                fill="#DC2626"
-                stroke="#FFFFFF"
-                strokeWidth="2"
-                onMouseEnter={() => onDistrictHover(zone.name)}
-                onMouseLeave={() => onDistrictHover(null)}
-                style={{ cursor: 'pointer' }}
-              />
-              
-              {/* Pin highlight */}
-              <circle
-                cx={pin.x - 1}
-                cy={pin.y - 1}
-                r="1.5"
-                fill="#FFFFFF"
-                opacity="0.8"
-              />
-            </g>
-          ));
-        })}
-
-        {/* Data visualization overlay */}
-        <g opacity="0.1">
-          {/* Data flow lines */}
-          <path d="M460,200 L400,300" stroke="#DC2626" strokeWidth="2" strokeDasharray="3,3" />
-          <path d="M460,200 L350,250" stroke="#DC2626" strokeWidth="2" strokeDasharray="3,3" />
-          <path d="M400,300 L420,280" stroke="#DC2626" strokeWidth="2" strokeDasharray="3,3" />
-          <path d="M350,250 L380,220" stroke="#DC2626" strokeWidth="2" strokeDasharray="3,3" />
-        </g>
-      </svg>
-
-      {/* Info Panel */}
-      <Box
-        position="absolute"
-        top="20px"
-        right="20px"
-        bg="white"
-        p={4}
-        borderRadius="xl"
-        boxShadow="xl"
-        border="1px solid"
-        borderColor="gray.200"
-        minW="200px"
-        backdropFilter="blur(10px)"
-      >
-        <VStack spacing={3} align="stretch">
-          <Text fontSize="lg" fontWeight="bold" color="gray.800">
-            Order Analytics
-          </Text>
-          
-          <Box>
-            <Text fontSize="sm" color="gray.600" mb={1}>Total Orders</Text>
-            <Text fontSize="2xl" fontWeight="bold" color="#DC2626">
-              {districts.reduce((sum, district) => sum + district.orders, 0).toLocaleString()}
-            </Text>
-          </Box>
-
-          <Box>
-            <Text fontSize="sm" color="gray.600" mb={2}>Top Districts</Text>
-            <VStack spacing={2} align="stretch">
-              {districts.slice(0, 3).map((district, index) => (
-                <Flex key={district.name} justify="space-between" align="center">
-                  <Text fontSize="sm" color="gray.700" noOfLines={1}>
-                    {district.name}
-                  </Text>
-                  <Badge colorScheme="red" fontSize="xs">
-                    {district.orders}
-                  </Badge>
-                </Flex>
-              ))}
-            </VStack>
-          </Box>
+          </SimpleGrid>
         </VStack>
-      </Box>
-
-      {/* Hover Tooltip */}
-      {hoveredDistrict && (
-        <Box
-          position="absolute"
-          bottom="20px"
-          left="20px"
-          bg="white"
-          p={3}
-          borderRadius="lg"
-          boxShadow="lg"
-          border="1px solid"
-          borderColor="gray.200"
-          minW="140px"
-          backdropFilter="blur(10px)"
-        >
-          <Text fontSize="sm" fontWeight="bold" color="gray.800" mb={1}>
-            {hoveredDistrict}
-          </Text>
-          <HStack spacing={2} mb={1}>
-            <Box w="6px" h="6px" bg="#DC2626" borderRadius="full" />
-            <Text fontSize="xs" color="gray.600">
-              {getDistrictData(hoveredDistrict)?.orders || 0} orders
-            </Text>
-          </HStack>
-          <Text fontSize="xs" color="gray.500">
-            {getDistrictData(hoveredDistrict)?.percentage || 0}% of total
-          </Text>
-        </Box>
-      )}
+      </Flex>
     </Box>
   );
 };
 
 // Recent Orders Component
 const RecentOrders = ({ orders, loading }) => {
-  const accent = '#DC2626';
+  const accent = '#5a189a';
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -609,20 +640,7 @@ const RecentOrders = ({ orders, loading }) => {
   }
 
   return (
-    <VStack spacing={3} align="stretch" maxH="200px" overflowY="auto" css={{
-      '&::-webkit-scrollbar': {
-        width: '4px',
-      },
-      '&::-webkit-scrollbar-track': {
-        width: '6px',
-        background: '#f1f1f1',
-        borderRadius: '24px',
-      },
-      '&::-webkit-scrollbar-thumb': {
-        background: '#cbd5e1',
-        borderRadius: '24px',
-      },
-    }}>
+    <VStack spacing={3} align="stretch" maxH="200px" overflowY="auto">
       {orders.map((order) => (
         <Box 
           key={order.id}
@@ -665,73 +683,391 @@ const RecentOrders = ({ orders, loading }) => {
   );
 };
 
-// ApexCharts Configuration
-const donutChartOptions = {
-  chart: { type: 'donut' },
-  labels: ['Electronics', 'Fashion', 'Home', 'Beauty'],
-  colors: ['#DC2626', '#EA580C', '#D97706', '#CA8A04'],
-  legend: { show: false },
-  dataLabels: { enabled: false },
-  plotOptions: {
-    pie: { donut: { size: '65%' } }
+// Enhanced Category Donut Chart Component with Product Details
+const CategoryDonutChart = ({ categoryStats, productStats, loading, activeView, onViewChange }) => {
+  const accent = '#5a189a';
+  const isMobile = useBreakpointValue({ base: true, md: false });
+
+  const currentStats = activeView === 'categories' ? categoryStats : productStats;
+  const chartTitle = activeView === 'categories' ? 'Sales by Category' : 'Top Products';
+
+  // Chart options
+  const donutChartOptions = {
+    chart: { 
+      type: 'donut',
+      animations: {
+        enabled: true,
+        speed: 800
+      }
+    },
+    labels: currentStats.labels,
+    colors: currentStats.colors,
+    legend: { show: false },
+    dataLabels: { 
+      enabled: true,
+      formatter: function (val) {
+        return Math.round(val) + "%";
+      },
+      dropShadow: {
+        enabled: true,
+        top: 1,
+        left: 1,
+        blur: 1,
+        color: '#000',
+        opacity: 0.45
+      }
+    },
+    plotOptions: {
+      pie: { 
+        donut: { 
+          size: '65%',
+          labels: {
+            show: true,
+            name: { show: true },
+            value: { 
+              show: true,
+              formatter: function (val) {
+                return '₹' + Math.round(val).toLocaleString();
+              }
+            },
+            total: {
+              show: true,
+              label: 'Total',
+              formatter: function (w) {
+                return '₹' + w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString();
+              }
+            }
+          }
+        }
+      }
+    },
+    tooltip: {
+      y: {
+        formatter: function (value) {
+          return '₹' + value.toLocaleString();
+        }
+      }
+    },
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: { width: 200 },
+        legend: { position: 'bottom' }
+      }
+    }]
+  };
+
+  if (loading) {
+    return (
+      <Flex justify="center" align="center" height="200px">
+        <Spinner size="lg" color={accent} />
+      </Flex>
+    );
   }
+
+  if (currentStats.series.length === 0) {
+    return (
+      <Flex justify="center" align="center" height="200px" direction="column">
+        <Text color="gray.500" mb={2}>No {activeView} data available</Text>
+        <Text fontSize="sm" color="gray.400">Orders will appear here once processed</Text>
+      </Flex>
+    );
+  }
+
+  return (
+    <Flex direction="column" height="200px">
+      {/* View Toggle */}
+      <Flex justify="space-between" align="center" mb={4}>
+        <Heading size="sm" color="gray.700">{chartTitle}</Heading>
+        <Button
+          size="xs"
+          variant="outline"
+          onClick={onViewChange}
+          bg={activeView === 'categories' ? accent : 'white'}
+          color={activeView === 'categories' ? 'white' : accent}
+          borderColor={accent}
+          _hover={{ bg: activeView === 'categories' ? accent : `${accent}10` }}
+        >
+          {activeView === 'categories' ? 'Show Products' : 'Show Categories'}
+        </Button>
+      </Flex>
+
+      {/* Chart Content */}
+      <Flex align="center" justify="space-between" flex="1">
+        <Box w={isMobile ? "50%" : "60%"} height="100%">
+          <ReactApexChart 
+            options={donutChartOptions} 
+            series={currentStats.series} 
+            type="donut" 
+            height="100%" 
+          />
+        </Box>
+        <VStack spacing={3} align="flex-start" w={isMobile ? "50%" : "40%"} pl={4}>
+          <Box>
+            <Text fontWeight="bold" fontSize={{ base: "lg", md: "xl" }} color="gray.800">
+              ₹{currentStats.totalAmount.toLocaleString()}
+            </Text>
+            <Text fontSize="sm" color="gray.500">Total Sales</Text>
+          </Box>
+          <VStack spacing={2} align="flex-start" maxH="120px" overflowY="auto" w="100%">
+            {currentStats.details.map((item, i) => (
+              <HStack key={item.name} spacing={3} w="100%" justify="space-between">
+                <HStack spacing={2} flex="1">
+                  <Box w={2} h={2} bg={currentStats.colors[i]} borderRadius="full" flexShrink={0} />
+                  <VStack spacing={0} align="flex-start" flex="1">
+                    <Text fontSize="xs" color="gray.700" noOfLines={1} fontWeight="medium">
+                      {item.name}
+                    </Text>
+                    {activeView === 'products' && (
+                      <Text fontSize="xs" color="gray.500" noOfLines={1}>
+                        {item.category}
+                      </Text>
+                    )}
+                  </VStack>
+                </HStack>
+                <VStack spacing={0} align="flex-end" flexShrink={0}>
+                  <Text fontSize="xs" fontWeight="medium" color="gray.800">
+                    ₹{item.value.toLocaleString()}
+                  </Text>
+                  <Text fontSize="xs" color="gray.500">
+                    {item.count} items
+                  </Text>
+                </VStack>
+              </HStack>
+            ))}
+          </VStack>
+        </VStack>
+      </Flex>
+    </Flex>
+  );
 };
 
-const donutChartSeries = [52, 30, 22, 16];
+// Product Details Component
+const ProductDetailsChart = ({ productStats, loading }) => {
+  const accent = '#DC2626';
+  const isMobile = useBreakpointValue({ base: true, md: false });
 
-const lineChartOptions = {
+  if (loading) {
+    return (
+      <Flex justify="center" align="center" height="200px">
+        <Spinner size="lg" color={accent} />
+      </Flex>
+    );
+  }
+
+  if (productStats.details.length === 0) {
+    return (
+      <Flex justify="center" align="center" height="200px" direction="column">
+        <Text color="gray.500" mb={2}>No product data available</Text>
+        <Text fontSize="sm" color="gray.400">Products will appear here once orders are processed</Text>
+      </Flex>
+    );
+  }
+
+  return (
+    <Flex direction="column" height="200px">
+      <Heading size="sm" mb={4} color="gray.700">Top Products Performance</Heading>
+      
+      <Box flex="1" overflowY="auto">
+        <VStack spacing={3} align="stretch">
+          {productStats.details.map((product, index) => (
+            <Box 
+              key={product.name}
+              p={3}
+              borderRadius="md"
+              bg="white"
+              border="1px solid"
+              borderColor="gray.100"
+              _hover={{ bg: 'gray.50' }}
+            >
+              <Flex justify="space-between" align="start" mb={2}>
+                <VStack align="start" spacing={1} flex="1">
+                  <Text fontSize="sm" fontWeight="bold" color="gray.800" noOfLines={1}>
+                    {product.name}
+                  </Text>
+                  <Badge colorScheme="purple" fontSize="xs">
+                    {product.category}
+                  </Badge>
+                </VStack>
+                <Text fontSize="sm" fontWeight="bold" color={accent} flexShrink={0} ml={2}>
+                  ₹{product.value.toLocaleString()}
+                </Text>
+              </Flex>
+              
+              <Flex justify="space-between" align="center">
+                <Text fontSize="xs" color="gray.600">
+                  {product.count} items sold
+                </Text>
+                <Box 
+                  w="6px" 
+                  h="6px" 
+                  bg={productStats.colors[index]} 
+                  borderRadius="full" 
+                  flexShrink={0}
+                />
+              </Flex>
+            </Box>
+          ))}
+        </VStack>
+      </Box>
+    </Flex>
+  );
+};
+
+// Line chart configuration - Updated to use dynamic data
+const getLineChartOptions = (categories) => ({
   chart: {
     height: 350,
     type: 'line',
     zoom: { enabled: false },
-    toolbar: { show: false }
+    toolbar: { show: true }
   },
-  colors: ['#DC2626', '#EA580C', '#D97706'],
+  colors: ['#5a189a', '#5a189a', '#5a189a', '#5a189a', '#5a189a'],
   stroke: { width: 3, curve: 'smooth' },
-  markers: { size: 2 },
+  markers: { size: 4 },
   xaxis: {
-    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    categories: categories,
     axisBorder: { show: false },
-    axisTicks: { show: false }
+    axisTicks: { show: false },
+    labels: {
+      style: {
+        colors: '#6B7280',
+        fontSize: '12px'
+      }
+    }
   },
   yaxis: {
     min: 0,
-    labels: { formatter: (val) => val.toFixed(0) }
+    labels: { 
+      formatter: (val) => '₹' + val.toLocaleString(),
+      style: {
+        colors: '#6B7280',
+        fontSize: '12px'
+      }
+    }
   },
-  grid: { borderColor: '#f1f1f1' },
+  grid: { 
+    borderColor: '#f1f1f1',
+    strokeDashArray: 4
+  },
   legend: {
     position: 'bottom',
-    horizontalAlign: 'center'
+    horizontalAlign: 'center',
+    fontSize: '12px',
+    labels: {
+      colors: '#374151'
+    }
+  },
+  tooltip: {
+    y: {
+      formatter: function (value) {
+        return '₹' + value.toLocaleString();
+      }
+    }
   }
-};
-
-const lineChartSeries = [
-  { name: "Women's Kurta", data: [12, 18, 25, 35, 40, 55, 60, 75, 80, 95, 110, 125] },
-  { name: 'Fashion', data: [8, 12, 16, 22, 28, 32, 38, 42, 48, 52, 60, 72] },
-  { name: 'Home Kurta', data: [6, 9, 12, 18, 21, 26, 30, 34, 39, 44, 50, 58] }
-];
+});
 
 export default function EcommerceDashboard() {
   const bg = useColorModeValue('linear-gradient(180deg,#fafafa 0%,#f5f5f5 100%)', 'gray.800');
   const cardBg = useColorModeValue('white', 'gray.700');
   const accent = '#DC2626';
+  const isMobile = useBreakpointValue({ base: true, md: false });
 
   const [hoveredDistrict, setHoveredDistrict] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
+  const [activeChartView, setActiveChartView] = useState('categories'); // 'categories' or 'products'
   const [orderData, setOrderData] = useState({
     totalOrders: 0,
     totalRevenue: 0,
     districts: [],
     topDistricts: [],
-    recentOrders: []
+    recentOrders: [],
+    categories: {},
+    categoryStats: {
+      labels: [],
+      series: [],
+      totalAmount: 0,
+      colors: [],
+      details: []
+    },
+    productStats: {
+      labels: [],
+      series: [],
+      totalAmount: 0,
+      colors: [],
+      details: []
+    },
+    lineChartData: {
+      series: [],
+      categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    }
   });
+
+  const fetchCategoriesData = async () => {
+    try {
+      console.log("Fetching categories data...");
+      const response = await getAllCategories();
+      
+      let categoriesData = [];
+      if (Array.isArray(response)) {
+        categoriesData = response;
+      } else if (response && Array.isArray(response.categories)) {
+        categoriesData = response.categories;
+      } else if (response && Array.isArray(response.data)) {
+        categoriesData = response.data;
+      } else {
+        // Try to find array in response object
+        const maybeArray = Object.values(response || {}).find((v) => Array.isArray(v));
+        if (Array.isArray(maybeArray)) {
+          categoriesData = maybeArray;
+        }
+      }
+
+      console.log("Categories data:", categoriesData);
+      setCategories(categoriesData);
+      return categoriesData;
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+      return [];
+    }
+  };
 
   const fetchOrdersData = async () => {
     try {
       setLoading(true);
+      console.log("Fetching orders data...");
+      
+      // Fetch categories first
+      const categoriesData = await fetchCategoriesData();
+      
+      // Then fetch orders
       const response = await getAllOrders();
-      const orders = response.data?.orders || response.data || response?.orders || response || [];
-      const processedData = processOrdersData(orders);
+      
+      // Extract orders array from response
+      let orders = [];
+      if (Array.isArray(response)) {
+        orders = response;
+      } else if (response && Array.isArray(response.orders)) {
+        orders = response.orders;
+      } else if (response && Array.isArray(response.data)) {
+        orders = response.data;
+      } else {
+        // Try to find array in response object
+        const maybeArray = Object.values(response || {}).find((v) => Array.isArray(v));
+        if (Array.isArray(maybeArray)) {
+          orders = maybeArray;
+        }
+      }
+
+      console.log("Raw orders data structure:", orders);
+      console.log("First order sample:", orders[0]);
+      
+      // Process orders with categories data
+      const processedData = processOrdersData(orders, categoriesData);
+      console.log("Processed category data:", processedData.categoryStats);
+      console.log("Processed product data:", processedData.productStats);
+      console.log("Processed line chart data:", processedData.lineChartData);
       setOrderData(processedData);
     } catch (err) {
       console.error("Error fetching orders:", err);
@@ -741,6 +1077,25 @@ export default function EcommerceDashboard() {
         districts: [],
         topDistricts: [],
         recentOrders: [],
+        categories: {},
+        categoryStats: {
+          labels: [],
+          series: [],
+          totalAmount: 0,
+          colors: [],
+          details: []
+        },
+        productStats: {
+          labels: [],
+          series: [],
+          totalAmount: 0,
+          colors: [],
+          details: []
+        },
+        lineChartData: {
+          series: [],
+          categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        }
       });
     } finally {
       setLoading(false);
@@ -759,43 +1114,53 @@ export default function EcommerceDashboard() {
     setHoveredDistrict(districtName);
   };
 
+  const toggleChartView = () => {
+    setActiveChartView(activeChartView === 'categories' ? 'products' : 'categories');
+  };
+
+  const lineChartOptions = getLineChartOptions(orderData.lineChartData.categories);
+
   return (
     <Box 
       minH="100vh" 
       mt={9}
-      p={3}
+      p={{ base: 2, md: 3 }}
       overflow="auto"
       css={{
         '&::-webkit-scrollbar': {
-          width: '8px',
+          width: '6px',
         },
         '&::-webkit-scrollbar-track': {
-          width: '10px',
-          background: '#f1f1f1',
-          borderRadius: '24px',
+          background: 'transparent',
+          borderRadius: '3px',
         },
         '&::-webkit-scrollbar-thumb': {
-          background: '#cbd5e1',
-          borderRadius: '24px',
+          background: 'transparent',
+          borderRadius: '3px',
           transition: 'background 0.3s ease',
         },
-        '&::-webkit-scrollbar-thumb:hover': {
+        '&:hover::-webkit-scrollbar-thumb': {
+          background: '#cbd5e1',
+        },
+        '&:hover::-webkit-scrollbar-thumb:hover': {
           background: '#94a3b8',
         },
-        // For Firefox
         scrollbarWidth: 'thin',
-        scrollbarColor: '#cbd5e1 transparent',
+        scrollbarColor: 'transparent transparent',
+        '&:hover': {
+          scrollbarColor: '#cbd5e1 transparent',
+        },
       }}
     >
       {/* Stats Cards Row */}
-      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={6}>
+      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={{ base: 3, md: 6 }} mb={6}>
         <Card bg={cardBg} boxShadow="lg" borderRadius="xl">
           <CardBody>
             <HStack justify="space-between">
               <Box>
                 <Stat>
                   <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Active Orders</StatLabel>
-                  <StatNumber fontSize="2xl" color="gray.800">
+                  <StatNumber fontSize={{ base: "xl", md: "2xl" }} color="gray.800">
                     {loading ? <Spinner size="sm" /> : orderData.totalOrders}
                   </StatNumber>
                   <Text fontSize="sm" color="gray.500">
@@ -818,7 +1183,7 @@ export default function EcommerceDashboard() {
               <Box>
                 <Stat>
                   <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Total Revenue</StatLabel>
-                  <StatNumber fontSize="2xl" color="gray.800">
+                  <StatNumber fontSize={{ base: "xl", md: "2xl" }} color="gray.800">
                     {loading ? <Spinner size="sm" /> : `₹${orderData.totalRevenue.toLocaleString()}`}
                   </StatNumber>
                   <Text fontSize="sm" color="gray.500">
@@ -840,18 +1205,24 @@ export default function EcommerceDashboard() {
             <HStack justify="space-between">
               <Box>
                 <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Districts Covered</StatLabel>
-                  <StatNumber fontSize="2xl" color="gray.800">
-                    {loading ? <Spinner size="sm" /> : orderData.districts.length}
+                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">
+                    {activeChartView === 'categories' ? 'Categories' : 'Top Products'}
+                  </StatLabel>
+                  <StatNumber fontSize={{ base: "xl", md: "2xl" }} color="gray.800">
+                    {loading ? <Spinner size="sm" /> : 
+                      activeChartView === 'categories' 
+                        ? orderData.categoryStats.details.length 
+                        : orderData.productStats.details.length
+                    }
                   </StatNumber>
                   <Text fontSize="sm" color="gray.500">
-                    Across Tamil Nadu
+                    {activeChartView === 'categories' ? 'Product categories' : 'Best selling products'}
                   </Text>
                 </Stat>
               </Box>
               <Box>
                 <Flex align="center" justify="center" w={12} h={12} borderRadius="xl" bg="#DCFCE7">
-                  <FiMapPin size={20} color="#16A34A" />
+                  <FiPackage size={20} color="#16A34A" />
                 </Flex>
               </Box>
             </HStack>
@@ -859,51 +1230,46 @@ export default function EcommerceDashboard() {
         </Card>
       </SimpleGrid>
 
-      {/* Main Content Grid - Made scrollable */}
+      {/* Main Content Grid */}
       <Box 
         overflowY="auto"
         maxH="calc(100vh - 200px)"
         css={{
           '&::-webkit-scrollbar': {
-            width: '8px',
+            width: '6px',
           },
           '&::-webkit-scrollbar-track': {
-            background: '#f1f1f1',
-            borderRadius: '24px',
+            background: 'transparent',
           },
           '&::-webkit-scrollbar-thumb': {
-            background: '#cbd5e1',
-            borderRadius: '24px',
+            background: 'transparent',
+            borderRadius: '3px',
+            transition: 'background 0.3s ease',
           },
-          '&::-webkit-scrollbar-thumb:hover': {
+          '&:hover::-webkit-scrollbar-thumb': {
+            background: '#cbd5e1',
+          },
+          '&:hover::-webkit-scrollbar-thumb:hover': {
             background: '#94a3b8',
           },
           scrollbarWidth: 'thin',
-          scrollbarColor: '#cbd5e1 transparent',
+          scrollbarColor: 'transparent transparent',
+          '&:hover': {
+            scrollbarColor: '#cbd5e1 transparent',
+          },
         }}
       >
-        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} minH="600px">
-          {/* Left: Donut Chart */}
+        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={{ base: 4, md: 6 }} minH="600px">
+          {/* Left: Enhanced Donut Chart with Product Details */}
           <Card bg={cardBg} boxShadow="lg" borderRadius="xl" gridColumn={{ md: 'span 1' }}>
             <CardBody>
-              <Heading size="sm" mb={4} color="gray.700">Sales by Category</Heading>
-              <Flex align="center" justify="space-between" height="200px">
-                <Box w="60%" height="100%">
-                  <ReactApexChart options={donutChartOptions} series={donutChartSeries} type="donut" height="100%" />
-                </Box>
-                <VStack spacing={3} align="flex-start">
-                  <Text fontWeight="bold" fontSize="xl" color="gray.800">₹1,20,000</Text>
-                  <Text fontSize="sm" color="gray.500">Total Sales</Text>
-                  {donutChartOptions.labels.map((label, i) => (
-                    <HStack key={label} spacing={3}>
-                      <Box w={3} h={3} bg={donutChartOptions.colors[i]} borderRadius="full" />
-                      <Text fontSize="sm" color="gray.700">
-                        {label} <Text as="span" color="gray.500">₹{donutChartSeries[i]}K</Text>
-                      </Text>
-                    </HStack>
-                  ))}
-                </VStack>
-              </Flex>
+              <CategoryDonutChart 
+                categoryStats={orderData.categoryStats}
+                productStats={orderData.productStats}
+                loading={loading}
+                activeView={activeChartView}
+                onViewChange={toggleChartView}
+              />
             </CardBody>
           </Card>
 
@@ -936,6 +1302,37 @@ export default function EcommerceDashboard() {
             </CardBody>
           </Card>
 
+          {/* Sales Trend Line Chart */}
+          <Card bg={cardBg} boxShadow="lg" borderRadius="xl" gridColumn={{ md: 'span 2' }}>
+            <CardBody>
+              <Flex justify="space-between" align="center" mb={4}>
+                <Heading size="sm" color="gray.700">Sales Trend</Heading>
+                <Badge colorScheme="green" fontSize="sm">
+                  Monthly Revenue
+                </Badge>
+              </Flex>
+              <Box height="240px">
+                {loading ? (
+                  <Flex justify="center" align="center" height="100%">
+                    <Spinner size="lg" color="#5a189a" />
+                  </Flex>
+                ) : orderData.lineChartData.series.length > 0 ? (
+                  <ReactApexChart 
+                    options={lineChartOptions} 
+                    series={orderData.lineChartData.series} 
+                    type="line" 
+                    height="100%" 
+                  />
+                ) : (
+                  <Flex justify="center" align="center" height="100%" direction="column">
+                    <Text color="gray.500" mb={2}>No sales data available</Text>
+                    <Text fontSize="sm" color="gray.400">Sales trends will appear here once orders are processed</Text>
+                  </Flex>
+                )}
+              </Box>
+            </CardBody>
+          </Card>
+
           {/* Bottom Left: Recent Orders */}
           <Card bg={cardBg} boxShadow="lg" borderRadius="xl" gridColumn={{ md: 'span 1' }}>
             <CardBody>
@@ -947,17 +1344,27 @@ export default function EcommerceDashboard() {
             </CardBody>
           </Card>
 
-          {/* Bottom Right: Trend */}
+          {/* Bottom Right: Product Details */}
           <Card bg={cardBg} boxShadow="lg" borderRadius="xl" gridColumn={{ md: 'span 2' }}>
             <CardBody>
-              <Heading size="sm" mb={4} color="gray.700">Sales Trend</Heading>
-              <Box height="240px">
-                <ReactApexChart options={lineChartOptions} series={lineChartSeries} type="line" height="100%" />
-              </Box>
+              <Heading size="sm" mb={4} color="gray.700">Top Products Performance</Heading>
+              <ProductDetailsChart productStats={orderData.productStats} loading={loading} />
             </CardBody>
           </Card>
         </SimpleGrid>
       </Box>
+
+      {/* Refresh Button */}
+      <Flex justify="center" mt={4}>
+        <Button
+          leftIcon={<FiRefreshCw />}
+          colorScheme="red"
+          onClick={handleRefreshData}
+          isLoading={loading}
+        >
+          Refresh Data
+        </Button>
+      </Flex>
     </Box>
   );
 }

@@ -86,7 +86,7 @@ function AdminLogin() {
 
     try {
       const res = await axios.post(
-        "https://boutique-ecommerce-1.onrender.com/api/admins/login",
+        "https://server-e-fx6s.onrender.com/api/admins/login",
         { email, password },
         { headers: { "Content-Type": "application/json" } }
       );

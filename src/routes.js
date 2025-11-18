@@ -10,11 +10,12 @@ import AdminManagement from "views/Dashboard/AdminManagement.js";
 import UserManagement from "views/Dashboard/UserManagement.js"; 
 import { MdLogout } from "react-icons/md";
 
+
 import {
   HomeIcon,
   StatsIcon,
   CreditIcon,
-  PersonIcon,
+  ProfileIcon,
   DocumentIcon,
   RocketIcon,
 } from "components/Icons/Icons";
@@ -45,20 +46,21 @@ var dashRoutes = [
     element: <Dashboard />,
     layout: "/admin",
   },
-  {
-    path: "/ProductManagement",
-    name: "Product Management",
-    rtlName: "إدارة المستخدمين",
-    icon: <StatsIcon color="#7b2cbf" />,
-    element: <ProductManagement />,     
-    layout: "/admin",
-  },
+
   {
     path: "/admin-management",
     name: "Admin Management",
     rtlName: "إدارة المسؤول",
     icon: <StatsIcon color="#7b2cbf" />,
     element: <AdminManagement />,
+    layout: "/admin",
+  },
+    {
+    path: "/ProductManagement",
+    name: "Product Management",
+    rtlName: "إدارة المستخدمين",
+    icon: <StatsIcon color="#7b2cbf" />,
+    element: <ProductManagement />,     
     layout: "/admin",
   },
   {
@@ -80,6 +82,7 @@ var dashRoutes = [
   { 
     path: "/profile", 
     name: "Profile", 
+  
     element: <Profile />, 
     layout: "/admin", 
   },

@@ -115,24 +115,24 @@ function AdminManagement() {
   const handleTogglePassword = () => setShowPassword(!showPassword);
   const handleToggleConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
 
-  const handleAddAdmin = () => {
-    setFormData({
-      firstName: "",
-      lastName: "",
-      phone: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      profileImage: "",
-      role: "admin"
-    });
-    setEditingAdmin(null);
-    setCurrentView("add");
-    setError("");
-    setSuccess("");
-    setShowPassword(false); // Reset password visibility
-    setShowConfirmPassword(false); // Reset confirm password visibility
-  };
+const handleAddAdmin = () => {
+  setFormData({
+    firstName: "",
+    lastName: "",
+    phone: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    profileImage: "",
+    role: "admin"
+  });
+  setEditingAdmin(null);
+  setCurrentView("add");
+  setError("");
+  setSuccess("");
+  setShowPassword(false);
+  setShowConfirmPassword(false);
+};
 
   // Fetch current user from localStorage
   useEffect(() => {
@@ -261,24 +261,24 @@ function AdminManagement() {
   };
 
   // Handle edit admin - show edit form
-  const handleEditAdmin = (admin) => {
-    setFormData({
-      firstName: admin.firstName || "",
-      lastName: admin.lastName || "",
-      phone: admin.phone || "",
-      email: admin.email || "",
-      password: "", // Don't pre-fill password for security
-      confirmPassword: "",
-      profileImage: admin.profileImage || "",
-      role: admin.role || "admin"
-    });
-    setEditingAdmin(admin);
-    setCurrentView("edit");
-    setError("");
-    setSuccess("");
-    setShowPassword(false); // Reset password visibility
-    setShowConfirmPassword(false); // Reset confirm password visibility
-  };
+const handleEditAdmin = (admin) => {
+  setFormData({
+    firstName: admin.firstName || "",
+    lastName: admin.lastName || "",
+    phone: admin.phone || "",
+    email: admin.email || "",
+    password: "", // Don't pre-fill password for security
+    confirmPassword: "",
+    profileImage: admin.profileImage || "",
+    role: admin.role || "admin"
+  });
+  setEditingAdmin(admin);
+  setCurrentView("edit");
+  setError("");
+  setSuccess("");
+  setShowPassword(false);
+  setShowConfirmPassword(false);
+};
 
   // Handle back to list
   const handleBackToList = () => {
@@ -291,156 +291,168 @@ function AdminManagement() {
   };
 
   // Handle form submit for both add and edit
-  const handleSubmit = async () => {
-    // Frontend validation
-    if (!formData.firstName || !formData.lastName || !formData.email) {
+// Handle form submit for both add and edit
+const handleSubmit = async () => {
+  // Frontend validation
+  if (!formData.firstName || !formData.lastName || !formData.email) {
+    return toast({
+      title: "Validation Error",
+      description: "First name, last name, and email are required",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(formData.email)) {
+    return toast({
+      title: "Validation Error",
+      description: "Invalid email format",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+
+  // For add admin, password is required
+  if (currentView === "add" && !formData.password) {
+    return toast({
+      title: "Validation Error",
+      description: "Password is required for new admins",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+
+  // Validate password strength if provided
+  if (formData.password) {
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
       return toast({
         title: "Validation Error",
-        description: "First name, last name, and email are required",
+        description:
+          "Password must be at least 8 characters, include uppercase, lowercase, and a number",
         status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
+  }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      return toast({
-        title: "Validation Error",
-        description: "Invalid email format",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+  // Check password confirmation for add admin
+  if (currentView === "add" && formData.password !== formData.confirmPassword) {
+    return toast({
+      title: "Validation Error",
+      description: "Passwords do not match",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+
+  setLoading(true);
+  setError("");
+  setSuccess("");
+
+  try {
+    // Prepare data for API - try different structures
+    let adminDataToSend;
+
+    // Try structure 1: Combined name field (most common)
+    adminDataToSend = {
+      name: `${formData.firstName} ${formData.lastName}`.trim(),
+      email: formData.email,
+      role: formData.role,
+      phone: formData.phone || "",
+      profileImage: formData.profileImage || "",
+      ...(formData.password && { password: formData.password })
+    };
+
+    console.log("Sending data to API:", adminDataToSend);
+
+    let response;
+    let successMessage;
+
+    if (currentView === "edit" && editingAdmin) {
+      // Update existing admin
+      response = await updateAdmin(editingAdmin._id, adminDataToSend);
+      successMessage = `Admin ${formData.firstName} updated successfully`;
+    } else {
+      // Create new admin
+      response = await createAdmin(adminDataToSend);
+      successMessage = `Admin ${formData.firstName} created successfully`;
     }
 
-    // For add admin, password is required
-    if (currentView === "add" && !formData.password) {
-      return toast({
-        title: "Validation Error",
-        description: "Password is required for new admins",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
+    console.log("Admin operation response:", response);
 
-    // Validate password strength if provided
-    if (formData.password) {
-      const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
-      if (!passwordRegex.test(formData.password)) {
-        return toast({
-          title: "Validation Error",
-          description:
-            "Password must be at least 8 characters, include uppercase, lowercase, and a number",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
+    toast({
+      title: currentView === "edit" ? "Admin Updated" : "Admin Created",
+      description: successMessage,
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+
+    // Refresh admin list
+    const fetchAdmins = async () => {
+      try {
+        const adminsResponse = await getAllAdmins();
+        const admins = adminsResponse.data?.admins || adminsResponse.data || adminsResponse?.admins || adminsResponse || [];
+        const sortedAdmins = admins.sort(
+          (a, b) => new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id)
+        );
+        setAdminData(sortedAdmins);
+        setFilteredData(sortedAdmins);
+      } catch (err) {
+        console.error("Error refreshing admins:", err);
       }
+    };
+
+    await fetchAdmins();
+
+    setSuccess(successMessage);
+    
+    // Reset form and go back to list
+    setFormData({
+      firstName: "",
+      lastName: "",
+      phone: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      profileImage: "",
+      role: "admin"
+    });
+    setEditingAdmin(null);
+    setCurrentView("list");
+
+  } catch (err) {
+    console.error("API Error details:", err);
+    console.error("Error response:", err.response);
+    
+    let errorMessage = "API error. Try again.";
+    
+    if (err.response?.data) {
+      // Try to get detailed error message
+      const errorData = err.response.data;
+      errorMessage = errorData.message || errorData.error || JSON.stringify(errorData);
+    } else if (err.message) {
+      errorMessage = err.message;
     }
-
-    // Check password confirmation for add admin
-    if (currentView === "add" && formData.password !== formData.confirmPassword) {
-      return toast({
-        title: "Validation Error",
-        description: "Passwords do not match",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-
-    setLoading(true);
-    setError("");
-    setSuccess("");
-
-    try {
-      // Prepare data for API with exact structure
-      const adminDataToSend = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phone: formData.phone,
-        email: formData.email,
-        role: formData.role,
-        profileImage: formData.profileImage || "",
-        ...(formData.password && { password: formData.password })
-      };
-
-      let response;
-      let successMessage;
-
-      if (currentView === "edit" && editingAdmin) {
-        // Update existing admin
-        response = await updateAdmin(editingAdmin._id, adminDataToSend);
-        successMessage = `Admin ${response.data?.firstName || formData.firstName} updated successfully`;
-      } else {
-        // Create new admin
-        response = await createAdmin(adminDataToSend);
-        successMessage = `Admin ${response.data?.firstName || formData.firstName} created successfully`;
-      }
-
-      console.log("Admin operation response:", response);
-
-      // Extract admin data from response
-      const adminResponse = response.data || response;
-
-      toast({
-        title: currentView === "edit" ? "Admin Updated" : "Admin Created",
-        description: successMessage,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-
-      // Refresh admin list
-      const fetchAdmins = async () => {
-        try {
-          const adminsResponse = await getAllAdmins();
-          const admins = adminsResponse.data?.admins || adminsResponse.data || adminsResponse?.admins || adminsResponse || [];
-          const sortedAdmins = admins.sort(
-            (a, b) => new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id)
-          );
-          setAdminData(sortedAdmins);
-          setFilteredData(sortedAdmins);
-        } catch (err) {
-          console.error("Error refreshing admins:", err);
-        }
-      };
-
-      await fetchAdmins();
-
-      setSuccess(successMessage);
-      
-      // Reset form and go back to list
-      setFormData({
-        firstName: "",
-        lastName: "",
-        phone: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        profileImage: "",
-        role: "admin"
-      });
-      setEditingAdmin(null);
-      setCurrentView("list");
-
-    } catch (err) {
-      console.error("API Error:", err);
-      const errorMessage =
-        err.response?.data?.message || err.message || "API error. Try again.";
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: errorMessage,
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-    setLoading(false);
-  };
+    
+    setError(errorMessage);
+    toast({
+      title: "Error",
+      description: errorMessage,
+      status: "error",
+      duration: 5000, // Longer duration to read the error
+      isClosable: true,
+    });
+  }
+  setLoading(false);
+};
 
   // Auto-hide success/error messages after 3 seconds
   useEffect(() => {
@@ -670,20 +682,6 @@ function AdminManagement() {
               </Select>
             </FormControl>
 
-            <FormControl mb="24px">
-              <FormLabel htmlFor="profileImage" color="gray.700">Profile Image URL</FormLabel>
-              <Input
-                id="profileImage"
-                name="profileImage"
-                placeholder="Profile Image URL"
-                onChange={handleInputChange}
-                value={formData.profileImage}
-                borderColor={`${customColor}50`}
-                _hover={{ borderColor: customColor }}
-                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                bg="white"
-              />
-            </FormControl>
 
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
               <FormControl isRequired={currentView === "add"}>
