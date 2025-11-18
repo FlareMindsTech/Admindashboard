@@ -517,19 +517,6 @@ export default function CleanedBilling() {
                                         size="sm"
                                         onClick={() => openModalForOrder(order)}
                                       />
-                                      {/* {order.status !== "paid" && (
-                                        <IconButton
-                                          aria-label="Mark as paid"
-                                          icon={<FaCheckCircle />}
-                                          bg="white"
-                                          color={customColor}
-                                          border="1px"
-                                          borderColor={customColor}
-                                          _hover={{ bg: customColor, color: "white" }}
-                                          size="sm"
-                                          onClick={() => {Confirm_Order(selectedOrder)}}
-                                        />
-                                      )} */}
                                     </Flex>
                                   </Td>
 
@@ -736,90 +723,9 @@ export default function CleanedBilling() {
               </Flex>
             </CardBody>
           </Card>
-
-          {/* <Card 
-          minH="83px" 
-          cursor="pointer" 
-          onClick={() => setCurrentView("payments")} 
-          border={currentView === "payments" ? "2px solid" : "1px solid"} 
-          borderColor={currentView === "payments" ? customColor : `${customColor}30`} 
-          transition="all 0.2s ease-in-out" 
-          bg="white"
-            position="relative"
-            overflow="hidden"
-            w={{ base: "32%", md: "30%", lg: "25%" }}
-            minW="100px"
-            flex="1"
-            _before={{
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
-              opacity: 0,
-              transition: "opacity 0.2s ease-in-out",
-            }}
-            _hover={{
-              transform: "translateY(-4px)",
-              shadow: "xl",
-              _before: {
-                opacity: 1,
-              },
-              borderColor: customColor,
-            }}>
-
-            <CardBody position="relative" zIndex={1} p={{ base: 3, md: 4 }}>
-              
-            <Flex flexDirection="row" align="center" justify="space-between" w="100%">
-                <Stat me="auto">
-                  <StatLabel 
-                    fontSize={{ base: "sm", md: "md" }}
-                    color="gray.600"
-                    fontWeight="bold"
-                    pb="2px"
-                  >All Payments</StatLabel>
-                  <StatNumber fontSize={{ base: "lg", md: "xl" }} color={textColor}>{isLoading ? <Spinner size="xs" /> : payments.length}</StatNumber>
-                </Stat>
-
-                <Box display="flex" alignItems="center" justifyContent="center" borderRadius="10px" h="34px" w="34px" bg={customColor}>
-                  <Icon as={IoCheckmarkDoneCircleSharp} h="16px" w="16px" color="white" />
-                </Box>
-
-              </Flex>
-            </CardBody>
-          </Card> */}
-
         </Flex>
 
           {/* Success/Error Message Display */}
-          {/* {error && (
-          <Text
-            color="red.500"
-            mb={4}
-            p={3}
-            border="1px"
-            borderColor="red.200"
-            borderRadius="md"
-            bg="red.50"
-          >
-            {error}
-          </Text>
-        )}
-        {success && (
-          <Text
-            color="green.500"
-            mb={4}
-            p={3}
-            border="1px"
-            borderColor="green.200"
-            borderRadius="md"
-            bg="green.50"
-          >
-            {success}
-          </Text>
-        )} */}
 
         {/* Active Filter Display */}
         <Flex justify="space-between" align="center" mb={4}>
@@ -827,19 +733,6 @@ export default function CleanedBilling() {
             {currentView === "payments" && "All Payments"}
             {currentView === "orders" && "All Orders"}
           </Text>
-          {/* {currentView !== "all" && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleCardClick("all")}
-              border="1px"
-              borderColor={customColor}
-              color={customColor}
-              _hover={{ bg: customColor, color: "white" }}
-            >
-              Show All Products
-            </Button>
-          )} */}
         </Flex>
 
       </Box>
@@ -941,57 +834,6 @@ export default function CleanedBilling() {
 
               </HStack>
             </Flex>
-
-            {/* <Flex mt={3} gap={3} flexWrap="wrap" direction={{ base: "column", md: "row" }}>
-              {currentView === "orders" ? (
-                <HStack spacing={3} width="100%" flexWrap="wrap">
-                  <Box width={{ base: "100%", sm: "48%", md: "auto" }}>
-                    <Text fontSize="xs" color="gray.600" mb={1}>Status</Text>
-                    <Select size="sm" value={orderStatusFilter} onChange={(e) => setOrderStatusFilter(e.target.value)} width="100%" bg="white">
-                      {ORDER_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-                    </Select>
-                  </Box>
-
-                  <Box width={{ base: "100%", sm: "48%", md: "auto" }}>
-                    <Text fontSize="xs" color="gray.600" mb={1}>Date</Text>
-                    <Select size="sm" value={orderDatePreset} onChange={(e) => setOrderDatePreset(e.target.value)} width="100%" bg="white">
-                      <option value="all">All Time</option>
-                      <option value="today">Today</option>
-                      <option value="this_week">This Week</option>
-                      <option value="this_month">This Month</option>
-                      <option value="this_year">This Year</option>
-                    </Select>
-                  </Box>
-                </HStack>
-              ) : (
-                <HStack spacing={3} width="100%" flexWrap="wrap">
-                  <Box width={{ base: "100%", sm: "48%", md: "auto" }}>
-                    <Text fontSize="xs" color="gray.600" mb={1}>Method</Text>
-                    <Select size="sm" value={paymentMethodFilter} onChange={(e) => setPaymentMethodFilter(e.target.value)} width="100%" bg="white">
-                      {PAYMENT_METHOD_OPTIONS.map((m) => <option key={m} value={m}>{m === "all" ? "All" : m.toUpperCase()}</option>)}
-                    </Select>
-                  </Box>
-
-                  <Box width={{ base: "100%", sm: "48%", md: "auto" }}>
-                    <Text fontSize="xs" color="gray.600" mb={1}>Status</Text>
-                    <Select size="sm" value={paymentStatusFilter} onChange={(e) => setPaymentStatusFilter(e.target.value)} width="100%" bg="white">
-                      {PAYMENT_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-                    </Select>
-                  </Box>
-
-                  <Box width={{ base: "100%", sm: "48%", md: "auto" }}>
-                    <Text fontSize="xs" color="gray.600" mb={1}>Date</Text>
-                    <Select size="sm" value={paymentDatePreset} onChange={(e) => setPaymentDatePreset(e.target.value)} width="100%" bg="white">
-                      <option value="all">All Time</option>
-                      <option value="today">Today</option>
-                      <option value="this_week">This Week</option>
-                      <option value="this_month">This Month</option>
-                      <option value="this_year">This Year</option>
-                    </Select>
-                  </Box>
-                </HStack>
-              )}
-            </Flex> */}
 
           </CardHeader>
 
