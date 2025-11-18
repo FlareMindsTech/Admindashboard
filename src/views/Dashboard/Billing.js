@@ -27,6 +27,7 @@ import {
   Thead,
   Tr,
   VStack,
+  IconButton,
   HStack,
   Text,
   Stat,
@@ -58,16 +59,11 @@ import {
   useBreakpointValue,
 } from "@chakra-ui/react";
 
-import { FaSearch, FaChevronLeft, FaChevronRight, FaArrowLeft, FaTimes } from "react-icons/fa";
+import { FaSearch, FaChevronLeft, FaChevronRight, FaArrowLeft, FaTimes,  FaEye, FaCheckCircle } from "react-icons/fa";
 import { FiMoreVertical, FiEye, FiDownload, FiUser, FiCalendar, FiTruck } from "react-icons/fi";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdCategory } from "react-icons/md";
 
-// Replace this import with your project's API helper.
-// getAllOrders should return data in one of these shapes:
-//  - an array of orders
-//  - an object { orders: [...] }
-//  - an object { data: [...] }
 import { getAllOrders, updateOrders } from "../utils/axiosInstance";
 
 // Lightweight presentational Card components so this file is self-contained.
@@ -210,6 +206,7 @@ export default function CleanedBilling() {
   }, [orders]);
 
   const [currentView, setCurrentView] = useState("orders");
+  const [filteredData, setFilteredData] = useState([]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebouncedValue(searchQuery, 220);
@@ -222,10 +219,14 @@ export default function CleanedBilling() {
   const [paymentDatePreset, setPaymentDatePreset] = useState("all");
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(8);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
 
   const searchRef = useRef(null);
 
@@ -274,6 +275,8 @@ export default function CleanedBilling() {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+
 
   // Filtering logic
   const filteredOrders = useMemo(() => {
@@ -368,12 +371,18 @@ export default function CleanedBilling() {
     setSelectedOrder(null);
   };
 
-  const handleDownloadInvoice = (order) => {
-    toast({ title: "Download", description: `Requesting invoice for ${safeGet(order, "_id", "order")}`, status: "info", duration: 3000, isClosable: true });
+  
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
   };
 
-  const goPrevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
-  const goNextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   const prepareOrdersExportRows = () => {
     return (filteredOrders || []).map((o) => ({
@@ -402,7 +411,7 @@ export default function CleanedBilling() {
   const Confirm_Order = async () => {
     try {
       const orderId = safeGet(selectedOrder, "_id");
-      await updateOrders(orderId, { status: "Confirmed" });
+      await updateOrders(orderId, { status: "confirmed" });
 
       toast({
         title: "Order Confirmed",
@@ -453,11 +462,19 @@ export default function CleanedBilling() {
     }
   };
 
+  useEffect(() => {
+    if (currentView === "orders") {
+      setFilteredData(filteredOrders);
+    } else {
+      setFilteredData(filteredPayments);
+    }
+  }, [currentView, filteredOrders, filteredPayments]);
+
   // Row components
   const OrderRow = ({ order }) => {
     const status = safeGet(order, "status", "pending");
     return (
-      <Tr _hover={{ bg: "gray.50", cursor: "pointer" }} onClick={() => openModalForOrder(order)} borderBottom="1px solid" borderColor="gray.100">
+      <Tr _hover={{ bg: "gray.50", cursor: "pointer" }}  borderBottom="1px solid" borderColor="gray.100">
         <Td px={isMobile ? 3 : 6} py={isMobile ? 2 : 3}>
           <VStack align="start" spacing={1}>
             <Text fontWeight="semibold" color="gray.700" fontSize={isMobile ? "sm" : "md"}>{safeGet(order, "user.email", "—")}</Text>
@@ -487,15 +504,35 @@ export default function CleanedBilling() {
           </Badge>
         </Td>
 
-        <Td px={isMobile ? 3 : 6} py={isMobile ? 2 : 3}>
-          <Menu>
-            <MenuButton as={Button} variant="ghost" size="sm"><Icon as={FiMoreVertical} /></MenuButton>
-            <MenuList>
-              <MenuItem icon={<FiEye />} onClick={() => openModalForOrder(order)}>View Details</MenuItem>
-              <MenuItem icon={<FiDownload />} onClick={(e) => { e.stopPropagation(); handleDownloadInvoice(order); }}>Download Invoice</MenuItem>
-            </MenuList>
-          </Menu>
-        </Td>
+        <Td borderColor={`${customColor}20`}>
+                                    <Flex gap={2}>
+                                      <IconButton
+                                        aria-label="View bill"
+                                        icon={<FaEye />}
+                                        bg="white"
+                                        color="green.500"
+                                        border="1px"
+                                        borderColor="green.500"
+                                        _hover={{ bg: "green.500", color: "white" }}
+                                        size="sm"
+                                        onClick={() => openModalForOrder(order)}
+                                      />
+                                      {/* {order.status !== "paid" && (
+                                        <IconButton
+                                          aria-label="Mark as paid"
+                                          icon={<FaCheckCircle />}
+                                          bg="white"
+                                          color={customColor}
+                                          border="1px"
+                                          borderColor={customColor}
+                                          _hover={{ bg: customColor, color: "white" }}
+                                          size="sm"
+                                          onClick={() => {Confirm_Order(selectedOrder)}}
+                                        />
+                                      )} */}
+                                    </Flex>
+                                  </Td>
+
       </Tr>
     );
   };
@@ -527,29 +564,171 @@ export default function CleanedBilling() {
     : "Search payments by payment ID, method, or order ID...";
 
   return (
-    <Flex flexDirection="column" pt={{ base: "100px", md: "45px" }} height="100vh" overflow="hidden">
-      <Box px={4} mb="14px">
-        <Grid templateColumns={{ base: "1fr", sm: "1fr", md: "1fr 1fr" }} gap="12px">
-          <Card minH="72px" cursor="pointer" onClick={() => setCurrentView("orders")} border={currentView === "orders" ? "2px solid" : "1px solid"} borderColor={currentView === "orders" ? customColor : `${customColor}30`} transition="all 0.2s ease-in-out" bg={cardBg}>
-            <CardBody position="relative" zIndex={1} p={3}>
-              <Flex align="center" justify="space-between">
-                <Stat>
-                  <StatLabel fontSize="xs" color="gray.600" fontWeight="bold">All Orders</StatLabel>
-                  <StatNumber fontSize="md" color={textColor}>{isLoading ? <Spinner size="xs" /> : orders.length}</StatNumber>
+    <Flex 
+    flexDirection="column" 
+      pt={{ base: "5px", md: "45px" }} 
+      height="100vh" 
+      overflow="auto"
+      css={{
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: 'transparent',
+          borderRadius: '24px',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: 'transparent',
+          borderRadius: '24px',
+          transition: 'background 0.3s ease',
+        },
+        '&:hover::-webkit-scrollbar-thumb': {
+          background: '#cbd5e1',
+        },
+        '&:hover::-webkit-scrollbar-thumb:hover': {
+          background: '#94a3b8',
+        },
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'transparent transparent',
+        '&:hover': {
+          scrollbarColor: '#cbd5e1 transparent',
+        },
+      }}
+    >
+
+      <Box mb="24px">
+        
+        <Flex 
+        direction="row"
+        wrap="wrap"
+        justify="center"
+        gap={{ base: 3, md: 4 }}
+        overflowX="auto"
+        py={2}
+        css={{
+          '&::-webkit-scrollbar': {
+            height: '6px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: 'transparent',
+            borderRadius: '3px',
+            transition: 'background 0.3s ease',
+          },
+          '&:hover::-webkit-scrollbar-thumb': {
+            background: '#cbd5e1',
+          },
+          '&:hover::-webkit-scrollbar-thumb:hover': {
+            background: '#94a3b8',
+          },
+        }}
+        >
+
+          <Card 
+          minH="83px" 
+          cursor="pointer" 
+          onClick={() => setCurrentView("orders")} 
+          border={currentView === "orders" ? "2px solid" : "1px solid"} 
+          borderColor={currentView === "orders" ? customColor : `${customColor}30`} 
+          transition="all 0.2s ease-in-out" 
+          bg="white"
+            position="relative"
+            overflow="hidden"
+            w={{ base: "32%", md: "30%", lg: "25%" }}
+            minW="100px"
+            flex="1"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: "translateY(-4px)",
+              shadow: "xl",
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}
+            >
+
+            <CardBody 
+            position="relative" 
+            zIndex={1} p={{base:3,md:4}}>
+
+              <Flex 
+              flexDirection="row" align="center" justify="space-between" w="100%" padding={5}>
+
+                <Stat me="auto">
+                  <StatLabel 
+                  fontSize={{ base: "sm", md: "md" }}
+                  color="gray.600"
+                  fontWeight="bold"
+                  pb="0px"
+                  >All Orders</StatLabel>
+                  <StatNumber fontSize={{base:"lg",md:"xl"}} color={textColor}>
+                    {isLoading ? <Spinner size="xs" /> : orders.length}</StatNumber>
                 </Stat>
+
                 <Box display="flex" alignItems="center" justifyContent="center" borderRadius="10px" h="34px" w="34px" bg={customColor}>
                   <Icon as={MdCategory} h="16px" w="16px" color="white" />
                 </Box>
+
               </Flex>
             </CardBody>
           </Card>
 
-          <Card minH="72px" cursor="pointer" onClick={() => setCurrentView("payments")} border={currentView === "payments" ? "2px solid" : "1px solid"} borderColor={currentView === "payments" ? customColor : `${customColor}30`} transition="all 0.2s ease-in-out" bg={cardBg}>
-            <CardBody position="relative" zIndex={1} p={3}>
-              <Flex align="center" justify="space-between">
-                <Stat>
-                  <StatLabel fontSize="xs" color="gray.600" fontWeight="bold">All Payments</StatLabel>
-                  <StatNumber fontSize="md" color={textColor}>{isLoading ? <Spinner size="xs" /> : payments.length}</StatNumber>
+          <Card 
+          minH="83px" 
+          cursor="pointer" 
+          onClick={() => setCurrentView("payments")} 
+          border={currentView === "payments" ? "2px solid" : "1px solid"} 
+          borderColor={currentView === "payments" ? customColor : `${customColor}30`} 
+          transition="all 0.2s ease-in-out" 
+          bg="white"
+            position="relative"
+            overflow="hidden"
+            w={{ base: "32%", md: "30%", lg: "25%" }}
+            minW="100px"
+            flex="1"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: "translateY(-4px)",
+              shadow: "xl",
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}
+          >
+            <CardBody position="relative" zIndex={1} p={{ base: 3, md: 4 }}>
+            <Flex flexDirection="row" align="center" justify="space-between" w="100%" padding={5}>
+                <Stat me="auto">
+                  <StatLabel 
+                    fontSize={{ base: "sm", md: "md" }}
+                    color="gray.600"
+                    fontWeight="bold"
+                    pb="2px"
+                  >All Payments</StatLabel>
+                  <StatNumber fontSize={{ base: "lg", md: "xl" }} color={textColor}>{isLoading ? <Spinner size="xs" /> : payments.length}</StatNumber>
                 </Stat>
                 <Box display="flex" alignItems="center" justifyContent="center" borderRadius="10px" h="34px" w="34px" bg={customColor}>
                   <Icon as={IoCheckmarkDoneCircleSharp} h="16px" w="16px" color="white" />
@@ -557,18 +736,156 @@ export default function CleanedBilling() {
               </Flex>
             </CardBody>
           </Card>
-        </Grid>
+
+          {/* <Card 
+          minH="83px" 
+          cursor="pointer" 
+          onClick={() => setCurrentView("payments")} 
+          border={currentView === "payments" ? "2px solid" : "1px solid"} 
+          borderColor={currentView === "payments" ? customColor : `${customColor}30`} 
+          transition="all 0.2s ease-in-out" 
+          bg="white"
+            position="relative"
+            overflow="hidden"
+            w={{ base: "32%", md: "30%", lg: "25%" }}
+            minW="100px"
+            flex="1"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: "translateY(-4px)",
+              shadow: "xl",
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}>
+
+            <CardBody position="relative" zIndex={1} p={{ base: 3, md: 4 }}>
+              
+            <Flex flexDirection="row" align="center" justify="space-between" w="100%">
+                <Stat me="auto">
+                  <StatLabel 
+                    fontSize={{ base: "sm", md: "md" }}
+                    color="gray.600"
+                    fontWeight="bold"
+                    pb="2px"
+                  >All Payments</StatLabel>
+                  <StatNumber fontSize={{ base: "lg", md: "xl" }} color={textColor}>{isLoading ? <Spinner size="xs" /> : payments.length}</StatNumber>
+                </Stat>
+
+                <Box display="flex" alignItems="center" justifyContent="center" borderRadius="10px" h="34px" w="34px" bg={customColor}>
+                  <Icon as={IoCheckmarkDoneCircleSharp} h="16px" w="16px" color="white" />
+                </Box>
+
+              </Flex>
+            </CardBody>
+          </Card> */}
+
+        </Flex>
+
+          {/* Success/Error Message Display */}
+          {/* {error && (
+          <Text
+            color="red.500"
+            mb={4}
+            p={3}
+            border="1px"
+            borderColor="red.200"
+            borderRadius="md"
+            bg="red.50"
+          >
+            {error}
+          </Text>
+        )}
+        {success && (
+          <Text
+            color="green.500"
+            mb={4}
+            p={3}
+            border="1px"
+            borderColor="green.200"
+            borderRadius="md"
+            bg="green.50"
+          >
+            {success}
+          </Text>
+        )} */}
+
+        {/* Active Filter Display */}
+        <Flex justify="space-between" align="center" mb={4}>
+          <Text fontSize="lg" fontWeight="bold" color={textColor}>
+            {currentView === "payments" && "All Payments"}
+            {currentView === "orders" && "All Orders"}
+          </Text>
+          {/* {currentView !== "all" && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleCardClick("all")}
+              border="1px"
+              borderColor={customColor}
+              color={customColor}
+              _hover={{ bg: customColor, color: "white" }}
+            >
+              Show All Products
+            </Button>
+          )} */}
+        </Flex>
+
       </Box>
 
-      <Box flex="1" display="flex" flexDirection="column" p={4} pt={0} overflow="hidden">
-        <Card shadow="lg" bg={cardBg} display="flex" flexDirection="column" height="96%" minH="0">
-          <CardHeader p="12px" pb="10px" bg={cardBg} flexShrink={0} borderBottom="1px solid" borderColor={`${customColor}20`}>
-            <Flex justify="space-between" align="center" flexWrap="wrap" gap={3} direction={{ base: "column", md: "row" }}>
-              <Heading size="sm" color="gray.700" flexShrink={0}>
-                {currentView === "orders" ? "🛒 Orders" : "💳 Payments"}
-              </Heading>
+      {/* Table Container */}
+      <Box 
+      mt={-8}
+      flex="1" 
+      display="flex" 
+      flexDirection="column" 
+      p={2}
+      pt={0}
+      overflow="hidden"
+      >
+        <Card 
+  shadow="xl" 
+  bg="transparent"
+  display="flex" 
+  flexDirection="column"
+  height="90%"
+  minH="0"
+  border="none"
+        >
+         <CardHeader 
+           p="5px" 
+           pb="5px"
+           padding='5'
+           bg="transparent"
+           flexShrink={0}
+           borderBottom="1px solid"
+           borderColor={`${customColor}20`}
+          >
 
-              <Flex align="center" flex="1" maxW={{ base: "100%", md: "720px" }} width="100%">
+            <Flex 
+            justify="space-between" 
+            align="center" 
+            flexWrap="wrap" 
+            gap={4}
+            >
+
+      <Heading size="md" flexShrink={0} color="gray.700">
+                {currentView === "orders" ? "🛒 Orders" : "💳 Payments"}
+      </Heading>
+
+      <Flex align="center" flex="1" maxW="400px">
+
                 <InputGroup width="100%">
                   <VisuallyHidden as="label" htmlFor="global-search">Search</VisuallyHidden>
                   <Input
@@ -599,7 +916,7 @@ export default function CleanedBilling() {
                     )}
                   </InputRightElement>
                 </InputGroup>
-              </Flex>
+      </Flex>
 
               <HStack spacing={2} align="center">
                 <Button leftIcon={<FaArrowLeft />} size="sm" variant="ghost" onClick={() => {
@@ -621,10 +938,11 @@ export default function CleanedBilling() {
                     exportToCSV(`payments_export_${new Date().toISOString().slice(0, 10)}.csv`, rows);
                   }
                 }}>Export</Button>
+
               </HStack>
             </Flex>
 
-            <Flex mt={3} gap={3} flexWrap="wrap" direction={{ base: "column", md: "row" }}>
+            {/* <Flex mt={3} gap={3} flexWrap="wrap" direction={{ base: "column", md: "row" }}>
               {currentView === "orders" ? (
                 <HStack spacing={3} width="100%" flexWrap="wrap">
                   <Box width={{ base: "100%", sm: "48%", md: "auto" }}>
@@ -673,68 +991,144 @@ export default function CleanedBilling() {
                   </Box>
                 </HStack>
               )}
-            </Flex>
+            </Flex> */}
+
           </CardHeader>
 
-          <CardBody bg={cardBg} flex="1" display="flex" flexDirection="column" p={0} overflow="hidden">
+          <CardBody 
+            bg="transparent"
+            flex="1" 
+            display="flex" 
+            flexDirection="column" 
+            p={0} 
+            overflow="hidden"
+          >
             {isLoading ? (
-              <Flex justify="center" align="center" py={6} flex="1">
-                <Spinner size="lg" color={customColor} />
+              <Flex justify="center" align="center" py={10} flex="1">
+                <Spinner size="xl" color={customColor} />
                 <Text ml={3} fontSize="sm">Loading data...</Text>
               </Flex>
             ) : (
               <Box flex="1" display="flex" flexDirection="column" overflow="hidden">
-<Box
-  flex="1"
-  overflowY="hidden"
-  overflowX="hidden"
-  _hover={{
-    overflowY: "auto",
-    overflowX: "auto",
-  }}
-  css={{
-    '&::-webkit-scrollbar': {
-      width: '8px',
-      height: '8px',
-    },
-    '&::-webkit-scrollbar-track': {
-      background: '#f1f1f1',
-    },
-    '&::-webkit-scrollbar-thumb': {
-      background: customColor,
-      borderRadius: '4px',
-    },
-    '&::-webkit-scrollbar-thumb:hover': {
-      background: customHoverColor,
-    },
-  }}
->
+
+
+                    <Box 
+                      flex="1"
+                      display="flex"
+                      flexDirection="column"
+                      height="400px"
+                      overflow="hidden"
+                    >
   {/* Responsive Table Wrapper */}
   <Box
-    overflowX={{ base: "auto", md: "hidden" }}
-    w="100%"
-    px={{ base: 2, md: 4 }}
+                        flex="1"
+                        overflowY="hidden"
+                        overflowX="hidden"
+                        _hover={{
+                          overflowY: "auto",
+                          overflowX: "auto",
+                        }}
+                        css={{
+                          '&::-webkit-scrollbar': {
+                            width: '8px',
+                            height: '8px',
+                          },
+                          '&::-webkit-scrollbar-track': {
+                            background: 'transparent',
+                          },
+                          '&::-webkit-scrollbar-thumb': {
+                            background: 'transparent',
+                            borderRadius: '4px',
+                            transition: 'background 0.3s ease',
+                          },
+                          '&:hover::-webkit-scrollbar-thumb': {
+                            background: '#cbd5e1',
+                          },
+                          '&:hover::-webkit-scrollbar-thumb:hover': {
+                            background: '#94a3b8',
+                          },
+                        }}
   >
     {currentView === "orders" ? (
-      <Table size={{ base: "sm", md: "md" }} variant="simple">
-        <Thead bg={customColor} position="sticky" top={0} zIndex={10}>
+      <Table variant="simple" size="md" bg="transparent">
+        <Thead>
           <Tr>
-            <Th color="gray.100" fontSize={{ base: "xs", md: "sm" }}>Order Details</Th>
-            <Th color="gray.100" fontSize={{ base: "xs", md: "sm" }}>Address</Th>
-            <Th color="gray.100" fontSize={{ base: "xs", md: "sm" }}>Amount</Th>
-            <Th color="gray.100" fontSize={{ base: "xs", md: "sm" }}>Status</Th>
-            <Th color="gray.100" fontSize={{ base: "xs", md: "sm" }}>Actions</Th>
+            <Th 
+              color="gray.100" 
+              borderColor={`${customColor}30`}
+              position="sticky"
+              top={0}
+              bg={`${customColor}`}
+              zIndex={10}
+              fontWeight="bold"
+              fontSize="sm"
+              py={3}
+              borderBottom="2px solid"
+              borderBottomColor={`${customColor}50`}
+            >
+              Order Details</Th>
+            <Th 
+              color="gray.100" 
+              borderColor={`${customColor}30`}
+              position="sticky"
+              top={0}
+              bg={`${customColor}`}
+              zIndex={10}
+              fontWeight="bold"
+              fontSize="sm"
+              py={3}
+              borderBottom="2px solid"
+              borderBottomColor={`${customColor}50`}
+            >
+              Address</Th>
+            <Th 
+              color="gray.100" 
+              borderColor={`${customColor}30`}
+              position="sticky"
+              top={0}
+              bg={`${customColor}`}
+              zIndex={10}
+              fontWeight="bold"
+              fontSize="sm"
+              py={3}
+              borderBottom="2px solid"
+              borderBottomColor={`${customColor}50`}
+            >Amount</Th>
+            <Th 
+              color="gray.100" 
+              borderColor={`${customColor}30`}
+              position="sticky"
+              top={0}
+              bg={`${customColor}`}
+              zIndex={10}
+              fontWeight="bold"
+              fontSize="sm"
+              py={3}
+              borderBottom="2px solid"
+              borderBottomColor={`${customColor}50`}
+            >Status</Th>
+            <Th 
+              color="gray.100" 
+              borderColor={`${customColor}30`}
+              position="sticky"
+              top={0}
+              bg={`${customColor}`}
+              zIndex={10}
+              fontWeight="bold"
+              fontSize="sm"
+              py={3}
+              borderBottom="2px solid"
+              borderBottomColor={`${customColor}50`}
+            >Actions</Th>
           </Tr>
         </Thead>
-        <Tbody>
+        <Tbody bg="transparent">
           {currentSlice.length === 0 ? (
-            <Tr>
-              <Td colSpan={5}>
-                <Center py={6}>
-                  <Text color="gray.500" fontSize={{ base: "xs", md: "sm" }}>
-                    No orders found.
-                  </Text>
-                </Center>
+            <Tr
+            bg="transparent"
+            height="60px">
+              <Td borderColor={`${customColor}20`} colSpan={currentView === "orders" ? 4 : 6}>
+              <Box height="60px" />
               </Td>
             </Tr>
           ) : (
@@ -748,14 +1142,74 @@ export default function CleanedBilling() {
         </Tbody>
       </Table>
     ) : (
-      <Table size={{ base: "sm", md: "md" }} variant="simple">
-        <Thead bg={customColor} position="sticky" top={0} zIndex={10}>
+      <Table variant="simple" size="md" bg="transparent">
+        <Thead>
           <Tr>
-            <Th color="gray.100" fontSize={{ base: "xs", md: "sm" }}>Payment ID</Th>
-            <Th color="gray.100" fontSize={{ base: "xs", md: "sm" }}>Order ID</Th>
-            <Th color="gray.100" fontSize={{ base: "xs", md: "sm" }}>Amount</Th>
-            <Th color="gray.100" fontSize={{ base: "xs", md: "sm" }}>Method</Th>
-            <Th color="gray.100" fontSize={{ base: "xs", md: "sm" }}>Status</Th>
+            <Th 
+              color="gray.100" 
+              borderColor={`${customColor}30`}
+              position="sticky"
+              top={0}
+              bg={`${customColor}`}
+              zIndex={10}
+              fontWeight="bold"
+              fontSize="sm"
+              py={3}
+              borderBottom="2px solid"
+              borderBottomColor={`${customColor}50`}
+            >Payment ID</Th>
+            <Th 
+              color="gray.100" 
+              borderColor={`${customColor}30`}
+              position="sticky"
+              top={0}
+              bg={`${customColor}`}
+              zIndex={10}
+              fontWeight="bold"
+              fontSize="sm"
+              py={3}
+              borderBottom="2px solid"
+              borderBottomColor={`${customColor}50`}
+            >Order ID</Th>
+            <Th 
+              color="gray.100" 
+              borderColor={`${customColor}30`}
+              position="sticky"
+              top={0}
+              bg={`${customColor}`}
+              zIndex={10}
+              fontWeight="bold"
+              fontSize="sm"
+              py={3}
+              borderBottom="2px solid"
+              borderBottomColor={`${customColor}50`}
+            >Amount</Th>
+            <Th 
+              color="gray.100" 
+              borderColor={`${customColor}30`}
+              position="sticky"
+              top={0}
+              bg={`${customColor}`}
+              zIndex={10}
+              fontWeight="bold"
+              fontSize="sm"
+              py={3}
+              borderBottom="2px solid"
+              borderBottomColor={`${customColor}50`}
+            >Method</Th>
+            <Th 
+              color="gray.100" 
+              borderColor={`${customColor}30`}
+              position="sticky"
+              top={0}
+              bg={`${customColor}`}
+              zIndex={10}
+              fontWeight="bold"
+              fontSize="sm"
+              py={3}
+              borderBottom="2px solid"
+              borderBottomColor={`${customColor}50`}
+            >Status</Th>
           </Tr>
         </Thead>
         <Tbody>
@@ -783,59 +1237,94 @@ export default function CleanedBilling() {
   </Box>
 
   {/* Pagination controls */}
-  <Box
-    flexShrink={0}
-    p={{ base: "8px", md: "12px" }}
-    pt={{ base: "6px", md: "10px" }}
-    borderTop="1px solid"
-    borderColor={`${customColor}20`}
-    bg={cardBg}
-  >
-    <Flex
-      justify="center"
-      align="center"
-      gap={{ base: 2, md: 4 }}
-      flexWrap="wrap"
-      direction={{ base: "column", sm: "row" }}
-    >
-      <Button
-        size={{ base: "xs", md: "sm" }}
-        onClick={goPrevPage}
-        isDisabled={currentPage === 1}
-        leftIcon={<FaChevronLeft />}
-        bg="white"
-        color={customColor}
-        border="1px"
-        borderColor={customColor}
-        _hover={{ bg: customColor, color: "white" }}
-        _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
-        width={{ base: "200%", sm: "auto" }}
-      >
-        Prev
-      </Button>
+  {currentSlice.length > 0 && (
+                      <Box 
+                        flexShrink={0}
+                        p="16px"
+                        borderTop="1px solid"
+                        borderColor={`${customColor}20`}
+                        bg="transparent"
+                      >
+                        <Flex
+                          justify="flex-end"
+                          align="center"
+                          gap={3}
+                        >
+                          {/* Page Info */}
+                          <Text fontSize="sm" color="gray.600" display={{ base: "none", sm: "block" }}>
+                            Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length} {currentView === 'orders' ? 'orders' : 'payment'}
+                          </Text>
 
-      <Text fontSize={{ base: "xs", md: "sm" }} color="gray.700" fontWeight="medium">
-        Page {currentPage} of {totalPages}
-      </Text>
+                          {/* Pagination Controls */}
+                          <Flex align="center" gap={2}>
+                            <Button
+                              size="sm"
+                              onClick={handlePrevPage}
+                              isDisabled={currentPage === 1}
+                              leftIcon={<FaChevronLeft />}
+                              bg="white"
+                              color={customColor}
+                              border="1px"
+                              borderColor={customColor}
+                              _hover={{ bg: customColor, color: "white" }}
+                              _disabled={{ 
+                                opacity: 0.5, 
+                                cursor: "not-allowed",
+                                bg: "gray.100",
+                                color: "gray.400",
+                                borderColor: "gray.300"
+                              }}
+                            >
+                              <Text display={{ base: "none", sm: "block" }}>Previous</Text>
+                            </Button>
 
-      <Button
-        size={{ base: "xs", md: "sm" }}
-        onClick={goNextPage}
-        isDisabled={currentPage === totalPages}
-        rightIcon={<FaChevronRight />}
-        bg="white"
-        color={customColor}
-        border="1px"
-        borderColor={customColor}
-        _hover={{ bg: customColor, color: "white" }}
-        _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
-        width={{ base: "100%", sm: "auto" }}
-      >
-        Next
-      </Button>
-    </Flex>
-  </Box>
-</Box>
+                            {/* Page Number Display */}
+                            <Flex 
+                              align="center" 
+                              gap={2}
+                              bg={`${customColor}10`}
+                              px={3}
+                              py={1}
+                              borderRadius="6px"
+                              minW="80px"
+                              justify="center"
+                            >
+                              <Text fontSize="sm" fontWeight="bold" color={customColor}>
+                                {currentPage}
+                              </Text>
+                              <Text fontSize="sm" color="gray.500">
+                                /
+                              </Text>
+                              <Text fontSize="sm" color="gray.600" fontWeight="medium">
+                                {totalPages}
+                              </Text>
+                            </Flex>
+
+                            <Button
+                              size="sm"
+                              onClick={handleNextPage}
+                              isDisabled={currentPage === totalPages}
+                              rightIcon={<FaChevronRight />}
+                              bg="white"
+                              color={customColor}
+                              border="1px"
+                              borderColor={customColor}
+                              _hover={{ bg: customColor, color: "white" }}
+                              _disabled={{ 
+                                opacity: 0.5, 
+                                cursor: "not-allowed",
+                                bg: "gray.100",
+                                color: "gray.400",
+                                borderColor: "gray.300"
+                              }}
+                            >
+                              <Text display={{ base: "none", sm: "block" }}>Next</Text>
+                            </Button>
+                          </Flex>
+                        </Flex>
+                      </Box>
+                    )}
+                </Box>
 
 
 
@@ -850,13 +1339,13 @@ export default function CleanedBilling() {
       <Modal isOpen={isModalOpen} onClose={closeModal} size="4xl" isCentered>
         <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(4px)" />
         <ModalContent bg={cardBg} borderRadius="2xl" overflow="hidden">
-          <ModalHeader bg={`${customColor}08`} borderBottom="1px solid" borderColor="gray.200">
+          <ModalHeader bg={`${customColor}`} borderBottom="1px solid" borderColor="gray.200">
             <VStack align="start" spacing={2}>
-              <Heading size="md">Order Details</Heading>
-              <Text color="gray.600" fontSize="sm">Manage order status and delivery information</Text>
+              <Heading size="md"color={"white"}>Order Details</Heading>
+              <Text color="gray.200" fontSize="sm">Manage order status and delivery information</Text>
             </VStack>
           </ModalHeader>
-          <ModalCloseButton />
+          <ModalCloseButton color={"white"} />
           <ModalBody py={6}>
             {selectedOrder ? (
               <VStack spacing={6} align="stretch">
@@ -906,7 +1395,6 @@ export default function CleanedBilling() {
                 </Box>
 
                 <HStack spacing={3} justify="flex-end" flexWrap="wrap">
-                  <Button variant="outline" leftIcon={<FiDownload />} onClick={() => handleDownloadInvoice(selectedOrder)} borderColor="gray.300">Download Invoice</Button>
                   
                   <Button leftIcon={<IoCheckmarkDoneCircleSharp />} bg="#3B82F6" _hover={{ bg: "#2563EB" }} color="white" onClick={() => {
                     Confirm_Order();
