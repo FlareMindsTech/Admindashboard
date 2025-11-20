@@ -8,6 +8,7 @@ import {
   getAllProducts,
   createProducts,
   updateCategories,
+  deleteCategory,
   updateProducts,
   deleteProducts,
   uploadProductImage,
@@ -100,6 +101,12 @@ export default function ProductManagement() {
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false); // Added orders loading state
   const [isLoadingData, setIsLoadingData] = useState(false);
+
+  // Add these state variables near your other state declarations
+const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+const [itemToDelete, setItemToDelete] = useState(null);
+const [deleteType, setDeleteType] = useState(""); // "category" or "product"
+const [isDeleting, setIsDeleting] = useState(false);
 
   // Search and Filter states - FIXED: Added searchTerm state
   const [searchTerm, setSearchTerm] = useState("");
@@ -537,6 +544,86 @@ export default function ProductManagement() {
     }
   };
 
+  // Delete Category Handler
+const handleDeleteCategory = async (category) => {
+  setItemToDelete(category);
+  setDeleteType("category");
+  setIsDeleteModalOpen(true);
+};
+
+// Delete Product Handler (update existing one to use modal)
+// Delete Product Handler (update existing one to use modal)
+const handleDeleteProduct = async (product) => {
+  setItemToDelete(product);
+  setDeleteType("product");
+  setIsDeleteModalOpen(true);
+};
+
+// Confirm Delete Handler
+const handleConfirmDelete = async () => {
+  if (!itemToDelete) return;
+
+  try {
+    setIsDeleting(true);
+    
+    if (deleteType === "category") {
+      // Check if category has products
+      const productsInCategory = products.filter(
+        p => p.category?._id === itemToDelete._id || p.category === itemToDelete._id
+      );
+      
+      if (productsInCategory.length > 0) {
+        toast({
+          title: "Cannot Delete Category",
+          description: `This category has ${productsInCategory.length} product(s). Please remove or reassign them first.`,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      await deleteCategory(itemToDelete._id);
+      toast({
+        title: "Category Deleted",
+        description: `"${itemToDelete.name}" has been deleted successfully.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } else if (deleteType === "product") {
+      await deleteProducts(itemToDelete._id);
+      toast({
+        title: "Product Deleted",
+        description: `"${itemToDelete.name}" has been deleted successfully.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
+    await fetchData();
+    closeDeleteModal();
+  } catch (err) {
+    toast({
+      title: `Error Deleting ${deleteType === "category" ? "Category" : "Product"}`,
+      description: err.message || `Failed to delete ${deleteType}`,
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  } finally {
+    setIsDeleting(false);
+  }
+};
+
+// Close Delete Modal
+const closeDeleteModal = () => {
+  setIsDeleteModalOpen(false);
+  setItemToDelete(null);
+  setDeleteType("");
+  setIsDeleting(false);
+};
   // Product Submit (Add/Edit)
   const handleSubmitProduct = async () => {
     if (!newProduct.name || !newProduct.price || !newProduct.stock) {
@@ -669,32 +756,7 @@ export default function ProductManagement() {
     setCurrentView("editCategory");
   };
 
-  const handleDeleteProduct = async (productId) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
-    try {
-      setIsLoadingProducts(true);
-      await deleteProducts(productId);
-      toast({
-        title: "Product Deleted",
-        description: "Product deleted successfully.",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-      await fetchData();
-    } catch (err) {
-      toast({
-        title: "Delete Error",
-        description: err.message || "Failed to delete product",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsLoadingProducts(false);
-    }
-  };
-
+ 
   // Loading component for tables
   const TableLoader = ({ columns = 6 }) => (
     <Tr>
@@ -1676,33 +1738,45 @@ export default function ProductManagement() {
                                     </Badge>
                                   </Td>
                                  
-                                  <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
-                                    <Flex gap={2}>
-                                      <IconButton
-                                        aria-label="View category"
-                                        icon={<FaEye />}
-                                        bg="white"
-                                        color="blue.500"
-                                        border="1px"
-                                        borderColor="blue.500"
-                                        _hover={{ bg: "blue.500", color: "white" }}
-                                        size="sm"
-                                        onClick={() => handleViewCategory(cat)}
-                                      />
-                                      <IconButton
-                                        aria-label="Edit category"
-                                        icon={<FaEdit />}
-                                        bg="white"
-                                        color={customColor}
-                                        border="1px"
-                                        borderColor={customColor}
-                                        _hover={{ bg: customColor, color: "white" }}
-                                        size="sm"
-                                        onClick={() => handleEditCategory(cat)}
-                                      />
-                                    </Flex>
-                                  </Td>
-                                </Tr>
+                           
+<Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
+  <Flex gap={2}>
+    <IconButton
+      aria-label="View category"
+      icon={<FaEye />}
+      bg="white"
+      color="blue.500"
+      border="1px"
+      borderColor="blue.500"
+      _hover={{ bg: "blue.500", color: "white" }}
+      size="sm"
+      onClick={() => handleViewCategory(cat)}
+    />
+    <IconButton
+      aria-label="Edit category"
+      icon={<FaEdit />}
+      bg="white"
+      color={customColor}
+      border="1px"
+      borderColor={customColor}
+      _hover={{ bg: customColor, color: "white" }}
+      size="sm"
+      onClick={() => handleEditCategory(cat)}
+    />
+    {/* Add Delete Button for Categories */}
+    <IconButton
+      aria-label="Delete category"
+      icon={<FaTrash />}
+      bg="white"
+      color="red.500"
+      border="1px"
+      borderColor="red.500"
+      _hover={{ bg: "red.500", color: "white" }}
+      size="sm"
+      onClick={() => handleDeleteCategory(cat)}
+    />
+  </Flex>
+</Td> </Tr>
                               ))
                             ) : (
                               <Tr>
@@ -1992,17 +2066,18 @@ export default function ProductManagement() {
                                           size="sm"
                                           onClick={() => handleEditProduct(prod)}
                                         />
-                                        <IconButton
-                                          aria-label="Delete product"
-                                          icon={<FaTrash />}
-                                          bg="white"
-                                          color="red.500"
-                                          border="1px"
-                                          borderColor="red.500"
-                                          _hover={{ bg: "red.500", color: "white" }}
-                                          size="sm"
-                                          onClick={() => handleDeleteProduct(prod._id)}
-                                        />
+                                
+<IconButton
+  aria-label="Delete product"
+  icon={<FaTrash />}
+  bg="white"
+  color="red.500"
+  border="1px"
+  borderColor="red.500"
+  _hover={{ bg: "red.500", color: "white" }}
+  size="sm"
+  onClick={() => handleDeleteProduct(prod)} // Changed from handleDeleteProduct(prod._id)
+/>
                                       </Flex>
                                     </Td>
                                   </Tr>
@@ -2243,6 +2318,72 @@ export default function ProductManagement() {
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+<Modal isOpen={isDeleteModalOpen} onClose={closeDeleteModal} size="md">
+  <ModalOverlay />
+  <ModalContent>
+    <ModalHeader color="gray.700">
+      <Flex align="center" gap={2}>
+        <Icon as={FaExclamationTriangle} color="red.500" />
+        Confirm Delete
+      </Flex>
+    </ModalHeader>
+    <ModalCloseButton />
+    <ModalBody>
+      <Text fontSize="md" mb={4}>
+        Are you sure you want to delete{" "}
+        <Text as="span" fontWeight="bold" color={customColor}>
+          "{itemToDelete?.name}"
+        </Text>
+        ? This action cannot be undone.
+      </Text>
+      
+      {deleteType === "category" && (
+        <Box 
+          bg="orange.50" 
+          p={3} 
+          borderRadius="md" 
+          border="1px" 
+          borderColor="orange.200"
+        >
+          <Flex align="center" gap={2} mb={2}>
+            <Icon as={MdWarning} color="orange.500" />
+            <Text fontSize="sm" fontWeight="medium" color="orange.700">
+              Important Note
+            </Text>
+          </Flex>
+          <Text fontSize="sm" color="orange.600">
+            This category must be empty (no products) before it can be deleted. 
+           
+          </Text>
+        </Box>
+      )}
+    </ModalBody>
+    <ModalFooter>
+      <Button 
+        variant="outline" 
+        mr={3} 
+        onClick={closeDeleteModal}
+        isDisabled={isDeleting}
+        size="sm"
+      >
+        Cancel
+      </Button>
+      <Button
+        bg="red.500"
+        _hover={{ bg: "red.600" }}
+        color="white"
+        onClick={handleConfirmDelete}
+        isLoading={isDeleting}
+        loadingText="Deleting..."
+        size="sm"
+      >
+        Delete {deleteType === "category" ? "Category" : "Product"}
+      </Button>
+    </ModalFooter>
+  </ModalContent>
+</Modal>
     </Flex>
   );
 }

@@ -1,11 +1,9 @@
 // dashRoutes.js - Updated with role-based access
 import React from "react";
 import Dashboard from "views/Dashboard/Dashboard.js";
-import Tables from "views/Dashboard/Tables.js";
 import Billing from "views/Dashboard/Billing.js";
 import Profile from "views/Dashboard/Profile.js";
 import SignIn from "views/Pages/SignIn.js";
-import SignUp from "views/Pages/SignUp.js";
 import AdminManagement from "views/Dashboard/AdminManagement.js"; 
 import UserManagement from "views/Dashboard/UserManagement.js"; 
 import { MdLogout } from "react-icons/md";
@@ -14,11 +12,9 @@ import {
   HomeIcon,
   StatsIcon,
   CreditIcon,
-  ProfileIcon,
-  DocumentIcon,
-  RocketIcon,
+
 } from "components/Icons/Icons";
-import { MdCategory } from "react-icons/md"; 
+
 import ProductManagement from "views/Dashboard/ProductManagement";
 
 const ICON_COLOR = "#7b2cbf";

@@ -28,6 +28,13 @@ import {
   IconButton,
   Spinner,
   Avatar,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
 } from "@chakra-ui/react";
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
@@ -44,9 +51,10 @@ import {
   FaEye,
   FaEyeSlash,
   FaUserSlash,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
-import { MdAdminPanelSettings, MdPerson, MdBlock } from "react-icons/md";
+import { MdAdminPanelSettings, MdPerson, MdBlock, MdWarning } from "react-icons/md";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 import {
   getAllAdmins,
@@ -83,6 +91,11 @@ function AdminManagement() {
   const [showPassword, setShowPassword] = useState(false); // Show password state
   const [showConfirmPassword, setShowConfirmPassword] = useState(false); // Show confirm password state
 
+  // Delete modal states
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [adminToDelete, setAdminToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // View state - 'list', 'add', 'edit'
   const [currentView, setCurrentView] = useState("list");
   const [editingAdmin, setEditingAdmin] = useState(null);
@@ -117,6 +130,89 @@ function AdminManagement() {
   // Toggle password visibility
   const handleTogglePassword = () => setShowPassword(!showPassword);
   const handleToggleConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
+
+  // Handle delete admin - show confirmation modal
+  const handleDeleteAdmin = async (admin) => {
+    if (admin.role === "super admin" && admin._id !== currentUser._id) {
+      toast({
+        title: "Permission Denied",
+        description: "You cannot delete other super admins.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (admin._id === currentUser._id) {
+      toast({
+        title: "Action Not Allowed",
+        description: "You cannot delete your own account.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setAdminToDelete(admin);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Confirm delete handler
+  const handleConfirmDelete = async () => {
+    if (!adminToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await inActiveAdmin(adminToDelete._id);
+      
+      toast({
+        title: "Admin Deleted",
+        description: `${adminToDelete.name} has been deleted successfully.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Refresh admin list
+      const fetchAdmins = async () => {
+        try {
+          const adminsResponse = await getAllAdmins();
+          const admins = adminsResponse.data?.admins || adminsResponse.data || adminsResponse?.admins || adminsResponse || [];
+          const sortedAdmins = admins.sort(
+            (a, b) => new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id)
+          );
+          setAdminData(sortedAdmins);
+          setFilteredData(sortedAdmins);
+        } catch (err) {
+          console.error("Error refreshing admins:", err);
+        }
+      };
+
+      await fetchAdmins();
+      closeDeleteModal();
+
+    } catch (err) {
+      console.error("Error deleting admin:", err);
+      const errorMessage = err.response?.data?.message || err.message || "Failed to delete admin.";
+      toast({
+        title: "Delete Error",
+        description: errorMessage,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+    setIsDeleting(false);
+  };
+
+  // Close delete modal
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setAdminToDelete(null);
+    setIsDeleting(false);
+  };
 
   const handleAddAdmin = () => {
     setFormData({
@@ -487,73 +583,6 @@ function AdminManagement() {
     setLoading(false);
   };
 
-  // Handle inactive admin
-  const handleInactiveAdmin = async (admin) => {
-    if (admin.role === "super admin" && admin._id !== currentUser._id) {
-      toast({
-        title: "Permission Denied",
-        description: "You cannot deactivate other super admins.",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    if (admin._id === currentUser._id) {
-      toast({
-        title: "Action Not Allowed",
-        description: "You cannot deactivate your own account.",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await inActiveAdmin(admin._id);
-      
-      toast({
-        title: "Admin Deactivated",
-        description: `${admin.name} has been deactivated successfully.`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-
-      // Refresh admin list
-      const fetchAdmins = async () => {
-        try {
-          const adminsResponse = await getAllAdmins();
-          const admins = adminsResponse.data?.admins || adminsResponse.data || adminsResponse?.admins || adminsResponse || [];
-          const sortedAdmins = admins.sort(
-            (a, b) => new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id)
-          );
-          setAdminData(sortedAdmins);
-          setFilteredData(sortedAdmins);
-        } catch (err) {
-          console.error("Error refreshing admins:", err);
-        }
-      };
-
-      await fetchAdmins();
-
-    } catch (err) {
-      console.error("Error deactivating admin:", err);
-      const errorMessage = err.response?.data?.message || err.message || "Failed to deactivate admin.";
-      toast({
-        title: "Deactivation Error",
-        description: errorMessage,
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-    setLoading(false);
-  };
-
   // Auto-hide success/error messages after 3 seconds
   useEffect(() => {
     if (success || error) {
@@ -625,8 +654,6 @@ function AdminManagement() {
   const handlePageClick = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
-
-  
 
   // Render Form View (Add/Edit)
   if (currentView === "add" || currentView === "edit") {
@@ -1548,7 +1575,7 @@ function AdminManagement() {
                                       />
                                       {admin.status === "Active" && admin._id !== currentUser._id && (
                                         <IconButton
-                                          aria-label="Deactivate admin"
+                                          aria-label="Delete admin"
                                           icon={<FaUserSlash />}
                                           bg="white"
                                           color="red.500"
@@ -1556,8 +1583,8 @@ function AdminManagement() {
                                           borderColor="red.500"
                                           _hover={{ bg: "red.500", color: "white" }}
                                           size="sm"
-                                          onClick={() => handleInactiveAdmin(admin)}
-                                          title="Deactivate admin"
+                                          onClick={() => handleDeleteAdmin(admin)}
+                                          title="Delete admin"
                                         />
                                       )}
                                     </Flex>
@@ -1686,6 +1713,70 @@ function AdminManagement() {
           </CardBody>
         </Card>
       </Box>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={isDeleteModalOpen} onClose={closeDeleteModal} size="md">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader color="gray.700">
+            <Flex align="center" gap={2}>
+              <Icon as={FaExclamationTriangle} color="red.500" />
+              Confirm Delete
+            </Flex>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text fontSize="md" mb={4}>
+              Are you sure you want to delete{" "}
+              <Text as="span" fontWeight="bold" color={customColor}>
+                "{adminToDelete?.name}"
+              </Text>
+              ? This action cannot be undone.
+            </Text>
+            
+            <Box 
+              bg="orange.50" 
+              p={3} 
+              borderRadius="md" 
+              border="1px" 
+              borderColor="orange.200"
+            >
+              <Flex align="center" gap={2} mb={2}>
+                <Icon as={MdWarning} color="orange.500" />
+                <Text fontSize="sm" fontWeight="medium" color="orange.700">
+                  Important Note
+                </Text>
+              </Flex>
+              <Text fontSize="sm" color="orange.600">
+                This admin will be permanently deleted from the system. 
+                All associated data will be removed.
+              </Text>
+            </Box>
+          </ModalBody>
+          <ModalFooter>
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={closeDeleteModal}
+              isDisabled={isDeleting}
+              size="sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              bg="red.500"
+              _hover={{ bg: "red.600" }}
+              color="white"
+              onClick={handleConfirmDelete}
+              isLoading={isDeleting}
+              loadingText="Deleting..."
+              size="sm"
+            >
+              Delete Admin
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Flex>
   );
 }

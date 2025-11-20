@@ -214,6 +214,25 @@ export const updateCategories = async (categoryId, updatedData) => {
   }
 };
 
+
+export const deleteCategory = async (categoryId) => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/categories/delete/${categoryId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", token },
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+
+    return await response.json(); 
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    throw error;
+  }
+};
+
+
 // ----- Product APIs -----
 export const getAllProducts = async () => {
   try {
