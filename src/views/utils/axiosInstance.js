@@ -2,8 +2,8 @@
 import axios from "axios";
 
 // --- Configuration ---
-const API_BASE_URL = "https://boutique-ecommerce-1.onrender.com/";
-const BASE_URL = "https://boutique-ecommerce-1.onrender.com/api";
+const API_BASE_URL = "https://server-e-fx6s.onrender.com/";
+const BASE_URL = "https://server-e-fx6s.onrender.com/api";
 const TIMEOUT_MS = 10000;
 
 // =========================================================
