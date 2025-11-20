@@ -12,7 +12,7 @@ import FlareLogo from "assets/img/Aadvi-logo.png";
 // Layout components
 import Sidebar, { SidebarResponsive } from "components/Sidebar/Sidebar.js";
 import AdminNavbar from "components/Navbars/AdminNavbar.js";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import routes from "routes.js";
 // Custom Chakra theme
@@ -25,6 +25,7 @@ import PanelContent from "components/Layout/PanelContent";
 export default function Dashboard(props) {
   const { ...rest } = props;
   const [fixed, setFixed] = useState(false);
+  const [userRole, setUserRole] = useState(null);
   const { colorMode } = useColorMode();
   
   // Separate drawer states to prevent conflicts
@@ -32,6 +33,63 @@ export default function Dashboard(props) {
   const { isOpen: isPluginOpen, onOpen: onPluginOpen, onClose: onPluginClose } = useDisclosure();
 
   document.documentElement.dir = "ltr";
+
+  // Get user role from localStorage on component mount
+  useEffect(() => {
+    const userString = localStorage.getItem("user");
+    if (userString) {
+      try {
+        const userData = JSON.parse(userString);
+        setUserRole(userData.role?.toLowerCase() || 'admin');
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+        setUserRole('admin');
+      }
+    }
+  }, []);
+
+  // Filter routes based on user role
+  const getFilteredRoutes = (routes) => {
+    if (!userRole) return routes;
+
+    return routes.filter(route => {
+      // If route has collapse/views, filter its children
+      if (route.collapse) {
+        const filteredViews = getFilteredRoutes(route.views || []);
+        return filteredViews.length > 0;
+      }
+
+      // Skip auth routes
+      if (route.layout === "/auth") return false;
+
+      // Define which routes are restricted to super admin only
+      const superAdminOnlyRoutes = [
+        "Admin Management",
+        "admin-management"
+      ];
+
+      // Check if current route is restricted to super admin only
+      const isSuperAdminOnly = superAdminOnlyRoutes.some(restrictedRoute => 
+        route.name?.toLowerCase().includes(restrictedRoute.toLowerCase()) ||
+        route.path?.toLowerCase().includes(restrictedRoute.toLowerCase())
+      );
+
+      if (isSuperAdminOnly) {
+        return userRole === "super admin" || userRole === "superadmin";
+      }
+
+      // Allow access to other admin routes for both roles
+      return route.layout === "/admin";
+    }).map(route => {
+      if (route.collapse) {
+        return {
+          ...route,
+          views: getFilteredRoutes(route.views || [])
+        };
+      }
+      return route;
+    });
+  };
 
   // ✅ Only include routes with layout "/admin" — skip auth routes
   const getRoutes = (routes) => {
@@ -83,6 +141,8 @@ export default function Dashboard(props) {
     return activeNavbar;
   };
 
+  const filteredRoutes = getFilteredRoutes(routes);
+
   return (
     <Box>
       <Box
@@ -118,7 +178,7 @@ export default function Dashboard(props) {
             <Box w="1px" h="20px" />
           </Stack>
         }
-        routes={routes.filter(
+        routes={filteredRoutes.filter(
           (r) => !(r.layout === "/auth" && r.path === "/signin")
         )}
         hamburgerColor="white"
@@ -129,7 +189,7 @@ export default function Dashboard(props) {
       
       {/* Desktop Sidebar - Show on larger screens */}
       <Sidebar
-        routes={routes.filter(
+        routes={filteredRoutes.filter(
           (r) => !(r.layout === "/auth" && r.path === "/signin")
         )}
         logo={
@@ -225,4 +285,4 @@ export default function Dashboard(props) {
       </MainPanel>
     </Box>
   );
-} 
+}

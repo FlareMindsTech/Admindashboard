@@ -140,6 +140,29 @@ export const updateAdmin = async (adminId, updatedData) => {
   }
 };
 
+export const inActiveAdmin = async (adminId) => {
+  try {
+    const token = getToken();
+
+    const response = await fetch(`${BASE_URL}/admins/delete/${adminId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        token,
+      },
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+
+    return await response.json();   // Example: { message: "Admin marked as Inactive successfully" }
+
+  } catch (error) {
+    console.error("Error deleting admin:", error);
+    throw error;
+  }
+};
+
+
 // ----- Category APIs -----
 export const getAllCategories = async () => {
   try {

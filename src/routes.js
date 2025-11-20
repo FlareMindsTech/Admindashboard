@@ -1,4 +1,4 @@
-// import
+// dashRoutes.js - Updated with role-based access
 import React from "react";
 import Dashboard from "views/Dashboard/Dashboard.js";
 import Tables from "views/Dashboard/Tables.js";
@@ -10,7 +10,6 @@ import AdminManagement from "views/Dashboard/AdminManagement.js";
 import UserManagement from "views/Dashboard/UserManagement.js"; 
 import { MdLogout } from "react-icons/md";
 
-
 import {
   HomeIcon,
   StatsIcon,
@@ -20,22 +19,35 @@ import {
   RocketIcon,
 } from "components/Icons/Icons";
 import { MdCategory } from "react-icons/md"; 
-import ProductManagement from "views/Dashboard/ProductManagement"; // for category icon
+import ProductManagement from "views/Dashboard/ProductManagement";
 
-const ICON_COLOR = "#7b2cbf"; // ✅ updated color
+const ICON_COLOR = "#7b2cbf";
 
 // ✅ Added: Logout component
 const Logout = () => {
-  // Clear stored data
   localStorage.clear();
   sessionStorage.clear();
-
-  // Redirect to login (auto-detect domain)
   const base = window.location.origin + window.location.pathname;
   window.location.replace(`${base}#/auth/signin`);
-
   return <div>Logging out...</div>;
 };
+
+// Get current user role
+const getCurrentUserRole = () => {
+  const userString = localStorage.getItem("user");
+  if (userString) {
+    try {
+      const userData = JSON.parse(userString);
+      return userData.role?.toLowerCase() || 'admin';
+    } catch (error) {
+      return 'admin';
+    }
+  }
+  return 'admin';
+};
+
+const userRole = getCurrentUserRole();
+const isSuperAdmin = userRole === 'super admin' || userRole === 'super admin';
 
 var dashRoutes = [
   {
@@ -46,16 +58,16 @@ var dashRoutes = [
     element: <Dashboard />,
     layout: "/admin",
   },
-
-  {
+  // Show Admin Management only for super admin
+  ...(isSuperAdmin ? [{
     path: "/admin-management",
     name: "Admin Management",
     rtlName: "إدارة المسؤول",
     icon: <StatsIcon color="#7b2cbf" />,
     element: <AdminManagement />,
     layout: "/admin",
-  },
-    {
+  }] : []),
+  {
     path: "/ProductManagement",
     name: "Product Management",
     rtlName: "إدارة المستخدمين",
@@ -82,7 +94,6 @@ var dashRoutes = [
   { 
     path: "/profile", 
     name: "Profile", 
-  
     element: <Profile />, 
     layout: "/admin", 
   },
@@ -94,7 +105,6 @@ var dashRoutes = [
     element: <SignIn />,
     layout: "/auth",
   },
-  // ✅ Added: Real Logout route (no existing code touched)
   {
     path: "/logout",
     name: "Logout",
