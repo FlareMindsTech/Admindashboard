@@ -43,14 +43,16 @@ import {
   FaUserPlus,
   FaEye,
   FaEyeSlash,
+  FaUserSlash,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
-import { MdAdminPanelSettings, MdPerson } from "react-icons/md";
+import { MdAdminPanelSettings, MdPerson, MdBlock } from "react-icons/md";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 import {
   getAllAdmins,
   updateAdmin,
   createAdmin,
+  inActiveAdmin,
 } from "views/utils/axiosInstance";
 
 // Main Admin Management Component
@@ -94,7 +96,8 @@ function AdminManagement() {
     password: "",
     confirmPassword: "",
     profileImage: "",
-    role: "admin"
+    role: "admin",
+    status: "Active" // Added status field
   });
 
   // Pagination state
@@ -115,35 +118,35 @@ function AdminManagement() {
   const handleTogglePassword = () => setShowPassword(!showPassword);
   const handleToggleConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
 
-const handleAddAdmin = () => {
-  setFormData({
-    firstName: "",
-    lastName: "",
-    phone: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    profileImage: "",
-    role: "admin"
-  });
-  setEditingAdmin(null);
-  setCurrentView("add");
-  setError("");
-  setSuccess("");
-  setShowPassword(false);
-  setShowConfirmPassword(false);
-};
+  const handleAddAdmin = () => {
+    setFormData({
+      firstName: "",
+      lastName: "",
+      phone: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      profileImage: "",
+      role: "admin",
+      status: "Active" // Default status for new admin
+    });
+    setEditingAdmin(null);
+    setCurrentView("add");
+    setError("");
+    setSuccess("");
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
 
-  // Fetch current user from localStorage
+  // Fetch current user from localStorage and check permissions
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (
-      !storedUser ||
-      (storedUser.role !== "admin" && storedUser.role !== "super admin")
-    ) {
+    
+    // Check if user exists and is super admin
+    if (!storedUser || storedUser.role !== "super admin") {
       toast({
         title: "Access Denied",
-        description: "Only admin or super admin users can access this page.",
+        description: "Only super admin users can access this page.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -218,8 +221,8 @@ const handleAddAdmin = () => {
         case "Inactive":
           filtered = adminData.filter((admin) => admin.status === "Inactive");
           break;
-        case "super":
-          filtered = adminData.filter((admin) => admin.role === "super admin");
+        case "Deleted":
+          filtered = adminData.filter((admin) => admin.status === "Deleted");
           break;
         default:
           filtered = adminData;
@@ -261,24 +264,42 @@ const handleAddAdmin = () => {
   };
 
   // Handle edit admin - show edit form
-const handleEditAdmin = (admin) => {
-  setFormData({
-    firstName: admin.firstName || "",
-    lastName: admin.lastName || "",
-    phone: admin.phone || "",
-    email: admin.email || "",
-    password: "", // Don't pre-fill password for security
-    confirmPassword: "",
-    profileImage: admin.profileImage || "",
-    role: admin.role || "admin"
-  });
-  setEditingAdmin(admin);
-  setCurrentView("edit");
-  setError("");
-  setSuccess("");
-  setShowPassword(false);
-  setShowConfirmPassword(false);
-};
+  const handleEditAdmin = (admin) => {
+    // Prevent editing super admins unless it's the current user
+    if (admin.role === "super admin" && admin._id !== currentUser._id) {
+      toast({
+        title: "Permission Denied",
+        description: "You can only edit your own super admin profile.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Extract first and last name from admin.name
+    const nameParts = admin.name ? admin.name.split(' ') : ['', ''];
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    setFormData({
+      firstName: firstName,
+      lastName: lastName,
+      phone: admin.phone || "",
+      email: admin.email || "",
+      password: "", // Don't pre-fill password for security
+      confirmPassword: "",
+      profileImage: admin.profileImage || "",
+      role: admin.role || "admin",
+      status: admin.status || "Active" // Set current status
+    });
+    setEditingAdmin(admin);
+    setCurrentView("edit");
+    setError("");
+    setSuccess("");
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
 
   // Handle back to list
   const handleBackToList = () => {
@@ -291,168 +312,247 @@ const handleEditAdmin = (admin) => {
   };
 
   // Handle form submit for both add and edit
-// Handle form submit for both add and edit
-const handleSubmit = async () => {
-  // Frontend validation
-  if (!formData.firstName || !formData.lastName || !formData.email) {
-    return toast({
-      title: "Validation Error",
-      description: "First name, last name, and email are required",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(formData.email)) {
-    return toast({
-      title: "Validation Error",
-      description: "Invalid email format",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  }
-
-  // For add admin, password is required
-  if (currentView === "add" && !formData.password) {
-    return toast({
-      title: "Validation Error",
-      description: "Password is required for new admins",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  }
-
-  // Validate password strength if provided
-  if (formData.password) {
-    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
-    if (!passwordRegex.test(formData.password)) {
+  const handleSubmit = async () => {
+    // Frontend validation
+    if (!formData.firstName || !formData.lastName || !formData.email) {
       return toast({
         title: "Validation Error",
-        description:
-          "Password must be at least 8 characters, include uppercase, lowercase, and a number",
+        description: "First name, last name, and email are required",
         status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
-  }
 
-  // Check password confirmation for add admin
-  if (currentView === "add" && formData.password !== formData.confirmPassword) {
-    return toast({
-      title: "Validation Error",
-      description: "Passwords do not match",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  }
-
-  setLoading(true);
-  setError("");
-  setSuccess("");
-
-  try {
-    // Prepare data for API - try different structures
-    let adminDataToSend;
-
-    // Try structure 1: Combined name field (most common)
-    adminDataToSend = {
-      name: `${formData.firstName} ${formData.lastName}`.trim(),
-      email: formData.email,
-      role: formData.role,
-      phone: formData.phone || "",
-      profileImage: formData.profileImage || "",
-      ...(formData.password && { password: formData.password })
-    };
-
-    console.log("Sending data to API:", adminDataToSend);
-
-    let response;
-    let successMessage;
-
-    if (currentView === "edit" && editingAdmin) {
-      // Update existing admin
-      response = await updateAdmin(editingAdmin._id, adminDataToSend);
-      successMessage = `Admin ${formData.firstName} updated successfully`;
-    } else {
-      // Create new admin
-      response = await createAdmin(adminDataToSend);
-      successMessage = `Admin ${formData.firstName} created successfully`;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      return toast({
+        title: "Validation Error",
+        description: "Invalid email format",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
 
-    console.log("Admin operation response:", response);
+    // For add admin, password is required
+    if (currentView === "add" && !formData.password) {
+      return toast({
+        title: "Validation Error",
+        description: "Password is required for new admins",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
 
-    toast({
-      title: currentView === "edit" ? "Admin Updated" : "Admin Created",
-      description: successMessage,
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
-
-    // Refresh admin list
-    const fetchAdmins = async () => {
-      try {
-        const adminsResponse = await getAllAdmins();
-        const admins = adminsResponse.data?.admins || adminsResponse.data || adminsResponse?.admins || adminsResponse || [];
-        const sortedAdmins = admins.sort(
-          (a, b) => new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id)
-        );
-        setAdminData(sortedAdmins);
-        setFilteredData(sortedAdmins);
-      } catch (err) {
-        console.error("Error refreshing admins:", err);
+    // Validate password strength if provided
+    if (formData.password) {
+      const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
+      if (!passwordRegex.test(formData.password)) {
+        return toast({
+          title: "Validation Error",
+          description:
+            "Password must be at least 8 characters, include uppercase, lowercase, and a number",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
       }
-    };
-
-    await fetchAdmins();
-
-    setSuccess(successMessage);
-    
-    // Reset form and go back to list
-    setFormData({
-      firstName: "",
-      lastName: "",
-      phone: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      profileImage: "",
-      role: "admin"
-    });
-    setEditingAdmin(null);
-    setCurrentView("list");
-
-  } catch (err) {
-    console.error("API Error details:", err);
-    console.error("Error response:", err.response);
-    
-    let errorMessage = "API error. Try again.";
-    
-    if (err.response?.data) {
-      // Try to get detailed error message
-      const errorData = err.response.data;
-      errorMessage = errorData.message || errorData.error || JSON.stringify(errorData);
-    } else if (err.message) {
-      errorMessage = err.message;
     }
-    
-    setError(errorMessage);
-    toast({
-      title: "Error",
-      description: errorMessage,
-      status: "error",
-      duration: 5000, // Longer duration to read the error
-      isClosable: true,
-    });
-  }
-  setLoading(false);
-};
+
+    // Check password confirmation for add admin
+    if (currentView === "add" && formData.password !== formData.confirmPassword) {
+      return toast({
+        title: "Validation Error",
+        description: "Passwords do not match",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
+    // Prevent regular admins from creating super admins
+    if (currentUser.role === "admin" && formData.role === "super admin") {
+      return toast({
+        title: "Permission Denied",
+        description: "Only super admins can create other super admins",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      // Prepare data for API - try different structures
+      let adminDataToSend;
+
+      // Try structure 1: Combined name field (most common)
+      adminDataToSend = {
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        email: formData.email,
+        role: formData.role,
+        status: formData.status, // Include status in API call
+        phone: formData.phone || "",
+        profileImage: formData.profileImage || "",
+        ...(formData.password && { password: formData.password })
+      };
+
+      console.log("Sending data to API:", adminDataToSend);
+
+      let response;
+      let successMessage;
+
+      if (currentView === "edit" && editingAdmin) {
+        // Update existing admin
+        response = await updateAdmin(editingAdmin._id, adminDataToSend);
+        successMessage = `Admin ${formData.firstName} updated successfully`;
+      } else {
+        // Create new admin
+        response = await createAdmin(adminDataToSend);
+        successMessage = `Admin ${formData.firstName} created successfully`;
+      }
+
+      console.log("Admin operation response:", response);
+
+      toast({
+        title: currentView === "edit" ? "Admin Updated" : "Admin Created",
+        description: successMessage,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Refresh admin list
+      const fetchAdmins = async () => {
+        try {
+          const adminsResponse = await getAllAdmins();
+          const admins = adminsResponse.data?.admins || adminsResponse.data || adminsResponse?.admins || adminsResponse || [];
+          const sortedAdmins = admins.sort(
+            (a, b) => new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id)
+          );
+          setAdminData(sortedAdmins);
+          setFilteredData(sortedAdmins);
+        } catch (err) {
+          console.error("Error refreshing admins:", err);
+        }
+      };
+
+      await fetchAdmins();
+
+      setSuccess(successMessage);
+      
+      // Reset form and go back to list
+      setFormData({
+        firstName: "",
+        lastName: "",
+        phone: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        profileImage: "",
+        role: "admin",
+        status: "Active"
+      });
+      setEditingAdmin(null);
+      setCurrentView("list");
+
+    } catch (err) {
+      console.error("API Error details:", err);
+      console.error("Error response:", err.response);
+      
+      let errorMessage = "API error. Try again.";
+      
+      if (err.response?.data) {
+        // Try to get detailed error message
+        const errorData = err.response.data;
+        errorMessage = errorData.message || errorData.error || JSON.stringify(errorData);
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        status: "error",
+        duration: 5000, // Longer duration to read the error
+        isClosable: true,
+      });
+    }
+    setLoading(false);
+  };
+
+  // Handle inactive admin
+  const handleInactiveAdmin = async (admin) => {
+    if (admin.role === "super admin" && admin._id !== currentUser._id) {
+      toast({
+        title: "Permission Denied",
+        description: "You cannot deactivate other super admins.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (admin._id === currentUser._id) {
+      toast({
+        title: "Action Not Allowed",
+        description: "You cannot deactivate your own account.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await inActiveAdmin(admin._id);
+      
+      toast({
+        title: "Admin Deactivated",
+        description: `${admin.name} has been deactivated successfully.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Refresh admin list
+      const fetchAdmins = async () => {
+        try {
+          const adminsResponse = await getAllAdmins();
+          const admins = adminsResponse.data?.admins || adminsResponse.data || adminsResponse?.admins || adminsResponse || [];
+          const sortedAdmins = admins.sort(
+            (a, b) => new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id)
+          );
+          setAdminData(sortedAdmins);
+          setFilteredData(sortedAdmins);
+        } catch (err) {
+          console.error("Error refreshing admins:", err);
+        }
+      };
+
+      await fetchAdmins();
+
+    } catch (err) {
+      console.error("Error deactivating admin:", err);
+      const errorMessage = err.response?.data?.message || err.message || "Failed to deactivate admin.";
+      toast({
+        title: "Deactivation Error",
+        description: errorMessage,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+    setLoading(false);
+  };
 
   // Auto-hide success/error messages after 3 seconds
   useEffect(() => {
@@ -465,17 +565,33 @@ const handleSubmit = async () => {
     }
   }, [success, error]);
 
-  // Get status color with background
-  const getStatusColor = (status) => {
+  // Get status color with background and icon
+  const getStatusConfig = (status) => {
     switch (status?.toLowerCase()) {
-      case "Active":
-        return { color: "white", bg: "#9d4edd" };
-      case "Inactive":
-        return { color: "white", bg: "red.500" };
+      case "active":
+        return { 
+          color: "white", 
+          bg: "#9d4edd",
+          icon: IoCheckmarkDoneCircleSharp
+        };
+      case "inactive":
+        return { 
+          color: "white", 
+          bg: "red.500",
+          icon: FaUserSlash
+        };
       case "pending":
-        return { color: "white", bg: "yellow.500" };
+        return { 
+          color: "white", 
+          bg: "yellow.500",
+          icon: MdPerson
+        };
       default:
-        return { color: "white", bg: "#9d4edd" };
+        return { 
+          color: "white", 
+          bg: "#9d4edd",
+          icon: IoCheckmarkDoneCircleSharp
+        };
     }
   };
 
@@ -510,13 +626,7 @@ const handleSubmit = async () => {
     setCurrentPage(pageNumber);
   };
 
-  if (!currentUser) {
-    return (
-      <Flex justifyContent="center" alignItems="center" height="100vh">
-        <Spinner size="xl" color={customColor} />
-      </Flex>
-    );
-  }
+  
 
   // Render Form View (Add/Edit)
   if (currentView === "add" || currentView === "edit") {
@@ -665,23 +775,41 @@ const handleSubmit = async () => {
               </FormControl>
             </SimpleGrid>
 
-            <FormControl mb="24px">
-              <FormLabel htmlFor="role" color="gray.700">Role</FormLabel>
-              <Select
-                id="role"
-                name="role"
-                onChange={handleInputChange}
-                value={formData.role}
-                borderColor={`${customColor}50`}
-                _hover={{ borderColor: customColor }}
-                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                bg="white"
-              >
-                <option value="admin">Admin</option>
-                <option value="super admin">Super Admin</option>
-              </Select>
-            </FormControl>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+              <FormControl>
+                <FormLabel htmlFor="role" color="gray.700">Role</FormLabel>
+                <Select
+                  id="role"
+                  name="role"
+                  onChange={handleInputChange}
+                  value={formData.role}
+                  borderColor={`${customColor}50`}
+                  _hover={{ borderColor: customColor }}
+                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  bg="white"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="super admin">Super Admin</option>
+                </Select>
+              </FormControl>
 
+              <FormControl>
+                <FormLabel htmlFor="status" color="gray.700">Status</FormLabel>
+                <Select
+                  id="status"
+                  name="status"
+                  onChange={handleInputChange}
+                  value={formData.status}
+                  borderColor={`${customColor}50`}
+                  _hover={{ borderColor: customColor }}
+                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  bg="white"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </Select>
+              </FormControl>
+            </SimpleGrid>
 
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
               <FormControl isRequired={currentView === "add"}>
@@ -984,9 +1112,9 @@ const handleSubmit = async () => {
           <Card
             minH="83px"
             cursor="pointer"
-            onClick={() => handleCardClick("super")}
-            border={activeFilter === "super" ? "2px solid" : "1px solid"}
-            borderColor={activeFilter === "super" ? customColor : `${customColor}30`}
+            onClick={() => handleCardClick("Deleted")}
+            border={activeFilter === "Deleted" ? "2px solid" : "1px solid"}
+            borderColor={activeFilter === "Deleted" ? customColor : `${customColor}30`}
             transition="all 0.2s ease-in-out"
             bg="white"
             position="relative"
@@ -1023,11 +1151,11 @@ const handleSubmit = async () => {
                     fontWeight="bold"
                     pb="2px"
                   >
-                    Super Admins
+                    Deleted Admins
                   </StatLabel>
                   <Flex>
                     <StatNumber fontSize={{ base: "lg", md: "xl" }} color={textColor}>
-                      {adminData.filter((a) => a.role === "super admin").length}
+                      {adminData.filter((a) => a.status === "Deleted").length}
                     </StatNumber>
                   </Flex>
                 </Stat>
@@ -1086,7 +1214,7 @@ const handleSubmit = async () => {
           <Text fontSize="lg" fontWeight="bold" color={textColor}>
             {activeFilter === "Active" && "Active Admins"}
             {activeFilter === "Inactive" && "Inactive Admins"}
-            {activeFilter === "super" && "Super Admins"}
+            {activeFilter === "Deleted" && "Deleted Admins"}
             {activeFilter === "all" && "All Admins"}
           </Text>
           {activeFilter !== "all" && (
@@ -1341,7 +1469,7 @@ const handleSubmit = async () => {
                                 );
                               }
 
-                              const statusColors = getStatusColor(admin.status);
+                              const statusConfig = getStatusConfig(admin.status);
                               const verification = getVerificationBadge(admin.isVerified);
                               return (
                                 <Tr 
@@ -1387,29 +1515,52 @@ const handleSubmit = async () => {
                                   </Td>
                                   <Td borderColor={`${customColor}20`}>
                                     <Badge
-                                      bg={statusColors.bg}
-                                      color={statusColors.color}
+                                      bg={statusConfig.bg}
+                                      color={statusConfig.color}
                                       px={3}
                                       py={1}
                                       borderRadius="full"
                                       fontSize="sm"
                                       fontWeight="bold"
+                                      display="flex"
+                                      alignItems="center"
+                                      gap={2}
+                                      width="fit-content"
                                     >
+                                      <Icon as={statusConfig.icon} boxSize={3} />
                                       {admin.status || "active"}
                                     </Badge>
                                   </Td>
                                   <Td borderColor={`${customColor}20`}>
-                                    <IconButton
-                                      aria-label="Edit admin"
-                                      icon={<FaEdit />}
-                                      bg="white"
-                                      color={customColor}
-                                      border="1px"
-                                      borderColor={customColor}
-                                      _hover={{ bg: customColor, color: "white" }}
-                                      size="sm"
-                                      onClick={() => handleEditAdmin(admin)}
-                                    />
+                                    <Flex gap={2}>
+                                      <IconButton
+                                        aria-label="Edit admin"
+                                        icon={<FaEdit />}
+                                        bg="white"
+                                        color={customColor}
+                                        border="1px"
+                                        borderColor={customColor}
+                                        _hover={{ bg: customColor, color: "white" }}
+                                        size="sm"
+                                        onClick={() => handleEditAdmin(admin)}
+                                        isDisabled={admin.role === "super admin" && admin._id !== currentUser._id}
+                                        title={admin.role === "super admin" && admin._id !== currentUser._id ? "Cannot edit other super admins" : "Edit admin"}
+                                      />
+                                      {admin.status === "Active" && admin._id !== currentUser._id && (
+                                        <IconButton
+                                          aria-label="Deactivate admin"
+                                          icon={<FaUserSlash />}
+                                          bg="white"
+                                          color="red.500"
+                                          border="1px"
+                                          borderColor="red.500"
+                                          _hover={{ bg: "red.500", color: "white" }}
+                                          size="sm"
+                                          onClick={() => handleInactiveAdmin(admin)}
+                                          title="Deactivate admin"
+                                        />
+                                      )}
+                                    </Flex>
                                   </Td>
                                 </Tr>
                               );

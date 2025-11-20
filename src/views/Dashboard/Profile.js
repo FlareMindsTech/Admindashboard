@@ -11,7 +11,7 @@ import { IoSettingsSharp } from "react-icons/io5";
 import storeLogo from "assets/img/Aadvi-logo.png";
 import Card from "components/Card/Card";
 import { useNavigate } from "react-router-dom";
-import { getAllAdmins, getAllProducts } from "../utils/axiosInstance";
+import { getAllAdmins, getAllProducts, getAllUsers,updateAdmin } from "../utils/axiosInstance";
 
 const getInitialAdminData = () => {
   const userString = localStorage.getItem("user");
@@ -32,6 +32,7 @@ const getInitialAdminData = () => {
     ],
     createdAdmins: [],
     adminProducts: [],
+    allUsers: [], // New state for storing all users
   };
 };
 
@@ -240,6 +241,16 @@ export default function AdminProfile() {
   const [currentPage, setCurrentPage] = useState(1);
   const adminsPerPage = 5;
   const productsPerPage = 5;
+  const usersPerPage = 5;
+
+  // Get current user role
+  const currentUserRole = adminData.role?.toLowerCase();
+
+  // Check if current user is super admin
+  const isSuperAdmin = currentUserRole === 'super admin' || currentUserRole === 'superadmin';
+
+  // Check if current user is admin
+  const isAdmin = currentUserRole === 'admin';
 
   const fetchAllAdmins = async () => {
     setDataLoading(true);
@@ -262,6 +273,33 @@ export default function AdminProfile() {
     } catch (err) {
       console.error("Error fetching admins:", err);
       toast({ title: "Error", description: "Failed to fetch admins", status: "error" });
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  const fetchAllUsers = async () => {
+    setDataLoading(true);
+    try {
+      const allUsers = await getAllUsers();
+      const usersArray = Array.isArray(allUsers) ? allUsers : (allUsers.users || allUsers.data || []);
+      
+      // Safely process user data
+      const safeUsers = usersArray.map(user => ({
+        ...user,
+        name: getSafeString(user.name || user.username),
+        email: getSafeString(user.email),
+        role: getSafeString(user.role) || 'user',
+        avatar: getSafeImage(user.avatar || user.profileImage || user.image),
+        status: getSafeString(user.status) || 'active',
+        // Ensure createdAt is properly handled
+        createdAt: user.createdAt || user.created_date || user.registeredAt || new Date()
+      }));
+      
+      setAdminData(prev => ({ ...prev, allUsers: safeUsers }));
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      toast({ title: "Error", description: "Failed to fetch users", status: "error" });
     } finally {
       setDataLoading(false);
     }
@@ -320,11 +358,15 @@ export default function AdminProfile() {
 
   useEffect(() => {
     if (currentView === "users") {
-      fetchAllAdmins();
+      if (isSuperAdmin) {
+        fetchAllAdmins(); // Super admin sees admin details
+      } else {
+        fetchAllUsers(); // Regular admin sees user details
+      }
     } else if (currentView === "products") {
       fetchAdminProducts();
     }
-  }, [currentView]);
+  }, [currentView, isSuperAdmin]);
 
   const handleActionClick = async (action) => {
     if (action.label === "Manage Products") {
@@ -333,7 +375,12 @@ export default function AdminProfile() {
       setCurrentPage(1);
     } else if (action.label === "Manage Users") {
       setCurrentView("users");
-      await fetchAllAdmins();
+      // Fetch appropriate data based on user role
+      if (isSuperAdmin) {
+        await fetchAllAdmins();
+      } else {
+        await fetchAllUsers();
+      }
       setCurrentPage(1);
     } else {
       setCurrentView("dashboard");
@@ -383,6 +430,10 @@ export default function AdminProfile() {
   const currentAdmins = adminData.createdAdmins.slice(indexOfLastAdmin - adminsPerPage, indexOfLastAdmin);
   const totalAdminPages = Math.ceil(adminData.createdAdmins.length / adminsPerPage);
 
+  const indexOfLastUser = currentPage * usersPerPage;
+  const currentUsers = adminData.allUsers.slice(indexOfLastUser - usersPerPage, indexOfLastUser);
+  const totalUserPages = Math.ceil(adminData.allUsers.length / usersPerPage);
+
   const indexOfLastProduct = currentPage * productsPerPage;
   const currentProducts = adminData.adminProducts.slice(indexOfLastProduct - productsPerPage, indexOfLastProduct);
   const totalProductPages = Math.ceil(adminData.adminProducts.length / productsPerPage);
@@ -393,6 +444,17 @@ export default function AdminProfile() {
       case 'inactive': return 'red';
       case 'draft': return 'yellow';
       case 'published': return 'blue';
+      default: return 'gray';
+    }
+  };
+
+  const getRoleColor = (role) => {
+    switch (role?.toLowerCase()) {
+      case 'super admin':
+      case 'superadmin': return 'purple';
+      case 'admin': return 'blue';
+      case 'user': return 'green';
+      case 'moderator': return 'orange';
       default: return 'gray';
     }
   };
@@ -416,7 +478,6 @@ export default function AdminProfile() {
         <Flex direction="column" align="center">
           <Image src={storeLogo} alt="Store Logo" boxSize="60px" mb={3} />
           <Avatar 
-           
             size="xl" 
             mb={3}
             name={adminData.name}
@@ -430,7 +491,7 @@ export default function AdminProfile() {
           {/* Always show profile details in left panel */}
           <VStack spacing={2} align="center" w="100%">
             <Text fontSize="lg" fontWeight="bold">{adminData.name}</Text>
-            <Badge colorScheme={adminData.role === "superadmin" ? "purple" : "blue"}>
+            <Badge colorScheme={getRoleColor(adminData.role)} fontSize="sm" px={2} py={1}>
               {adminData.role}
             </Badge>
             <Text fontSize="sm" mb={2}>{adminData.email}</Text>
@@ -459,18 +520,21 @@ export default function AdminProfile() {
               ))}
             </VStack>
 
-            <VStack spacing={2} w="100%">
-              <Button 
-                bg={"#5a189a"}
-                w="100%" 
-                leftIcon={<FaEdit />} 
-                color="white"
-                _hover={{ bg: "#4a148c" }}
-                onClick={() => setIsEditingProfile(true)}
-              >
-                Edit Profile
-              </Button>
-            </VStack>
+            {/* Show Edit Profile button only for admin users, not for super admin */}
+            {!isSuperAdmin && (
+              <VStack spacing={2} w="100%">
+                <Button 
+                  bg={"#5a189a"}
+                  w="100%" 
+                  leftIcon={<FaEdit />} 
+                  color="white"
+                  _hover={{ bg: "#4a148c" }}
+                  onClick={() => setIsEditingProfile(true)}
+                >
+                  Edit Profile
+                </Button>
+              </VStack>
+            )}
           </VStack>
         </Flex>
       </Card>
@@ -493,14 +557,16 @@ export default function AdminProfile() {
               <Card p={6} bg={cardBg}>
                 <Text fontSize="lg" fontWeight="bold">Welcome, {adminData.name}!</Text>
                 <Text mt={2} color="gray.600">
-                  Use the navigation menu to manage users, products, or update your profile settings.
+                  Use the navigation menu to manage {isSuperAdmin ? 'admins' : 'users'}, products, or update your profile settings.
                 </Text>
               </Card>
             )}
 
             {currentView === "users" && (
               <Card p={6} bg={cardBg}>
-                <Text fontSize="lg" fontWeight="bold" mb={4}>All Admins</Text>
+                <Text fontSize="lg" fontWeight="bold" mb={4}>
+                  {isSuperAdmin ? 'All Admins' : 'All Users'}
+                </Text>
                 {dataLoading ? (
                   <Flex justify="center" py={8}>
                     <Spinner size="lg" />
@@ -514,55 +580,62 @@ export default function AdminProfile() {
                           <Th>Name</Th>
                           <Th>Email</Th>
                           <Th>Role</Th>
+                          <Th>Status</Th>
                           <Th>Created</Th>
-                          <Th>Actions</Th>
+                          {isSuperAdmin && <Th>Actions</Th>}
                         </Tr>
                       </Thead>
                       <Tbody>
-                        {currentAdmins.length > 0 ? (
-                          currentAdmins.map((admin, i) => (
+                        {(isSuperAdmin ? currentAdmins : currentUsers).length > 0 ? (
+                          (isSuperAdmin ? currentAdmins : currentUsers).map((person, i) => (
                             <Tr key={i}>
                               <Td>
                                 <Avatar 
                                   size="sm" 
-                                   
-                                  name={getSafeString(admin.name)}
+                                  name={getSafeString(person.name)}
                                   bg="#5a189a"
                                   color="white"
                                 />
                               </Td>
-                              <Td>{getSafeString(admin.name)}</Td>
-                              <Td>{getSafeString(admin.email)}</Td>
+                              <Td>{getSafeString(person.name)}</Td>
+                              <Td>{getSafeString(person.email)}</Td>
                               <Td>
-                                <Badge colorScheme={getSafeString(admin.role) === "superadmin" ? "purple" : "blue"}>
-                                  {getSafeString(admin.role)}
+                                <Badge colorScheme={getRoleColor(getSafeString(person.role))}>
+                                  {getSafeString(person.role)}
                                 </Badge>
                               </Td>
-                              <Td>{admin.createdAt ? new Date(admin.createdAt).toLocaleDateString() : "N/A"}</Td>
                               <Td>
-                                <Button
-                                  bg={"#5a189a"}
-                                  size="sm"
-                                  color="white"
-                                  _hover={{ bg: "#4a148c" }}
-                                  leftIcon={<FaEdit />}
-                                  onClick={() => handleEditAdmin(admin)}
-                                >
-                                  Edit
-                                </Button>
+                                <Badge colorScheme={getStatusColor(person.status)}>
+                                  {getSafeString(person.status) || 'Active'}
+                                </Badge>
                               </Td>
+                              <Td>{person.createdAt ? new Date(person.createdAt).toLocaleDateString() : "N/A"}</Td>
+                              {isSuperAdmin && (
+                                <Td>
+                                  <Button
+                                    bg={"#5a189a"}
+                                    size="sm"
+                                    color="white"
+                                    _hover={{ bg: "#4a148c" }}
+                                    leftIcon={<FaEdit />}
+                                    onClick={() => handleEditAdmin(person)}
+                                  >
+                                    Edit
+                                  </Button>
+                                </Td>
+                              )}
                             </Tr>
                           ))
                         ) : (
                           <Tr>
-                            <Td colSpan={6} textAlign="center" py={8}>
-                              <Text color="gray.500">No admins found</Text>
+                            <Td colSpan={isSuperAdmin ? 7 : 6} textAlign="center" py={8}>
+                              <Text color="gray.500">No {isSuperAdmin ? 'admins' : 'users'} found</Text>
                             </Td>
                           </Tr>
                         )}
                       </Tbody>
                     </Table>
-                    {adminData.createdAdmins.length > adminsPerPage && (
+                    {(isSuperAdmin ? adminData.createdAdmins.length : adminData.allUsers.length) > (isSuperAdmin ? adminsPerPage : usersPerPage) && (
                       <Flex justifyContent="space-between" mt={4}>
                         <Button 
                           onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} 
@@ -570,10 +643,12 @@ export default function AdminProfile() {
                         >
                           Previous
                         </Button>
-                        <Text>Page {currentPage} of {totalAdminPages}</Text>
+                        <Text>
+                          Page {currentPage} of {isSuperAdmin ? totalAdminPages : totalUserPages}
+                        </Text>
                         <Button 
-                          onClick={() => setCurrentPage(p => Math.min(p + 1, totalAdminPages))} 
-                          isDisabled={currentPage === totalAdminPages}
+                          onClick={() => setCurrentPage(p => Math.min(p + 1, isSuperAdmin ? totalAdminPages : totalUserPages))} 
+                          isDisabled={currentPage === (isSuperAdmin ? totalAdminPages : totalUserPages)}
                         >
                           Next
                         </Button>
@@ -601,7 +676,6 @@ export default function AdminProfile() {
                     <Table variant="simple">
                       <Thead>
                         <Tr>
-                         
                           <Th>Name</Th>
                           <Th>Category</Th>
                           <Th>Price</Th>
@@ -614,26 +688,24 @@ export default function AdminProfile() {
                         {currentProducts.length > 0 ? (
                           currentProducts.map((product, i) => (
                             <Tr key={i}>
-                             
                               <Td fontWeight="medium">{getSafeString(product.name)}</Td>
                               <Td>
                                 <Badge colorScheme="purple" variant="subtle">
                                   {getSafeString(product.category)}
                                 </Badge>
                               </Td>
-                             <Td>₹{product.price ?? product.variants?.[0]?.price ?? "-"}</Td>
-
-                            <Td>
-  <Badge 
-    colorScheme={
-      (product.stock ?? product.variants?.[0]?.stock) > 0
-      ? "green"
-      : "red"
-    }
-  >
-    {product.stock ?? product.variants?.[0]?.stock ?? 0} in stock
-  </Badge>
-</Td>
+                              <Td>₹{product.price ?? product.variants?.[0]?.price ?? "-"}</Td>
+                              <Td>
+                                <Badge 
+                                  colorScheme={
+                                    (product.stock ?? product.variants?.[0]?.stock) > 0
+                                    ? "green"
+                                    : "red"
+                                  }
+                                >
+                                  {product.stock ?? product.variants?.[0]?.stock ?? 0} in stock
+                                </Badge>
+                              </Td>
                               <Td>
                                 <Badge colorScheme={getStatusColor(product.status)}>
                                   {getSafeString(product.status)}
@@ -644,7 +716,7 @@ export default function AdminProfile() {
                           ))
                         ) : (
                           <Tr>
-                            <Td colSpan={7} textAlign="center" py={8}>
+                            <Td colSpan={6} textAlign="center" py={8}>
                               <VStack spacing={2}>
                                 <Text color="gray.500">No products added yet</Text>
                                 <Text fontSize="sm" color="gray.400">
@@ -681,13 +753,15 @@ export default function AdminProfile() {
         )}
       </Grid>
 
-      {/* Edit Admin Modal */}
-      <EditAdminModal
-        isOpen={isOpen}
-        onClose={onClose}
-        admin={selectedAdmin}
-        onSave={handleSaveAdmin}
-      />
+      {/* Edit Admin Modal - Only for super admin */}
+      {isSuperAdmin && (
+        <EditAdminModal
+          isOpen={isOpen}
+          onClose={onClose}
+          admin={selectedAdmin}
+          onSave={handleSaveAdmin}
+        />
+      )}
     </Flex>
   );
 }
