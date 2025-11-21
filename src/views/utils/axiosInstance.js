@@ -370,6 +370,24 @@ export const updateUser = async (userId, updatedData) => {
   }
 };
 
+export const deleteUser = async (userId) => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/users/delete/${userId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        token,
+      },
+    });
+
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    throw error;
+  }
+};
 
 
 export const getAllOrders = async () => {

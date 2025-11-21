@@ -55,6 +55,9 @@ import {
   SimpleGrid,
 } from "@chakra-ui/react";
 
+// Import ApexCharts
+import ReactApexChart from 'react-apexcharts';
+
 // Import your custom Card components
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
@@ -72,6 +75,7 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaExclamationTriangle,
+  FaChartLine,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdCategory, MdInventory, MdWarning } from "react-icons/md";
@@ -88,27 +92,27 @@ export default function ProductManagement() {
   const [currentUser, setCurrentUser] = useState(null);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]); // Added orders state
+  const [orders, setOrders] = useState([]);
   const [currentView, setCurrentView] = useState("categories");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [viewModalType, setViewModalType] = useState(""); // "category" or "product"
+  const [viewModalType, setViewModalType] = useState("");
   
   // Loading states
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-  const [isLoadingOrders, setIsLoadingOrders] = useState(false); // Added orders loading state
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
-  // Add these state variables near your other state declarations
-const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-const [itemToDelete, setItemToDelete] = useState(null);
-const [deleteType, setDeleteType] = useState(""); // "category" or "product"
-const [isDeleting, setIsDeleting] = useState(false);
+  // Delete modal states
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [deleteType, setDeleteType] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Search and Filter states - FIXED: Added searchTerm state
+  // Search and Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
@@ -136,7 +140,7 @@ const [isDeleting, setIsDeleting] = useState(false);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   
-  // Filtered data - FIXED: Using categorySearch and productSearch instead of searchTerm
+  // Filtered data
   const filteredCategories = categories.filter((cat) =>
     cat.name?.toLowerCase().includes(categorySearch.toLowerCase()) ||
     cat.description?.toLowerCase().includes(categorySearch.toLowerCase())
@@ -163,7 +167,6 @@ const [isDeleting, setIsDeleting] = useState(false);
     }
 
     const totalOrderedQuantity = orders.reduce((total, order) => {
-      // Check if order is confirmed/delivered/completed
       const validStatus = order.status && 
         (order.status.toLowerCase() === 'confirmed' || 
          order.status.toLowerCase() === 'completed' || 
@@ -172,14 +175,10 @@ const [isDeleting, setIsDeleting] = useState(false);
 
       if (!validStatus) return total;
 
-      // Search for this product in order items
       let orderedQty = 0;
-
-      // Check different possible item arrays
       const items = order.items || order.orderItems || order.products || order.orderProducts || [];
       
       items.forEach(item => {
-        // Check if this item matches the current product
         const itemProductId = item.productId?._id || item.productId || item.product?._id || item.product;
         const itemName = item.name || item.productId?.name || item.product?.name;
         
@@ -201,7 +200,7 @@ const [isDeleting, setIsDeleting] = useState(false);
   const getLowStockProducts = useCallback(() => {
     return products.filter(product => {
       const availableStock = calculateAvailableStock(product);
-      return availableStock <= 10; // Consider low stock if 10 or less items available
+      return availableStock <= 10 && availableStock > 0;
     });
   }, [products, calculateAvailableStock]);
 
@@ -213,6 +212,14 @@ const [isDeleting, setIsDeleting] = useState(false);
     });
   }, [products, calculateAvailableStock]);
 
+  // Function to get in stock products
+  const getInStockProducts = useCallback(() => {
+    return products.filter(product => {
+      const availableStock = calculateAvailableStock(product);
+      return availableStock > 10;
+    });
+  }, [products, calculateAvailableStock]);
+
   // Calculate total available stock across all products
   const calculateTotalAvailableStock = useCallback(() => {
     return products.reduce((total, product) => {
@@ -220,7 +227,194 @@ const [isDeleting, setIsDeleting] = useState(false);
     }, 0);
   }, [products, calculateAvailableStock]);
 
-  // Search handler functions - FIXED: Added proper search handlers
+  // Prepare stock chart data
+  const prepareStockChartData = useCallback(() => {
+    const stockProducts = [...products]
+      .filter(product => {
+        const availableStock = calculateAvailableStock(product);
+        return availableStock > 0; // Only show products with available stock
+      })
+      .sort((a, b) => {
+        const stockA = calculateAvailableStock(a);
+        const stockB = calculateAvailableStock(b);
+        return stockB - stockA; // Sort by available stock descending
+      })
+      .slice(0, 10); // Show top 10 products
+
+    const categories = stockProducts.map(product => 
+      product.name.length > 20 ? product.name.substring(0, 20) + '...' : product.name
+    );
+    
+    const availableStockData = stockProducts.map(product => calculateAvailableStock(product));
+    const totalStockData = stockProducts.map(product => product.stock || product.variants?.[0]?.stock || 0);
+
+    return {
+      series: [
+        {
+          name: 'Available Stock',
+          data: availableStockData,
+          color: customColor
+        },
+        {
+          name: 'Total Stock',
+          data: totalStockData,
+          color: '#4CAF50'
+        }
+      ],
+      options: {
+        chart: {
+          type: 'line',
+          height: 350,
+          toolbar: {
+            show: true
+          }
+        },
+        stroke: {
+          curve: 'smooth',
+          width: 3
+        },
+        markers: {
+          size: 5
+        },
+        xaxis: {
+          categories: categories,
+          labels: {
+            style: {
+              colors: textColor,
+              fontSize: '12px'
+            },
+            rotate: -45
+          }
+        },
+        yaxis: {
+          title: {
+            text: 'Stock Quantity',
+            style: {
+              color: textColor
+            }
+          },
+          labels: {
+            style: {
+              colors: textColor
+            }
+          }
+        },
+        title: {
+          text: 'Available vs Total Stock by Product',
+          align: 'center',
+          style: {
+            fontSize: '16px',
+            fontWeight: 'bold',
+            color: textColor
+          }
+        },
+        legend: {
+          position: 'top',
+          horizontalAlign: 'center',
+          labels: {
+            colors: textColor
+          }
+        },
+        grid: {
+          borderColor: useColorModeValue('#e0e0e0', '#424242')
+        },
+        tooltip: {
+          theme: useColorModeValue('light', 'dark')
+        }
+      }
+    };
+  }, [products, calculateAvailableStock, textColor]);
+
+  // Prepare stock alert chart data
+  const prepareStockAlertChartData = useCallback(() => {
+    const alertProducts = [...getOutOfStockProducts(), ...getLowStockProducts()]
+      .slice(0, 10); // Show top 10 alert products
+
+    const categories = alertProducts.map(product => 
+      product.name.length > 20 ? product.name.substring(0, 20) + '...' : product.name
+    );
+    
+    const availableStockData = alertProducts.map(product => calculateAvailableStock(product));
+    const totalStockData = alertProducts.map(product => product.stock || product.variants?.[0]?.stock || 0);
+
+    return {
+      series: [
+        {
+          name: 'Available Stock',
+          data: availableStockData,
+          color: '#FF6B6B'
+        },
+        {
+          name: 'Total Stock',
+          data: totalStockData,
+          color: '#4CAF50'
+        }
+      ],
+      options: {
+        chart: {
+          type: 'line',
+          height: 350,
+          toolbar: {
+            show: true
+          }
+        },
+        stroke: {
+          curve: 'smooth',
+          width: 3
+        },
+        markers: {
+          size: 5
+        },
+        xaxis: {
+          categories: categories,
+          labels: {
+            style: {
+              colors: textColor,
+              fontSize: '12px'
+            },
+            rotate: -45
+          }
+        },
+        yaxis: {
+          title: {
+            text: 'Stock Quantity',
+            style: {
+              color: textColor
+            }
+          },
+          labels: {
+            style: {
+              colors: textColor
+            }
+          }
+        },
+        title: {
+          text: 'Stock Alerts - Low and Out of Stock Products',
+          align: 'center',
+          style: {
+            fontSize: '16px',
+            fontWeight: 'bold',
+            color: textColor
+          }
+        },
+        legend: {
+          position: 'top',
+          horizontalAlign: 'center',
+          labels: {
+            colors: textColor
+          }
+        },
+        grid: {
+          borderColor: useColorModeValue('#e0e0e0', '#424242')
+        },
+        tooltip: {
+          theme: useColorModeValue('light', 'dark')
+        }
+      }
+    };
+  }, [getOutOfStockProducts, getLowStockProducts, calculateAvailableStock, textColor]);
+
+  // Search handler functions
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
@@ -231,7 +425,7 @@ const [isDeleting, setIsDeleting] = useState(false);
       setProductSearch(value);
     }
     
-    setCurrentPage(1); // Reset to first page when searching
+    setCurrentPage(1);
   };
 
   const handleClearSearch = () => {
@@ -249,13 +443,11 @@ const [isDeleting, setIsDeleting] = useState(false);
     try {
       setIsSubmitting(true);
       
-      // If we're editing an existing product, upload images immediately
       if (selectedProduct) {
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
           const result = await uploadProductImage(selectedProduct._id, file);
           
-          // Update the images array with the new image
           if (result.data && result.data.images) {
             setNewProduct(prev => ({
               ...prev,
@@ -271,7 +463,6 @@ const [isDeleting, setIsDeleting] = useState(false);
           isClosable: true,
         });
       } else {
-        // For new product, store files temporarily
         const newImages = Array.from(files).map(file => ({
           file: file,
           preview: URL.createObjectURL(file),
@@ -293,18 +484,16 @@ const [isDeleting, setIsDeleting] = useState(false);
       });
     } finally {
       setIsSubmitting(false);
-      event.target.value = ""; // Reset file input
+      event.target.value = "";
     }
   };
 
   // Image removal handler
   const handleRemoveImage = async (publicIdOrIndex) => {
     try {
-      // If it's an existing product with public_id, delete from server
       if (selectedProduct && typeof publicIdOrIndex === 'string') {
         await deleteProductImage(selectedProduct._id, publicIdOrIndex);
         
-        // Update local state
         setNewProduct(prev => ({
           ...prev,
           images: prev.images.filter(img => img.public_id !== publicIdOrIndex)
@@ -318,7 +507,6 @@ const [isDeleting, setIsDeleting] = useState(false);
           isClosable: true,
         });
       } else {
-        // For new product or temporary images, just remove from local state
         setNewProduct(prev => ({
           ...prev,
           images: prev.images.filter((_, index) => index !== publicIdOrIndex)
@@ -402,13 +590,12 @@ const [isDeleting, setIsDeleting] = useState(false);
       const [categoryData, productData, ordersData] = await Promise.all([
         getAllCategories(),
         getAllProducts(),
-        getAllOrders() // Fetch orders to calculate available stock
+        getAllOrders()
       ]);
 
       setCategories(categoryData.categories || categoryData.data || []);
       setProducts(productData.products || productData.data || []);
       
-      // Extract orders array from response
       let ordersArray = [];
       if (Array.isArray(ordersData)) {
         ordersArray = ordersData;
@@ -417,7 +604,6 @@ const [isDeleting, setIsDeleting] = useState(false);
       } else if (ordersData && Array.isArray(ordersData.data)) {
         ordersArray = ordersData.data;
       } else {
-        // Try to find array in response object
         const maybeArray = Object.values(ordersData || {}).find((v) => Array.isArray(v));
         if (Array.isArray(maybeArray)) {
           ordersArray = maybeArray;
@@ -450,7 +636,6 @@ const [isDeleting, setIsDeleting] = useState(false);
   // Reset pagination when view changes
   useEffect(() => {
     setCurrentPage(1);
-    // Reset search term when view changes
     setSearchTerm("");
     setCategorySearch("");
     setProductSearch("");
@@ -545,85 +730,84 @@ const [isDeleting, setIsDeleting] = useState(false);
   };
 
   // Delete Category Handler
-const handleDeleteCategory = async (category) => {
-  setItemToDelete(category);
-  setDeleteType("category");
-  setIsDeleteModalOpen(true);
-};
+  const handleDeleteCategory = async (category) => {
+    setItemToDelete(category);
+    setDeleteType("category");
+    setIsDeleteModalOpen(true);
+  };
 
-// Delete Product Handler (update existing one to use modal)
-// Delete Product Handler (update existing one to use modal)
-const handleDeleteProduct = async (product) => {
-  setItemToDelete(product);
-  setDeleteType("product");
-  setIsDeleteModalOpen(true);
-};
+  // Delete Product Handler
+  const handleDeleteProduct = async (product) => {
+    setItemToDelete(product);
+    setDeleteType("product");
+    setIsDeleteModalOpen(true);
+  };
 
-// Confirm Delete Handler
-const handleConfirmDelete = async () => {
-  if (!itemToDelete) return;
+  // Confirm Delete Handler
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
 
-  try {
-    setIsDeleting(true);
-    
-    if (deleteType === "category") {
-      // Check if category has products
-      const productsInCategory = products.filter(
-        p => p.category?._id === itemToDelete._id || p.category === itemToDelete._id
-      );
+    try {
+      setIsDeleting(true);
       
-      if (productsInCategory.length > 0) {
+      if (deleteType === "category") {
+        const productsInCategory = products.filter(
+          p => p.category?._id === itemToDelete._id || p.category === itemToDelete._id
+        );
+        
+        if (productsInCategory.length > 0) {
+          toast({
+            title: "Cannot Delete Category",
+            description: `This category has ${productsInCategory.length} product(s). Please remove or reassign them first.`,
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+          return;
+        }
+
+        await deleteCategory(itemToDelete._id);
         toast({
-          title: "Cannot Delete Category",
-          description: `This category has ${productsInCategory.length} product(s). Please remove or reassign them first.`,
-          status: "error",
-          duration: 5000,
+          title: "Category Deleted",
+          description: `"${itemToDelete.name}" has been deleted successfully.`,
+          status: "success",
+          duration: 3000,
           isClosable: true,
         });
-        return;
+      } else if (deleteType === "product") {
+        await deleteProducts(itemToDelete._id);
+        toast({
+          title: "Product Deleted",
+          description: `"${itemToDelete.name}" has been deleted successfully.`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
       }
 
-      await deleteCategory(itemToDelete._id);
+      await fetchData();
+      closeDeleteModal();
+    } catch (err) {
       toast({
-        title: "Category Deleted",
-        description: `"${itemToDelete.name}" has been deleted successfully.`,
-        status: "success",
+        title: `Error Deleting ${deleteType === "category" ? "Category" : "Product"}`,
+        description: err.message || `Failed to delete ${deleteType}`,
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
-    } else if (deleteType === "product") {
-      await deleteProducts(itemToDelete._id);
-      toast({
-        title: "Product Deleted",
-        description: `"${itemToDelete.name}" has been deleted successfully.`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
+    } finally {
+      setIsDeleting(false);
     }
+  };
 
-    await fetchData();
-    closeDeleteModal();
-  } catch (err) {
-    toast({
-      title: `Error Deleting ${deleteType === "category" ? "Category" : "Product"}`,
-      description: err.message || `Failed to delete ${deleteType}`,
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  } finally {
+  // Close Delete Modal
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setItemToDelete(null);
+    setDeleteType("");
     setIsDeleting(false);
-  }
-};
+  };
 
-// Close Delete Modal
-const closeDeleteModal = () => {
-  setIsDeleteModalOpen(false);
-  setItemToDelete(null);
-  setDeleteType("");
-  setIsDeleting(false);
-};
   // Product Submit (Add/Edit)
   const handleSubmitProduct = async () => {
     if (!newProduct.name || !newProduct.price || !newProduct.stock) {
@@ -648,7 +832,6 @@ const closeDeleteModal = () => {
     try {
       setIsSubmitting(true);
 
-      // Prepare product data according to backend expectations
       const productData = {
         name: newProduct.name.trim(),
         description: newProduct.description?.trim() || "",
@@ -672,10 +855,8 @@ const closeDeleteModal = () => {
 
       let response;
       if (selectedProduct) {
-        // For update, send the product data
         response = await updateProducts(selectedProduct._id, productData);
         
-        // Upload any new images for existing product
         if (newProduct.images && newProduct.images.some(img => img.isNew)) {
           for (const img of newProduct.images) {
             if (img.isNew && img.file) {
@@ -692,10 +873,8 @@ const closeDeleteModal = () => {
           isClosable: true,
         });
       } else {
-        // For create, first create the product
         response = await createProducts(productData);
         
-        // Then upload images if any
         if (newProduct.images && newProduct.images.length > 0) {
           const createdProduct = response.data || response.product;
           for (const img of newProduct.images) {
@@ -735,7 +914,6 @@ const closeDeleteModal = () => {
     setSelectedProduct(product);
     setSelectedCategory(categories.find((c) => c._id === product.category?._id || c._id === product.category));
     
-    // Properly handle images array
     const productImages = product.images || [];
     
     setNewProduct({
@@ -756,7 +934,6 @@ const closeDeleteModal = () => {
     setCurrentView("editCategory");
   };
 
- 
   // Loading component for tables
   const TableLoader = ({ columns = 6 }) => (
     <Tr>
@@ -835,6 +1012,10 @@ const closeDeleteModal = () => {
       background: '#94a3b8',
     },
   };
+
+  // Prepare chart data
+  const stockChartData = prepareStockChartData();
+  const stockAlertChartData = prepareStockAlertChartData();
 
   // Render Form Views (Add/Edit Category/Product)
   if (currentView === "addCategory" || currentView === "editCategory" || currentView === "addProduct") {
@@ -1348,9 +1529,9 @@ const closeDeleteModal = () => {
           <Card
             minH="75px"
             cursor="pointer"
-            onClick={() => setCurrentView("products")}
-            border={currentView === "products" ? "2px solid" : "1px solid"}
-            borderColor={currentView === "products" ? customColor : `${customColor}30`}
+            onClick={() => setCurrentView("stockAnalysis")}
+            border={currentView === "stockAnalysis" ? "2px solid" : "1px solid"}
+            borderColor={currentView === "stockAnalysis" ? customColor : `${customColor}30`}
             transition="all 0.2s ease-in-out"
             bg="white"
             position="relative"
@@ -1405,7 +1586,7 @@ const closeDeleteModal = () => {
                   transition="all 0.2s ease-in-out"
                 >
                   <Icon
-                    as={MdInventory}
+                    as={FaChartLine}
                     h={"18px"}
                     w={"18px"}
                     color="white"
@@ -1419,9 +1600,9 @@ const closeDeleteModal = () => {
           <Card
             minH="75px"
             cursor="pointer"
-            onClick={() => setCurrentView("products")}
-            border={currentView === "products" ? "2px solid" : "1px solid"}
-            borderColor={currentView === "products" ? customColor : `${customColor}30`}
+            onClick={() => setCurrentView("stockAlerts")}
+            border={currentView === "stockAlerts" ? "2px solid" : "1px solid"}
+            borderColor={currentView === "stockAlerts" ? customColor : `${customColor}30`}
             transition="all 0.2s ease-in-out"
             bg="white"
             position="relative"
@@ -1520,69 +1701,75 @@ const closeDeleteModal = () => {
               <Heading size="sm" flexShrink={0} color="gray.700">
                 {currentView === "categories" && "🏷️ Categories"}
                 {currentView === "products" && "🛒 Products"}
+                {currentView === "stockAnalysis" && "📊 Stock Analysis"}
+                {currentView === "stockAlerts" && "⚠️ Stock Alerts"}
               </Heading>
 
-              {/* Search Bar - FIXED: Using searchTerm state */}
-              <Flex align="center" flex="1" maxW="350px" minW="200px">
-                <Input
-                  placeholder={
-                    currentView === "categories" 
-                      ? "Search categories..." 
-                      : "Search products..."
-                  }
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  size="sm"
-                  mr={2}
-                  borderColor={`${customColor}50`}
-                  _hover={{ borderColor: customColor }}
-                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                  bg="white"
-                  fontSize="sm"
-                />
-                <Icon as={FaSearch} color="gray.400" boxSize={3} />
-                {searchTerm && (
-                  <Button 
-                    size="sm" 
-                    ml={2} 
-                    onClick={handleClearSearch}
+              {/* Search Bar - Only show for categories and products */}
+              {(currentView === "categories" || currentView === "products") && (
+                <Flex align="center" flex="1" maxW="350px" minW="200px">
+                  <Input
+                    placeholder={
+                      currentView === "categories" 
+                        ? "Search categories..." 
+                        : "Search products..."
+                    }
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    size="sm"
+                    mr={2}
+                    borderColor={`${customColor}50`}
+                    _hover={{ borderColor: customColor }}
+                    _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
                     bg="white"
-                    color={customColor}
-                    border="1px"
-                    borderColor={customColor}
-                    _hover={{ bg: customColor, color: "white" }}
-                    fontSize="xs"
-                    px={2}
-                  >
-                    Clear
-                  </Button>
-                )}
-              </Flex>
+                    fontSize="sm"
+                  />
+                  <Icon as={FaSearch} color="gray.400" boxSize={3} />
+                  {searchTerm && (
+                    <Button 
+                      size="sm" 
+                      ml={2} 
+                      onClick={handleClearSearch}
+                      bg="white"
+                      color={customColor}
+                      border="1px"
+                      borderColor={customColor}
+                      _hover={{ bg: customColor, color: "white" }}
+                      fontSize="xs"
+                      px={2}
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </Flex>
+              )}
 
-              {/* Add Button */}
-              <Button
-                bg={customColor}
-                _hover={{ bg: customHoverColor }}
-                color="white"
-                onClick={() => {
-                  if (currentView === "categories") {
-                    setCurrentView("addCategory");
-                  } else {
-                    setSelectedCategory(null);
-                    setSelectedProduct(null);
-                    setNewProduct(initialProduct);
-                    setCurrentView("addProduct");
-                  }
-                }}
-                fontSize="sm"
-                borderRadius="6px"
-                flexShrink={0}
-                leftIcon={<FaPlusCircle />}
-                size="sm"
-                px={3}
-              >
-                {currentView === "categories" ? "Add Category" : "Add Product"}
-              </Button>
+              {/* Add Button - Only show for categories and products */}
+              {(currentView === "categories" || currentView === "products") && (
+                <Button
+                  bg={customColor}
+                  _hover={{ bg: customHoverColor }}
+                  color="white"
+                  onClick={() => {
+                    if (currentView === "categories") {
+                      setCurrentView("addCategory");
+                    } else {
+                      setSelectedCategory(null);
+                      setSelectedProduct(null);
+                      setNewProduct(initialProduct);
+                      setCurrentView("addProduct");
+                    }
+                  }}
+                  fontSize="sm"
+                  borderRadius="6px"
+                  flexShrink={0}
+                  leftIcon={<FaPlusCircle />}
+                  size="sm"
+                  px={3}
+                >
+                  {currentView === "categories" ? "Add Category" : "Add Product"}
+                </Button>
+              )}
             </Flex>
           </CardHeader>
           
@@ -2076,7 +2263,7 @@ const closeDeleteModal = () => {
   borderColor="red.500"
   _hover={{ bg: "red.500", color: "white" }}
   size="sm"
-  onClick={() => handleDeleteProduct(prod)} // Changed from handleDeleteProduct(prod._id)
+  onClick={() => handleDeleteProduct(prod)}
 />
                                       </Flex>
                                     </Td>
@@ -2190,6 +2377,64 @@ const closeDeleteModal = () => {
                       </Box>
                     )}
                   </>
+                )}
+
+                {/* Stock Analysis View */}
+                {currentView === "stockAnalysis" && (
+                  <Box 
+                    flex="1" 
+                    display="flex" 
+                    flexDirection="column" 
+                    overflow="auto"
+                    css={globalScrollbarStyles}
+                    p={4}
+                  >
+                    
+
+                    {/* Available vs Total Stock Chart */}
+                    <Card bg="white" shadow="sm" p={4} mb={6}>
+                      <Text fontWeight="bold" color="gray.700" mb={4}>
+                        Available vs Total Stock (Top 10 Products)
+                      </Text>
+                      {stockChartData && (
+                        <ReactApexChart
+                          options={stockChartData.options}
+                          series={stockChartData.series}
+                          type="line"
+                          height={350}
+                        />
+                      )}
+                    </Card>
+                  </Box>
+                )}
+
+                {/* Stock Alerts View */}
+                {currentView === "stockAlerts" && (
+                  <Box 
+                    flex="1" 
+                    display="flex" 
+                    flexDirection="column" 
+                    overflow="auto"
+                    css={globalScrollbarStyles}
+                    p={4}
+                  >
+                    
+
+                    {/* Stock Alerts Chart */}
+                    <Card bg="white" shadow="sm" p={4} mb={6}>
+                      <Text fontWeight="bold" color="gray.700" mb={4}>
+                        Stock Alerts - Low and Out of Stock Products
+                      </Text>
+                      {stockAlertChartData && (
+                        <ReactApexChart
+                          options={stockAlertChartData.options}
+                          series={stockAlertChartData.series}
+                          type="line"
+                          height={350}
+                        />
+                      )}
+                    </Card>
+                  </Box>
                 )}
               </Box>
             )}
@@ -2320,70 +2565,70 @@ const closeDeleteModal = () => {
       </Modal>
 
       {/* Delete Confirmation Modal */}
-<Modal isOpen={isDeleteModalOpen} onClose={closeDeleteModal} size="md">
-  <ModalOverlay />
-  <ModalContent>
-    <ModalHeader color="gray.700">
-      <Flex align="center" gap={2}>
-        <Icon as={FaExclamationTriangle} color="red.500" />
-        Confirm Delete
-      </Flex>
-    </ModalHeader>
-    <ModalCloseButton />
-    <ModalBody>
-      <Text fontSize="md" mb={4}>
-        Are you sure you want to delete{" "}
-        <Text as="span" fontWeight="bold" color={customColor}>
-          "{itemToDelete?.name}"
-        </Text>
-        ? This action cannot be undone.
-      </Text>
-      
-      {deleteType === "category" && (
-        <Box 
-          bg="orange.50" 
-          p={3} 
-          borderRadius="md" 
-          border="1px" 
-          borderColor="orange.200"
-        >
-          <Flex align="center" gap={2} mb={2}>
-            <Icon as={MdWarning} color="orange.500" />
-            <Text fontSize="sm" fontWeight="medium" color="orange.700">
-              Important Note
+      <Modal isOpen={isDeleteModalOpen} onClose={closeDeleteModal} size="md">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader color="gray.700">
+            <Flex align="center" gap={2}>
+              <Icon as={FaExclamationTriangle} color="red.500" />
+              Confirm Delete
+            </Flex>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text fontSize="md" mb={4}>
+              Are you sure you want to delete{" "}
+              <Text as="span" fontWeight="bold" color={customColor}>
+                "{itemToDelete?.name}"
+              </Text>
+              ? This action cannot be undone.
             </Text>
-          </Flex>
-          <Text fontSize="sm" color="orange.600">
-            This category must be empty (no products) before it can be deleted. 
-           
-          </Text>
-        </Box>
-      )}
-    </ModalBody>
-    <ModalFooter>
-      <Button 
-        variant="outline" 
-        mr={3} 
-        onClick={closeDeleteModal}
-        isDisabled={isDeleting}
-        size="sm"
-      >
-        Cancel
-      </Button>
-      <Button
-        bg="red.500"
-        _hover={{ bg: "red.600" }}
-        color="white"
-        onClick={handleConfirmDelete}
-        isLoading={isDeleting}
-        loadingText="Deleting..."
-        size="sm"
-      >
-        Delete {deleteType === "category" ? "Category" : "Product"}
-      </Button>
-    </ModalFooter>
-  </ModalContent>
-</Modal>
+            
+            {deleteType === "category" && (
+              <Box 
+                bg="orange.50" 
+                p={3} 
+                borderRadius="md" 
+                border="1px" 
+                borderColor="orange.200"
+              >
+                <Flex align="center" gap={2} mb={2}>
+                  <Icon as={MdWarning} color="orange.500" />
+                  <Text fontSize="sm" fontWeight="medium" color="orange.700">
+                    Important Note
+                  </Text>
+                </Flex>
+                <Text fontSize="sm" color="orange.600">
+                  This category must be empty (no products) before it can be deleted. 
+                 
+                </Text>
+              </Box>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={closeDeleteModal}
+              isDisabled={isDeleting}
+              size="sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              bg="red.500"
+              _hover={{ bg: "red.600" }}
+              color="white"
+              onClick={handleConfirmDelete}
+              isLoading={isDeleting}
+              loadingText="Deleting..."
+              size="sm"
+            >
+              Delete {deleteType === "category" ? "Category" : "Product"}
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Flex>
   );
 }
