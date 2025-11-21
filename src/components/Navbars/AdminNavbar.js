@@ -105,7 +105,7 @@ export default function AdminNavbar(props) {
           textAlign="center"
           mx={2}
         >
-          <Box
+          {/* <Box
             as={RouterLink}
             to="/admin/dashboard"
             color="white"
@@ -117,7 +117,7 @@ export default function AdminNavbar(props) {
             }}
           >
             Dashboard
-          </Box>
+          </Box> */}
         </Box>
 
         {/* Desktop: Empty spacer to push icons to right */}
@@ -162,7 +162,7 @@ export default function AdminNavbar(props) {
         pointerEvents="none"
         zIndex="1500"
       >
-        <Box
+        {/* <Box
           as={RouterLink}
           to="/admin/dashboard"
           color="white"
@@ -179,7 +179,7 @@ export default function AdminNavbar(props) {
           textAlign="center"
         >
           Dashboard
-        </Box>
+        </Box> */}
       </Box>
 
       {/* Spacer to push content down */}
