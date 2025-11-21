@@ -11,11 +11,13 @@ import {
   Text,
   useColorModeValue,
   useToast,
+  Icon,
   Box,
   VStack,
   HStack,
   keyframes,
 } from "@chakra-ui/react";
+import { MdAdminPanelSettings } from "react-icons/md";
 import axios from "axios";
 
 function AdminLogin() {
@@ -230,12 +232,15 @@ function AdminLogin() {
           lg: "65%",          // 1025px-1280px
           xl: "55%"           // 1281px+
         }}
+        h={{
+          xl:"90%"
+        }}
         maxW={{ 
           base: "400px",      // 320px-480px
           sm: "450px",        // 481px-767px
           md: "500px",        // 768px-1024px
           lg: "550px",        // 1025px-1280px
-          xl: "600px"         // 1281px+
+          xl: "500px"         // 1281px+
         }}
         bg={bgForm}
         borderRadius={{ 
@@ -261,6 +266,7 @@ function AdminLogin() {
             lg: "40px",       // 1025px-1280px
             xl: "45px"        // 1281px+
           }}
+          h="200px"
           direction="column"
           align="center"
           textAlign="center"
@@ -283,38 +289,23 @@ function AdminLogin() {
               sm: "70px",     // 481px-767px
               md: "80px",     // 768px-1024px
               lg: "90px",     // 1025px-1280px
-              xl: "100px"     // 1281px+
+              xl: "15%"     // 1281px+
             }}
             h={{ 
               base: "60px",
               sm: "70px",
               md: "80px", 
               lg: "90px",
-              xl: "100px"
+              xl: "100%"
             }}
             bg="rgba(255,255,255,0.2)"
             borderRadius="50%"
             display="flex"
             alignItems="center"
             justifyContent="center"
-            mb={{ 
-              base: "15px",   // 320px-480px
-              sm: "18px",     // 481px-767px
-              md: "20px",     // 768px-1024px
-              lg: "22px",     // 1025px-1280px
-              xl: "25px"      // 1281px+
-            }}
             boxShadow="0 8px 25px rgba(0,0,0,0.2)"
           >
-            <Text fontSize={{ 
-              base: "32px",   // 320px-480px
-              sm: "36px",     // 481px-767px
-              md: "40px",     // 768px-1024px
-              lg: "44px",     // 1025px-1280px
-              xl: "48px"      // 1281px+
-            }}>
-              👑
-            </Text>
+            <Icon as={MdAdminPanelSettings} h="60px" w="60px" color="white" />
           </Box>
           
           <Text
@@ -326,28 +317,10 @@ function AdminLogin() {
               xl: "30px"      // 1281px+
             }}
             fontWeight="bold"
-            mb={{ 
-              base: "8px",    // 320px-480px
-              sm: "10px",     // 481px-767px
-              md: "12px",     // 768px-1024px
-              lg: "14px",     // 1025px-1280px
-              xl: "16px"      // 1281px+
-            }}
+            mt={3}
+
           >
             Admin Portal
-          </Text>
-          <Text
-            fontSize={{ 
-              base: "13px",   // 320px-480px
-              sm: "14px",     // 481px-767px
-              md: "15px",     // 768px-1024px
-              lg: "16px",     // 1025px-1280px
-              xl: "16px"      // 1281px+
-            }}
-            opacity="0.9"
-            maxW="300px"
-          >
-            Secure access to your administration dashboard
           </Text>
         </Flex>
 
