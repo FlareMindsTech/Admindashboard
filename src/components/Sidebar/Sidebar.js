@@ -14,6 +14,13 @@ import {
   useColorMode,
   useColorModeValue,
   useDisclosure,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  useToast,
 } from "@chakra-ui/react";
 import IconBox from "components/Icons/IconBox";
 import {
@@ -26,7 +33,7 @@ import {
 } from "components/Scrollbar/Scrollbar";
 import { HSeparator } from "components/Separator/Separator";
 import { SidebarHelp } from "components/Sidebar/SidebarHelp";
-import React from "react";
+import React, { useRef, useState } from "react";
 import { Scrollbars } from "react-custom-scrollbars";
 import { NavLink } from "react-router-dom";
 
@@ -43,6 +50,49 @@ function Sidebar(props) {
   const sidebarBg = useColorModeValue("white", "navy.800");
   const sidebarRadius = "20px";
   const sidebarMargins = "0px";
+
+  // Desktop logout / signin dialog state
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+  const [isSigninPromptOpen, setIsSigninPromptOpen] = useState(false);
+  const logoutCancelRef = useRef();
+  const signinCancelRef = useRef();
+  const toast = useToast();
+
+  const openLogout = () => setIsLogoutOpen(true);
+  const closeLogout = () => setIsLogoutOpen(false);
+  const openSigninPrompt = () => setIsSigninPromptOpen(true);
+  const closeSigninPrompt = () => setIsSigninPromptOpen(false);
+
+  const handleConfirmLogout = () => {
+    try {
+      closeLogout();
+      localStorage.clear();
+      sessionStorage.clear();
+      toast({
+        title: "Logged out successfully",
+        description: "Redirecting to the sign-in page...",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      const base = window.location.origin + window.location.pathname;
+      window.location.replace(`${base}#/auth/signin`);
+    } catch (err) {
+      toast({
+        title: "Logout failed",
+        description: err?.message || "Please try again.",
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleGoToSignIn = () => {
+    closeSigninPrompt();
+    const base = window.location.origin + window.location.pathname;
+    window.location.replace(`${base}#/auth/signin`);
+  };
 
   const createLinks = (routes) =>
     routes.map((prop, key) => {
@@ -92,6 +142,55 @@ function Sidebar(props) {
       }
 
       if (!prop.icon) return null;
+
+      // If logout route, intercept and show dialogs
+      if (prop.path === "/logout") {
+        return (
+          <Button
+            key={key}
+            boxSize="initial"
+            justifyContent="flex-start"
+            alignItems="center"
+            mb={{ base: "4px", sm: "5px", md: "6px", lg: "6px", xl: "6px" }}
+            mx={{ base: "auto", sm: "auto", md: "auto", lg: "auto", xl: "auto" }}
+            ps={{ base: "8px", sm: "9px", md: "10px", lg: "12px", xl: "16px" }}
+            py={{ base: "8px", sm: "10px", md: "12px", lg: "12px", xl: "12px" }}
+            borderRadius="15px"
+            w="100%"
+            bg={"transparent"}
+            color={inactiveColor}
+            boxShadow={"none"}
+            _hover={{ bg: "gray.50" }}
+            _active={{ bg: activeBg, transform: "none", borderColor: "transparent" }}
+            _focus={{ boxShadow: "none" }}
+            onClick={() => {
+              const user = localStorage.getItem("user") || sessionStorage.getItem("user");
+              if (!user) {
+                // If not logged in, prompt to go to sign-in
+                openSigninPrompt();
+                return;
+              }
+              openLogout();
+            }}
+          >
+            <Flex>
+              <IconBox
+                bg={inactiveBg}
+                color={"blue.500"}
+                h={{ base: "24px", sm: "26px", md: "28px", lg: "30px", xl: "30px" }}
+                w={{ base: "24px", sm: "26px", md: "28px", lg: "30px", xl: "30px" }}
+                me={{ base: "8px", sm: "10px", md: "12px", lg: "12px", xl: "12px" }}
+                transition="all 0.2s ease-in-out"
+              >
+                {prop.icon}
+              </IconBox>
+              <Text my="auto" fontSize={{ base: "xs", sm: "sm", md: "sm", lg: "sm", xl: "sm" }}>
+                {document.documentElement.dir === "rtl" ? prop.rtlName : prop.name}
+              </Text>
+            </Flex>
+          </Button>
+        );
+      }
 
       return (
         <NavLink to={prop.layout + prop.path} key={key}>
@@ -326,6 +425,39 @@ function Sidebar(props) {
           </Box>
         </Box>
       </Box>
+      {/* Sign-in prompt dialog (when user clicks Logout but not logged in) */}
+      <AlertDialog isOpen={isSigninPromptOpen} leastDestructiveRef={signinCancelRef} onClose={closeSigninPrompt} isCentered>
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="#7b2cbf">
+              Not signed in
+            </AlertDialogHeader>
+            <AlertDialogBody>
+              You are not signed in yet. Do you want to go to the Sign-in page?
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={signinCancelRef} onClick={closeSigninPrompt} variant="ghost">Cancel</Button>
+              <Button colorScheme="purple" onClick={handleGoToSignIn} ml={3}>Go to Sign In</Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+
+      {/* Logout confirmation dialog (desktop) */}
+      <AlertDialog isOpen={isLogoutOpen} leastDestructiveRef={logoutCancelRef} onClose={closeLogout} isCentered>
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="#7b2cbf">
+              Confirm Logout
+            </AlertDialogHeader>
+            <AlertDialogBody>Are you sure you want to log out?</AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={logoutCancelRef} onClick={closeLogout} variant="ghost">Cancel</Button>
+              <Button colorScheme="red" onClick={handleConfirmLogout} ml={3}>Sign Out</Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
   );
 }
@@ -334,6 +466,51 @@ function Sidebar(props) {
 export function SidebarResponsive(props) {
   const { logo, routes, hamburgerColor, isOpen, onOpen, onClose } = props;
   const mainPanel = React.useRef();
+
+  // Logout / signin state for responsive drawer
+  const [isLogoutOpenResp, setIsLogoutOpenResp] = useState(false);
+  const [isSigninPromptOpenResp, setIsSigninPromptOpenResp] = useState(false);
+  const logoutCancelRefResp = useRef();
+  const signinCancelRefResp = useRef();
+  const toastResp = useToast();
+
+  const openLogoutResp = () => setIsLogoutOpenResp(true);
+  const closeLogoutResp = () => setIsLogoutOpenResp(false);
+  const openSigninPromptResp = () => setIsSigninPromptOpenResp(true);
+  const closeSigninPromptResp = () => setIsSigninPromptOpenResp(false);
+
+  const handleConfirmLogoutResp = () => {
+    try {
+      closeLogoutResp();
+      if (onClose) onClose();
+      localStorage.clear();
+      sessionStorage.clear();
+      toastResp({
+        title: "Logged out successfully",
+        description: "Redirecting to the sign-in page...",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      const base = window.location.origin + window.location.pathname;
+      window.location.replace(`${base}#/auth/signin`);
+    } catch (err) {
+      toastResp({
+        title: "Logout failed",
+        description: error?.message || "Please try again.",
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleGoToSignInResp = () => {
+    closeSigninPromptResp();
+    if (onClose) onClose();
+    const base = window.location.origin + window.location.pathname;
+    window.location.replace(`${base}#/auth/signin`);
+  };
 
   const activeBg = useColorModeValue("#7b2cbf", "#7b2cbf"); // Purple background when active
   const inactiveBg = useColorModeValue("white", "navy.700");
@@ -382,6 +559,54 @@ export function SidebarResponsive(props) {
             </Text>
             {createLinks(prop.views)}
           </React.Fragment>
+        );
+      }
+
+      // Intercept logout route in responsive sidebar
+      if (prop.path === "/logout") {
+        return (
+          <Button
+            key={key}
+            boxSize="initial"
+            justifyContent="flex-start"
+            alignItems="center"
+            mb={{ base: "4px", sm: "5px", md: "6px" }}
+            mx={{ base: "auto", sm: "auto", md: "auto" }}
+            ps={{ base: "8px", sm: "9px", md: "10px" }}
+            py={{ base: "8px", sm: "10px", md: "12px" }}
+            borderRadius="15px"
+            w="100%"
+            bg={"transparent"}
+            color={inactiveColor}
+            boxShadow={"none"}
+            _hover={{ bg: "gray.50" }}
+            _active={{ bg: activeBg, transform: "none", borderColor: "transparent" }}
+            _focus={{ boxShadow: "none" }}
+            onClick={() => {
+              const user = localStorage.getItem("user") || sessionStorage.getItem("user");
+              if (!user) {
+                openSigninPromptResp();
+                return;
+              }
+              openLogoutResp();
+            }}
+          >
+            <Flex>
+              <IconBox
+                bg={inactiveBg}
+                color={"blue.500"}
+                h={{ base: "24px", sm: "26px", md: "28px" }}
+                w={{ base: "24px", sm: "26px", md: "28px" }}
+                me={{ base: "8px", sm: "10px", md: "12px" }}
+                transition="all 0.2s ease-in-out"
+              >
+                {prop.icon}
+              </IconBox>
+              <Text my="auto" fontSize={{ base: "xs", sm: "sm", md: "sm" }}>
+                {document.documentElement.dir === "rtl" ? prop.rtlName : prop.name}
+              </Text>
+            </Flex>
+          </Button>
         );
       }
 
@@ -598,7 +823,7 @@ export function SidebarResponsive(props) {
               flexDirection="column"
               justifyContent="space-between"
             >
-              <Box flex="1" display="flex" flexDirection="column" overflow="hidden">
+                <Box flex="1" display="flex" flexDirection="column" overflow="hidden">
                 <Box>{brand}</Box>
                 <Stack direction="column" mb={{
                   base: "30px", // 320px - 480px
@@ -631,6 +856,33 @@ export function SidebarResponsive(props) {
               </Box>
             </Box>
           </DrawerBody>
+          {/* Responsive signin prompt dialog */}
+          <AlertDialog isOpen={isSigninPromptOpenResp} leastDestructiveRef={signinCancelRefResp} onClose={closeSigninPromptResp} isCentered>
+            <AlertDialogOverlay>
+              <AlertDialogContent>
+                <AlertDialogHeader fontSize="lg" fontWeight="bold" color="#7b2cbf">Not signed in</AlertDialogHeader>
+                  <AlertDialogBody>You are not signed in yet. Do you want to go to the Sign-in page?</AlertDialogBody>
+                  <AlertDialogFooter>
+                    <Button ref={signinCancelRefResp} onClick={closeSigninPromptResp} variant="ghost">Cancel</Button>
+                    <Button colorScheme="purple" onClick={handleGoToSignInResp} ml={3}>Go to Sign In</Button>
+                  </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialogOverlay>
+          </AlertDialog>
+
+          {/* Responsive logout confirmation dialog */}
+          <AlertDialog isOpen={isLogoutOpenResp} leastDestructiveRef={logoutCancelRefResp} onClose={closeLogoutResp} isCentered>
+            <AlertDialogOverlay>
+              <AlertDialogContent>
+                <AlertDialogHeader fontSize="lg" fontWeight="bold" color="#7b2cbf">Confirm Logout</AlertDialogHeader>
+                <AlertDialogBody>Are you sure you want to logout?</AlertDialogBody>
+                <AlertDialogFooter>
+                  <Button ref={logoutCancelRefResp} onClick={closeLogoutResp} variant="ghost">Cancel</Button>
+                  <Button colorScheme="red" onClick={handleConfirmLogoutResp} ml={3}>Sign Out</Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialogOverlay>
+          </AlertDialog>
         </DrawerContent>
       </Drawer>
     </Flex>
