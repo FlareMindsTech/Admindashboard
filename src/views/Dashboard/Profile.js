@@ -7,7 +7,6 @@ import {
   ModalBody, ModalCloseButton, useDisclosure, Box, HStack
 } from "@chakra-ui/react";
 import { FaUsers, FaBoxOpen, FaEdit, FaSignOutAlt, FaSave, FaTimes, FaChartPie } from "react-icons/fa";
-import storeLogo from "assets/img/Aadvi-logo.png";
 import Card from "components/Card/Card";
 import { useNavigate } from "react-router-dom";
 import { getAllAdmins, getAllProducts, getAllUsers, updateAdmin } from "../utils/axiosInstance";
@@ -95,7 +94,6 @@ const getStatusColor = (status) => {
   }
 };
 
-// Stock Analysis Component for Right Panel
 // Stock Analysis Component for Right Panel
 const StockAnalysisComponent = ({ products, refreshProducts }) => {
   const cardBg = useColorModeValue("white", "navy.800");
@@ -765,7 +763,6 @@ export default function AdminProfile() {
         alignSelf="flex-start"
       >
         <Flex direction="column" align="center">
-          <Image src={storeLogo} alt="Store Logo" boxSize="60px" mb={3} />
           <Avatar 
             size="xl" 
             mb={3}
@@ -907,7 +904,7 @@ export default function AdminProfile() {
                   >
                     <Avatar 
                       size="sm" 
-                      name={getSafeString(person.name)}
+                      name={getSafeString(person.firstName + " " + person.lastName )}
                       bg="#5a189a"
                       color="white"
                     />
@@ -923,7 +920,7 @@ export default function AdminProfile() {
 
                   {/* Name (desktop only) */}
                   <Td display={{ base: "none", md: "table-cell" }}>
-                    {getSafeString(person.name)}
+                    {getSafeString(person.firstName + " " + person.lastName )}
                   </Td>
 
                   {/* Email */}
@@ -1028,96 +1025,199 @@ export default function AdminProfile() {
 )}
 
 
-            {currentView === "products" && (
-              <Card p={6} bg={cardBg}>
-                <Flex justify="space-between" align="center" mb={4}>
-                  <Text fontSize="lg" fontWeight="bold">Your Products</Text>
-                  <Badge colorScheme="green" fontSize="sm">
-                    Total: {adminData.adminProducts.length}
-                  </Badge>
-                </Flex>
-                {dataLoading ? (
-                  <Flex justify="center" py={8}>
-                    <Spinner size="lg" />
-                  </Flex>
-                ) : (
-                  <>
-                    <Table variant="simple">
-                      <Thead>
-                        <Tr>
-                          <Th>Name</Th>
-                          <Th>Category</Th>
-                          <Th>Price</Th>
-                          <Th>Stock</Th>
-                          <Th>Status</Th>
-                          <Th>Created</Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {currentProducts.length > 0 ? (
-                          currentProducts.map((product, i) => (
-                            <Tr key={i}>
-                              <Td fontWeight="medium">{getSafeString(product.name)}</Td>
-                              <Td>
-                                <Badge colorScheme="purple" variant="subtle">
-                                  {getSafeString(product.category)}
-                                </Badge>
-                              </Td>
-                              <Td>₹{product.price ?? "-"}</Td>
-                              <Td>
-                                <Badge 
-                                  colorScheme={
-                                    (product.stock) > 0
-                                    ? "green"
-                                    : "red"
-                                  }
-                                >
-                                  {product.stock ?? 0} in stock
-                                </Badge>
-                              </Td>
-                              <Td>
-                                <Badge colorScheme={getStatusColor(product.status)}>
-                                  {getSafeString(product.status)}
-                                </Badge>
-                              </Td>
-                              <Td>{product.createdAt ? new Date(product.createdAt).toLocaleDateString() : "N/A"}</Td>
-                            </Tr>
-                          ))
-                        ) : (
-                          <Tr>
-                            <Td colSpan={6} textAlign="center" py={8}>
-                              <VStack spacing={2}>
-                                <Text color="gray.500">No products added yet</Text>
-                                <Text fontSize="sm" color="gray.400">
-                                  Products you add will appear here
-                                </Text>
-                              </VStack>
-                            </Td>
-                          </Tr>
-                        )}
-                      </Tbody>
-                    </Table>
-                    {adminData.adminProducts.length > productsPerPage && (
-                      <Flex justifyContent="space-between" mt={4}>
-                        <Button 
-                          onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} 
-                          isDisabled={currentPage === 1}
-                        >
-                          Previous
-                        </Button>
-                        <Text>Page {currentPage} of {totalProductPages}</Text>
-                        <Button 
-                          onClick={() => setCurrentPage(p => Math.min(p + 1, totalProductPages))} 
-                          isDisabled={currentPage === totalProductPages}
-                        >
-                          Next
-                        </Button>
-                      </Flex>
-                    )}
-                  </>
-                )}
-              </Card>
+  {currentView === "products" && (
+  <Card
+    p={{ base: 3, md: 5 }}
+    bg={cardBg}
+    w="100%"
+    overflowX="auto"
+    fontFamily="'Poppins', sans-serif"
+  >
+    {/* Header */}
+    <Flex
+      justify="space-between"
+      align="center"
+      mb={4}
+      flexDirection={{ base: "column", sm: "row" }}
+      gap={2}
+    >
+      <Text
+        fontSize={{ base: "md", md: "lg" }}
+        fontWeight="bold"
+      >
+        Your Products
+      </Text>
+
+      <Badge
+        colorScheme="green"
+        fontSize={{ base: "xs", sm: "sm" }}
+        px={3}
+        py={1}
+      >
+        Total: {adminData.adminProducts.length}
+      </Badge>
+    </Flex>
+
+    {/* Loader */}
+    {dataLoading ? (
+      <Flex justify="center" py={8}>
+        <Spinner size="lg" />
+      </Flex>
+    ) : (
+      <>
+        {/* Responsive Table (same pattern as Users) */}
+        <Table 
+          variant="simple" 
+          size="sm"
+        >
+          {/* Desktop Headers */}
+          <Thead display={{ base: "none", md: "table-header-group" }}>
+            <Tr>
+              <Th>Name</Th>
+              <Th>Category</Th>
+              <Th>Price</Th>
+              <Th>Stock</Th>
+              <Th>Status</Th>
+              <Th>Created</Th>
+            </Tr>
+          </Thead>
+
+          <Tbody>
+            {currentProducts.length > 0 ? (
+              currentProducts.map((product, i) => (
+                <Tr
+                  key={i}
+                  fontSize={{ base: "sm", md: "md" }}
+                  display={{ base: "block", md: "table-row" }}
+                  borderBottom={{ base: "1px solid #eee", md: "none" }}
+                  p={{ base: 2, md: 0 }}
+                >
+                  {/* MOBILE TOP SECTION */}
+                  <Td
+                    display={{ base: "flex", md: "table-cell" }}
+                    flexDirection="column"
+                    gap={1}
+                    py={2}
+                    border="none"
+                  >
+                    {/* NAME — always visible on mobile */}
+                    <Text fontWeight="bold" display={{ md: "none" }}>
+                      {getSafeString(product.name)}
+                    </Text>
+
+                    {/* PRICE — small screen highlight */}
+                    <Text
+                      fontSize="xs"
+                      color="gray.500"
+                      display={{ md: "none" }}
+                    >
+                      ₹{product.price ?? "-"}
+                    </Text>
+
+                    {/* DESKTOP NAME */}
+                    <Box display={{ base: "none", md: "block" }}>
+                      {getSafeString(product.name)}
+                    </Box>
+                  </Td>
+
+                  {/* CATEGORY */}
+                  <Td display={{ base: "none", md: "table-cell" }}>
+                    <Badge colorScheme="purple" variant="subtle">
+                      {getSafeString(product.category)}
+                    </Badge>
+                  </Td>
+
+                  {/* PRICE */}
+                  <Td display={{ base: "none", md: "table-cell" }}>
+                    ₹{product.price ?? "-"}
+                  </Td>
+
+                  {/* STOCK */}
+                  <Td>
+                    <Badge
+                      colorScheme={product.stock > 0 ? "green" : "red"}
+                      px={2}
+                      py={1}
+                      borderRadius="md"
+                      fontSize="0.75rem"
+                    >
+                      {product.stock ?? 0} in stock
+                    </Badge>
+                  </Td>
+
+                  {/* STATUS */}
+                  <Td>
+                    <Badge
+                      colorScheme={getStatusColor(product.status)}
+                      px={2}
+                      py={1}
+                      borderRadius="md"
+                      fontSize="0.75rem"
+                    >
+                      {getSafeString(product.status)}
+                    </Badge>
+                  </Td>
+
+                  {/* CREATED DATE */}
+                  <Td>
+                    {product.createdAt
+                      ? new Date(product.createdAt).toLocaleDateString()
+                      : "N/A"}
+                  </Td>
+                </Tr>
+              ))
+            ) : (
+              <Tr>
+                <Td colSpan={6} textAlign="center" py={8}>
+                  <Text color="gray.500">No products added yet</Text>
+                </Td>
+              </Tr>
             )}
+          </Tbody>
+        </Table>
+
+        {/* Pagination */}
+        {adminData.adminProducts.length > productsPerPage && (
+          <Flex
+            justifyContent="space-between"
+            mt={4}
+            px={2}
+            fontSize={{ base: "sm", md: "md" }}
+            flexDirection={{ base: "column", sm: "row" }}
+            gap={{ base: 3, sm: 0 }}
+            textAlign="center"
+          >
+            <Button
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              isDisabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+
+            <Text>
+              Page {currentPage} of {totalProductPages}
+            </Text>
+
+            <Button
+              size="sm"
+              onClick={() =>
+                setCurrentPage(p => Math.min(p + 1, totalProductPages))
+              }
+              isDisabled={currentPage === totalProductPages}
+            >
+              Next
+            </Button>
+          </Flex>
+        )}
+      </>
+    )}
+  </Card>
+)}
+
+
+
+
 
             {currentView === "analytics" && (
               <StockAnalysisComponent 

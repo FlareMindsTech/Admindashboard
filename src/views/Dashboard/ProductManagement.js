@@ -1381,293 +1381,295 @@ export default function ProductManagement() {
       height="100vh" 
       overflow="hidden"
       css={globalScrollbarStyles}
+      
     >
       {/* Fixed Statistics Cards */}
       <Box
-        flexShrink={0}
-        p={4}
-        pb={0}
-      >
-        <Grid
-          templateColumns={{ base: "1fr 1fr", md: "1fr 1fr 1fr 1fr" }}
-          gap="15px"
-          mb="20px"
-        >
-          {/* All Categories Card */}
-          <Card
-            minH="75px"
-            cursor="pointer"
-            onClick={() => setCurrentView("categories")}
-            border={currentView === "categories" ? "2px solid" : "1px solid"}
-            borderColor={currentView === "categories" ? customColor : `${customColor}30`}
+   flexShrink={0}
+  p={{ base: 1, md: 4 }} 
+  pb={0}
+  mt={{ base: 0, md: 0 }}
+>
+  <Grid
+    templateColumns={{ base: "1fr 1fr", md: "1fr 1fr 1fr 1fr" }}
+    gap={{ base: "10px", md: "15px" }} 
+    mb={{ base: "15px", md: "20px" }}
+  >
+    {/* All Categories Card */}
+    <Card
+      minH={{ base: "65px", md: "75px" }} 
+      cursor="pointer"
+      onClick={() => setCurrentView("categories")}
+      border={currentView === "categories" ? "2px solid" : "1px solid"}
+      borderColor={currentView === "categories" ? customColor : `${customColor}30`}
+      transition="all 0.2s ease-in-out"
+      bg="white"
+      position="relative"
+      overflow="hidden"
+      _before={{
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+        opacity: 0,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+      _hover={{
+        transform: { base: "none", md: "translateY(-2px)" }, 
+        shadow: { base: "none", md: "lg" },
+        _before: {
+          opacity: 1,
+        },
+        borderColor: customColor,
+      }}
+    >
+      <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}> {/* Reduced padding on mobile */}
+        <Flex flexDirection="row" align="center" justify="center" w="100%">
+          <Stat me="auto">
+            <StatLabel
+              fontSize={{ base: "2xs", md: "xs" }} 
+              color="gray.600"
+              fontWeight="bold"
+              pb="1px"
+            >
+              All Categories
+            </StatLabel>
+            <Flex>
+              <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> {/* Smaller font on mobile */}
+                {isLoadingCategories ? <Spinner size="xs" /> : categories.length}
+              </StatNumber>
+            </Flex>
+          </Stat>
+          <IconBox 
+            as="box" 
+            h={{ base: "30px", md: "35px" }} 
+            w={{ base: "30px", md: "35px" }} 
+            bg={customColor}
             transition="all 0.2s ease-in-out"
-            bg="white"
-            position="relative"
-            overflow="hidden"
-            _before={{
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
-              opacity: 0,
-              transition: "opacity 0.2s ease-in-out",
-            }}
-            _hover={{
-              transform: "translateY(-2px)",
-              shadow: "lg",
-              _before: {
-                opacity: 1,
-              },
-              borderColor: customColor,
-            }}
           >
-            <CardBody position="relative" zIndex={1} p={4}>
-              <Flex flexDirection="row" align="center" justify="center" w="100%">
-                <Stat me="auto">
-                  <StatLabel
-                    fontSize="xs"
-                    color="gray.600"
-                    fontWeight="bold"
-                    pb="1px"
-                  >
-                    All Categories
-                  </StatLabel>
-                  <Flex>
-                    <StatNumber fontSize="md" color={textColor}>
-                      {isLoadingCategories ? <Spinner size="xs" /> : categories.length}
-                    </StatNumber>
-                  </Flex>
-                </Stat>
-                <IconBox 
-                  as="box" 
-                  h={"35px"} 
-                  w={"35px"} 
-                  bg={customColor}
-                  transition="all 0.2s ease-in-out"
-                >
-                  <Icon
-                    as={MdCategory}
-                    h={"18px"}
-                    w={"18px"}
-                    color="white"
-                  />
-                </IconBox>
-              </Flex>
-            </CardBody>
-          </Card>
+            <Icon
+              as={MdCategory}
+              h={{ base: "14px", md: "18px" }}
+              w={{ base: "14px", md: "18px" }} 
+              color="white"
+            />
+          </IconBox>
+        </Flex>
+      </CardBody>
+    </Card>
 
-          {/* All Products Card */}
-          <Card
-            minH="75px"
-            cursor="pointer"
-            onClick={() => setCurrentView("products")}
-            border={currentView === "products" ? "2px solid" : "1px solid"}
-            borderColor={currentView === "products" ? customColor : `${customColor}30`}
+    {/* All Products Card */}
+    <Card
+      minH={{ base: "65px", md: "75px" }}
+      cursor="pointer"
+      onClick={() => setCurrentView("products")}
+      border={currentView === "products" ? "2px solid" : "1px solid"}
+      borderColor={currentView === "products" ? customColor : `${customColor}30`}
+      transition="all 0.2s ease-in-out"
+      bg="white"
+      position="relative"
+      overflow="hidden"
+      _before={{
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+        opacity: 0,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+      _hover={{
+        transform: { base: "none", md: "translateY(-2px)" }, 
+        shadow: { base: "none", md: "lg" },
+        _before: {
+          opacity: 1,
+        },
+        borderColor: customColor,
+      }}
+    >
+      <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}> 
+        <Flex flexDirection="row" align="center" justify="center" w="100%">
+          <Stat me="auto">
+            <StatLabel
+              fontSize={{ base: "2xs", md: "xs" }} 
+              color="gray.600"
+              fontWeight="bold"
+              pb="1px"
+            >
+              All Products
+            </StatLabel>
+            <Flex>
+              <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
+                {isLoadingProducts ? <Spinner size="xs" /> : products.length}
+              </StatNumber>
+            </Flex>
+          </Stat>
+          <IconBox 
+            as="box" 
+            h={{ base: "30px", md: "35px" }} 
+            w={{ base: "30px", md: "35px" }}
+            bg={customColor}
             transition="all 0.2s ease-in-out"
-            bg="white"
-            position="relative"
-            overflow="hidden"
-            _before={{
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
-              opacity: 0,
-              transition: "opacity 0.2s ease-in-out",
-            }}
-            _hover={{
-              transform: "translateY(-2px)",
-              shadow: "lg",
-              _before: {
-                opacity: 1,
-              },
-              borderColor: customColor,
-            }}
           >
-            <CardBody position="relative" zIndex={1} p={4}>
-              <Flex flexDirection="row" align="center" justify="center" w="100%">
-                <Stat me="auto">
-                  <StatLabel
-                    fontSize="xs"
-                    color="gray.600"
-                    fontWeight="bold"
-                    pb="1px"
-                  >
-                    All Products
-                  </StatLabel>
-                  <Flex>
-                    <StatNumber fontSize="md" color={textColor}>
-                      {isLoadingProducts ? <Spinner size="xs" /> : products.length}
-                    </StatNumber>
-                  </Flex>
-                </Stat>
-                <IconBox 
-                  as="box" 
-                  h={"35px"} 
-                  w={"35px"} 
-                  bg={customColor}
-                  transition="all 0.2s ease-in-out"
-                >
-                  <Icon
-                    as={IoCheckmarkDoneCircleSharp}
-                    h={"18px"}
-                    w={"18px"}
-                    color="white"
-                  />
-                </IconBox>
-              </Flex>
-            </CardBody>
-          </Card>
+            <Icon
+              as={IoCheckmarkDoneCircleSharp}
+              h={{ base: "14px", md: "18px" }}
+              w={{ base: "14px", md: "18px" }}
+              color="white"
+            />
+          </IconBox>
+        </Flex>
+      </CardBody>
+    </Card>
 
-          {/* Available Stock Card */}
-          <Card
-            minH="75px"
-            cursor="pointer"
-            onClick={() => setCurrentView("stockAnalysis")}
-            border={currentView === "stockAnalysis" ? "2px solid" : "1px solid"}
-            borderColor={currentView === "stockAnalysis" ? customColor : `${customColor}30`}
+    {/* Available Stock Card */}
+    <Card
+      minH={{ base: "65px", md: "75px" }} // Reduced height on mobile
+      cursor="pointer"
+      onClick={() => setCurrentView("stockAnalysis")}
+      border={currentView === "stockAnalysis" ? "2px solid" : "1px solid"}
+      borderColor={currentView === "stockAnalysis" ? customColor : `${customColor}30`}
+      transition="all 0.2s ease-in-out"
+      bg="white"
+      position="relative"
+      overflow="hidden"
+      _before={{
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+        opacity: 0,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+      _hover={{
+        transform: { base: "none", md: "translateY(-2px)" }, 
+        shadow: { base: "none", md: "lg" },
+        _before: {
+          opacity: 1,
+        },
+        borderColor: customColor,
+      }}
+    >
+      <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}>
+        <Flex flexDirection="row" align="center" justify="center" w="100%">
+          <Stat me="auto">
+            <StatLabel
+              fontSize={{ base: "2xs", md: "xs" }} 
+              color="gray.600"
+              fontWeight="bold"
+              pb="1px"
+            >
+              Available Stock
+            </StatLabel>
+            <Flex>
+              <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
+                {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
+                  calculateTotalAvailableStock().toLocaleString()
+                }
+              </StatNumber>
+            </Flex>
+            <Text fontSize={{ base: "2xs", md: "xs" }} color="gray.500" mt={{ base: 0.5, md: 1 }}> 
+              {getLowStockProducts().length} low stock
+            </Text>
+          </Stat>
+          <IconBox 
+            as="box" 
+            h={{ base: "30px", md: "35px" }} 
+            w={{ base: "30px", md: "35px" }} 
+            bg={customColor}
             transition="all 0.2s ease-in-out"
-            bg="white"
-            position="relative"
-            overflow="hidden"
-            _before={{
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
-              opacity: 0,
-              transition: "opacity 0.2s ease-in-out",
-            }}
-            _hover={{
-              transform: "translateY(-2px)",
-              shadow: "lg",
-              _before: {
-                opacity: 1,
-              },
-              borderColor: customColor,
-            }}
           >
-            <CardBody position="relative" zIndex={1} p={4}>
-              <Flex flexDirection="row" align="center" justify="center" w="100%">
-                <Stat me="auto">
-                  <StatLabel
-                    fontSize="xs"
-                    color="gray.600"
-                    fontWeight="bold"
-                    pb="1px"
-                  >
-                    Available Stock
-                  </StatLabel>
-                  <Flex>
-                    <StatNumber fontSize="md" color={textColor}>
-                      {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
-                        calculateTotalAvailableStock().toLocaleString()
-                      }
-                    </StatNumber>
-                  </Flex>
-                  <Text fontSize="xs" color="gray.500" mt={1}>
-                    {getLowStockProducts().length} low stock
-                  </Text>
-                </Stat>
-                <IconBox 
-                  as="box" 
-                  h={"35px"} 
-                  w={"35px"} 
-                  bg={customColor}
-                  transition="all 0.2s ease-in-out"
-                >
-                  <Icon
-                    as={FaChartLine}
-                    h={"18px"}
-                    w={"18px"}
-                    color="white"
-                  />
-                </IconBox>
-              </Flex>
-            </CardBody>
-          </Card>
+            <Icon
+              as={FaChartLine}
+              h={{ base: "14px", md: "18px" }} 
+              w={{ base: "14px", md: "18px" }} 
+              color="white"
+            />
+          </IconBox>
+        </Flex>
+      </CardBody>
+    </Card>
 
-          {/* Stock Alerts Card */}
-          <Card
-            minH="75px"
-            cursor="pointer"
-            onClick={() => setCurrentView("stockAlerts")}
-            border={currentView === "stockAlerts" ? "2px solid" : "1px solid"}
-            borderColor={currentView === "stockAlerts" ? customColor : `${customColor}30`}
+    {/* Stock Alerts Card */}
+    <Card
+      minH={{ base: "65px", md: "75px" }}
+      cursor="pointer"
+      onClick={() => setCurrentView("stockAlerts")}
+      border={currentView === "stockAlerts" ? "2px solid" : "1px solid"}
+      borderColor={currentView === "stockAlerts" ? customColor : `${customColor}30`}
+      transition="all 0.2s ease-in-out"
+      bg="white"
+      position="relative"
+      overflow="hidden"
+      _before={{
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+        opacity: 0,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+      _hover={{
+        transform: { base: "none", md: "translateY(-2px)" }, 
+        shadow: { base: "none", md: "lg" },
+        _before: {
+          opacity: 1,
+        },
+        borderColor: customColor,
+      }}
+    >
+      <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}> 
+        <Flex flexDirection="row" align="center" justify="center" w="100%">
+          <Stat me="auto">
+            <StatLabel
+              fontSize={{ base: "2xs", md: "xs" }} 
+              color="gray.600"
+              fontWeight="bold"
+              pb="1px"
+            >
+              Stock Alerts
+            </StatLabel>
+            <Flex>
+              <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
+                {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
+                  getOutOfStockProducts().length
+                }
+              </StatNumber>
+            </Flex>
+            <Text fontSize={{ base: "2xs", md: "xs" }} color="red.500" mt={{ base: 0.5, md: 1 }}> 
+              {getOutOfStockProducts().length} out of stock
+            </Text>
+          </Stat>
+          <IconBox 
+            as="box" 
+            h={{ base: "30px", md: "35px" }} 
+            w={{ base: "30px", md: "35px" }} 
+            bg="red.500"
             transition="all 0.2s ease-in-out"
-            bg="white"
-            position="relative"
-            overflow="hidden"
-            _before={{
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
-              opacity: 0,
-              transition: "opacity 0.2s ease-in-out",
-            }}
-            _hover={{
-              transform: "translateY(-2px)",
-              shadow: "lg",
-              _before: {
-                opacity: 1,
-              },
-              borderColor: customColor,
-            }}
           >
-            <CardBody position="relative" zIndex={1} p={4}>
-              <Flex flexDirection="row" align="center" justify="center" w="100%">
-                <Stat me="auto">
-                  <StatLabel
-                    fontSize="xs"
-                    color="gray.600"
-                    fontWeight="bold"
-                    pb="1px"
-                  >
-                    Stock Alerts
-                  </StatLabel>
-                  <Flex>
-                    <StatNumber fontSize="md" color={textColor}>
-                      {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
-                        getOutOfStockProducts().length
-                      }
-                    </StatNumber>
-                  </Flex>
-                  <Text fontSize="xs" color="red.500" mt={1}>
-                    {getOutOfStockProducts().length} out of stock
-                  </Text>
-                </Stat>
-                <IconBox 
-                  as="box" 
-                  h={"35px"} 
-                  w={"35px"} 
-                  bg="red.500"
-                  transition="all 0.2s ease-in-out"
-                >
-                  <Icon
-                    as={FaExclamationTriangle}
-                    h={"14px"}
-                    w={"14px"}
-                    color="white"
-                  />
-                </IconBox>
-              </Flex>
-            </CardBody>
-          </Card>
-        </Grid>
-      </Box>
+            <Icon
+              as={FaExclamationTriangle}
+              h={{ base: "12px", md: "14px" }} 
+              w={{ base: "12px", md: "14px" }} 
+              color="white"
+            />
+          </IconBox>
+        </Flex>
+      </CardBody>
+    </Card>
+  </Grid>
+</Box>
 
       {/* Scrollable Table Container */}
       <Box 
