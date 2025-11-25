@@ -497,7 +497,7 @@ export function SidebarResponsive(props) {
     } catch (err) {
       toastResp({
         title: "Logout failed",
-        description: error?.message || "Please try again.",
+        description: err?.message || "Please try again.",
         status: "error",
         duration: 4000,
         isClosable: true,
