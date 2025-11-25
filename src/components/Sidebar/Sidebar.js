@@ -725,7 +725,7 @@ export function SidebarResponsive(props) {
       alignItems="center"
     >
       {/* Hamburger Icon - Only visible on mobile */}
-      <HamburgerIcon 
+      {/* <HamburgerIcon 
         color={hamburgerColor} 
         w={{
           base: "16px",  // 320px - 480px
@@ -739,7 +739,7 @@ export function SidebarResponsive(props) {
         }}
         onClick={onOpen}
         cursor="pointer"
-      />
+      /> */}
       
       {/* Mobile Sidebar Drawer */}
       <Drawer

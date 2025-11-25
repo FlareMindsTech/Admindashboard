@@ -217,6 +217,7 @@ export default function CleanedBilling() {
   const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
   const [paymentDatePreset, setPaymentDatePreset] = useState("all");
+  const [state, setState] = useState("")
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -428,6 +429,34 @@ export default function CleanedBilling() {
       toast({
         title: "Error",
         description: "Failed to confirm the order. Please try again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const ShipingDate = async () => {
+    console.log(state)
+    try {
+      const orderId = safeGet(selectedOrder, "_id");
+      await updateOrders(orderId, { ShipingDate: state });
+
+      toast({
+        title: "Shipment Date",
+        description: `Shipment Date :${state}.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      await fetchOrders();
+      closeModal();
+    } catch (error) {
+      console.error("Error marking order as delivered:", error);
+      toast({
+        title: "Error",
+        description: "Failed to mark the order as delivered. Please try again.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -1400,7 +1429,17 @@ export default function CleanedBilling() {
                     Confirm_Order();
                   }}>Confirm Order</Button>
 
+
+
+                  
+
+
+                  <Button leftIcon={<FiTruck />} bg="#10B981" _hover={{ bg: "#059669" }} color="white" onClick={ShipingDate} >Shiping Date : 
+                  <Input width={150} height={5} border={"none"}  type="date" onChange={(e) => setState(e.target.value)}/>
+                  </Button>
+
                   <Button leftIcon={<FiTruck />} bg="#10B981" _hover={{ bg: "#059669" }} color="white" onClick={markAsDelivered}>Mark Delivered</Button>
+
                 </HStack>
               </VStack>
             ) : (

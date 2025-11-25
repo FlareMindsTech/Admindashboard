@@ -13,7 +13,7 @@ import AdminNavbarLinks from "./AdminNavbarLinks";
 
 export default function AdminNavbar(props) {
   const [scrolled, setScrolled] = useState(false);
-  const { fixed, secondary, onOpen } = props; 
+  const { fixed, secondary, onOpen } = props;
 
   useEffect(() => {
     const changeNavbar = () => setScrolled(window.scrollY > 1);
@@ -21,118 +21,84 @@ export default function AdminNavbar(props) {
     return () => window.removeEventListener("scroll", changeNavbar);
   }, []);
 
-  // 🎨 Colors and styles
+  // Colors
   let mainText = useColorModeValue("gray.700", "gray.200");
-  let navbarPosition = "fixed";
+  let navbarBg = "#7b2cbf"; 
   let navbarShadow = "none";
-  let navbarBg = "#7b2cbf"; // purple
   let navbarBorder = "transparent";
-  let paddingX = "35px";
 
-  // 🧭 Scroll + Fixed Navbar
-  if (fixed === true) {
-    if (scrolled === true) {
+  if (fixed) {
+    if (scrolled) {
       navbarBg = useColorModeValue("white", "gray.800");
-      navbarShadow = useColorModeValue("0px 7px 23px rgba(0, 0, 0, 0.1)", "none");
+      navbarShadow = useColorModeValue(
+        "0px 7px 23px rgba(0, 0, 0, 0.1)",
+        "none"
+      );
       navbarBorder = useColorModeValue("#E2E8F0", "rgba(255,255,255,0.1)");
     } else {
-      navbarBg = useColorModeValue("#7b2cbf", "gray.800"); // keep purple at top
-      navbarShadow = useColorModeValue("0px 4px 20px rgba(0, 0, 0, 0.05)", "none");
+      navbarBg = useColorModeValue("#7b2cbf", "gray.800");
+      navbarShadow = "0px 4px 20px rgba(0, 0, 0, 0.05)";
     }
   }
 
-  // 💡 Transparent mode for overlay
   if (secondary) {
-    navbarPosition = "absolute";
     mainText = "white";
     navbarBg = "transparent";
-    paddingX = "30px";
   }
 
   return (
     <>
-      {/* Background Layer - Same color as navbar */}
+      {/* Background layer – FIXED RESPONSIVE HEIGHT */}
       <Box
         position="fixed"
         top="0"
         left="0"
         right="0"
-        h={{ base: "0px", md: "130px", lg: "100px", xl: "120px" }}
-        bg="#7b2cbf" // Same purple color as navbar
+        height={{ base: "0px", md: "100px", lg: "110px", xl: "120px" }}
+        bg="#7b2cbf"
         zIndex="-1"
       />
 
-      {/* Main Navbar Container */}
+      {/* MAIN NAVBAR */}
       <Flex
         as="nav"
-        position={navbarPosition}
+        position="fixed"
+        top="0"
+        w="100%"
         align="center"
         justify="space-between"
-        w={{ base: "100%", md: "100%", lg: "100%" }}
-        minH={{ base: "80px", md: "60px", lg: "70px" }}
-        px={{ base: "20px", md: "25px", lg: paddingX }}
-        top="0"
-        right="0"
+        px={{ base: 4, md: 6, lg: 10 }}
+        minH={{ base: "70px", md: "80px", lg: "85px" }}
         bg={navbarBg}
         borderColor={navbarBorder}
-        borderWidth="1.5px"
-        borderStyle="solid"
+        borderWidth={fixed ? "1.5px" : "0px"}
         boxShadow={navbarShadow}
-        transition="all 0.25s ease-in-out"
+        transition="all 0.25s ease"
         zIndex="1000"
       >
-        {/* Mobile: Hamburger left */}
-        <Box 
-          display={{ base: "block", lg: "none" }}
-          flex={{ base: "0", lg: "1" }}
-        >
-          <IconButton
-            aria-label="Open menu"
-            icon={<HamburgerIcon />}
-            color="white"
-            bg="transparent"
-            _hover={{ bg: "rgba(255,255,255,0.2)" }}
-            size="lg"
-            fontSize="20px"
-            onClick={onOpen}
-          />
-        </Box>
-
-        {/* Mobile: Brand center - Always show "Dashboard" */}
-        <Box 
-          display={{ base: "block", lg: "none" }}
-          flex="1"
-          textAlign="center"
-          mx={2}
-        >
-          {/* <Box
-            as={RouterLink}
-            to="/admin/dashboard"
-            color="white"
-            fontWeight="bold"
-            fontSize="xl"
-            _hover={{
-              color: "gray.100",
-              textDecoration: "none",
-            }}
-          >
-            Dashboard
-          </Box> */}
-        </Box>
-
-        {/* Desktop: Empty spacer to push icons to right */}
-        <Box 
-          flex="1" 
-          display={{ base: "none", lg: "block" }} 
+        {/* MOBILE: HAMBURGER */}
+        <IconButton
+          aria-label="Open Menu"
+          icon={<HamburgerIcon />}
+          display={{ base: "flex", lg: "none" }}
+          color="white"
+          bg="transparent"
+          _hover={{ bg: "rgba(255,255,255,0.2)" }}
+          onClick={onOpen}
         />
 
-        {/* Right side - Only profile/user menu items */}
-        <HStack 
-          spacing={{ base: 3, md: 4, lg: 6 }}
-          align="center"
-          justify="flex-end"
-          flexShrink={0}
-        >
+        {/* MOBILE: EMPTY CENTER HOLDER */}
+        <Box
+          flex="1"
+          textAlign="center"
+          display={{ base: "block", lg: "none" }}
+        />
+
+        {/* DESKTOP SPACER */}
+        <Box flex="1" display={{ base: "none", lg: "block" }} />
+
+        {/* RIGHT-SIDE LINKS */}
+        <HStack spacing={{ base: 3, md: 4, lg: 6 }} flexShrink={0}>
           <AdminNavbarLinks
             size={{ base: "lg", md: "xl", lg: "xl" }}
             logoText={props.logoText}
@@ -140,57 +106,12 @@ export default function AdminNavbar(props) {
             fixed={fixed}
             scrolled={scrolled}
             iconSpacing={{ base: 3, md: 4, lg: 6 }}
-            buttonSize={{ base: "lg", md: "xl", lg: "xl" }}
-            visibility="visible"
-            opacity="1"
-            showHamburger={false}
           />
         </HStack>
       </Flex>
 
-      {/* Separate Container for Brand Text - Desktop only - Always show "Dashboard" */}
-      <Box
-        position="fixed"
-        top="0"
-        left="0"
-        right="0"
-        minH={{ base: "70px", md: "80px", lg: "90px" }}
-        px={{ base: "20px", md: "25px", lg: paddingX }}
-        display={{ base: "none", lg: "flex" }}
-        alignItems="center"
-        justifyContent="center"
-        pointerEvents="none"
-        zIndex="1500"
-      >
-        {/* <Box
-          as={RouterLink}
-          to="/admin/dashboard"
-          color="white"
-          fontWeight="bold"
-          fontSize={{ lg: "2xl", xl: "3xl" }}
-          textShadow="0 2px 4px rgba(0,0,0,0.3)"
-          _hover={{
-            color: "gray.100",
-            textDecoration: "none",
-            transform: "scale(1.05)",
-            transition: "all 0.2s ease"
-          }}
-          pointerEvents="auto"
-          textAlign="center"
-        >
-          Dashboard
-        </Box> */}
-      </Box>
-
-      {/* Spacer to push content down */}
-      <Box 
-        h={{ 
-          base: "70px",
-          md: "130px", 
-          lg: "140px",
-          xl: "160px"
-        }} 
-      />
+      {/* RESPONSIVE SPACER (prevents content hiding under navbar) */}
+      <Box height={{ base: "70px", md: "100px", lg: "110px", xl: "125px" }} />
     </>
   );
 }
