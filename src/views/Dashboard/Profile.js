@@ -2,16 +2,16 @@ import React, { useEffect, useState } from "react";
 import {
   Avatar, Button, Flex, Grid, Text, VStack, Image, Divider,
   useColorModeValue, Table, Thead, Tbody, Tr, Th, Td, Spinner,
-  Badge, useToast, Input, Fade, FormControl, FormLabel,
+  Badge, useToast, Input, FormControl, FormLabel,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter,
   ModalBody, ModalCloseButton, useDisclosure, Box, HStack
 } from "@chakra-ui/react";
-import { FaUsers, FaBoxOpen, FaEdit, FaSignOutAlt, FaSave, FaTimes } from "react-icons/fa";
-import { IoSettingsSharp } from "react-icons/io5";
+import { FaUsers, FaBoxOpen, FaEdit, FaSignOutAlt, FaSave, FaTimes, FaChartPie } from "react-icons/fa";
 import storeLogo from "assets/img/Aadvi-logo.png";
 import Card from "components/Card/Card";
 import { useNavigate } from "react-router-dom";
-import { getAllAdmins, getAllProducts, getAllUsers,updateAdmin } from "../utils/axiosInstance";
+import { getAllAdmins, getAllProducts, getAllUsers, updateAdmin } from "../utils/axiosInstance";
+import ReactApexChart from 'react-apexcharts';
 
 const getInitialAdminData = () => {
   const userString = localStorage.getItem("user");
@@ -28,11 +28,11 @@ const getInitialAdminData = () => {
     actions: [
       { icon: "users", label: "Manage Users" },
       { icon: "box", label: "Manage Products" },
-      { icon: "settings", label: "Settings" },
+      { icon: "chart", label: "Product Stock Overview" },
     ],
     createdAdmins: [],
     adminProducts: [],
-    allUsers: [], // New state for storing all users
+    allUsers: [],
   };
 };
 
@@ -41,11 +41,8 @@ const getSafeString = (value, fallback = 'N/A') => {
   if (typeof value === 'string') return value;
   if (typeof value === 'number') return value.toString();
   if (value && typeof value === 'object') {
-    // If it's an object with a name property
     if (value.name) return value.name;
-    // If it's an object with a _id property (common in MongoDB)
     if (value._id) return value._id;
-    // Try to stringify or return fallback
     try {
       return JSON.stringify(value);
     } catch {
@@ -59,11 +56,8 @@ const getSafeString = (value, fallback = 'N/A') => {
 const getSafeImage = (image, fallback = "https://i.pravatar.cc/150?img=32") => {
   if (typeof image === 'string' && image.trim() !== '') return image;
   if (image && typeof image === 'object') {
-    // If it's an object with url property
     if (image.url) return image.url;
-    // If it's an object with src property
     if (image.src) return image.src;
-    // If it's an object with imageUrl property
     if (image.imageUrl) return image.imageUrl;
   }
   return fallback;
@@ -76,6 +70,310 @@ const getSafeCategory = (category) => {
     return category.name || category.title || category._id || 'Uncategorized';
   }
   return 'Uncategorized';
+};
+
+// Helper function to get role color
+const getRoleColor = (role) => {
+  switch (role?.toLowerCase()) {
+    case 'super admin':
+    case 'superadmin': return 'purple';
+    case 'admin': return 'blue';
+    case 'user': return 'green';
+    case 'moderator': return 'orange';
+    default: return 'gray';
+  }
+};
+
+// Helper function to get status color
+const getStatusColor = (status) => {
+  switch (status?.toLowerCase()) {
+    case 'active': return 'green';
+    case 'inactive': return 'red';
+    case 'draft': return 'yellow';
+    case 'published': return 'blue';
+    default: return 'gray';
+  }
+};
+
+// Stock Analysis Component for Right Panel
+// Stock Analysis Component for Right Panel
+const StockAnalysisComponent = ({ products, refreshProducts }) => {
+  const cardBg = useColorModeValue("white", "navy.800");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Refresh products data
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshProducts();
+    setIsRefreshing(false);
+  };
+
+  // Calculate incoming products (stock > 50)
+  const incomingProducts = products.filter(product => {
+    const stock = product.stock || 0;
+    return stock > 50;
+  });
+
+  // Calculate outgoing products (stock <= 10)
+  const outgoingProducts = products.filter(product => {
+    const stock = product.stock || 0;
+    return stock > 0 && stock <= 10;
+  });
+
+  // Calculate remaining products (stock between 11-50)
+  const remainingProducts = products.filter(product => {
+    const stock = product.stock || 0;
+    return stock > 10 && stock <= 50;
+  });
+
+  // Calculate zero stock products
+  const zeroStockProducts = products.filter(product => {
+    const stock = product.stock || 0;
+    return stock === 0;
+  });
+
+  // Prepare data for Incoming Products Chart
+  const incomingSeries = [
+    incomingProducts.reduce((sum, product) => sum + (product.stock || 0), 0),
+    remainingProducts.reduce((sum, product) => sum + (product.stock || 0), 0) + 
+    outgoingProducts.reduce((sum, product) => sum + (product.stock || 0), 0)
+  ];
+
+  const incomingLabels = [
+    `Incoming (${incomingProducts.length} products)`,
+    `Other Stock (${remainingProducts.length + outgoingProducts.length} products)`
+  ];
+
+  // Prepare data for Outgoing Products Chart
+  const outgoingSeries = [
+    outgoingProducts.reduce((sum, product) => sum + (product.stock || 0), 0),
+    remainingProducts.reduce((sum, product) => sum + (product.stock || 0), 0) + 
+    incomingProducts.reduce((sum, product) => sum + (product.stock || 0), 0)
+  ];
+
+  const outgoingLabels = [
+    `Outgoing (${outgoingProducts.length} products)`,
+    `Other Stock (${remainingProducts.length + incomingProducts.length} products)`
+  ];
+
+  // Chart options for Incoming Products
+  const incomingChartOptions = {
+    chart: {
+      type: 'pie',
+      animations: {
+        enabled: true,
+        easing: 'easeinout',
+        speed: 800,
+      }
+    },
+    labels: incomingLabels,
+    colors: ['#5a189a', '#9d4edd'],
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: {
+          width: 300
+        },
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }],
+    legend: {
+      position: 'bottom',
+      horizontalAlign: 'center'
+    },
+    title: {
+      text: 'Incoming Products Stock',
+      align: 'center',
+      style: {
+        fontSize: '16px',
+        fontWeight: 'bold'
+      }
+    },
+    tooltip: {
+      custom: function({ series, seriesIndex, dataPointIndex, w }) {
+        const productCount = dataPointIndex === 0 ? incomingProducts.length : (remainingProducts.length + outgoingProducts.length);
+        const productList = dataPointIndex === 0 ? incomingProducts : [...remainingProducts, ...outgoingProducts];
+        const productNames = productList.slice(0, 5).map(p => p.name).join(', ');
+        const moreText = productList.length > 5 ? ` and ${productList.length - 5} more...` : '';
+        
+        return `
+          <div class="apexcharts-tooltip-title">${w.config.labels[seriesIndex]}</div>
+          <div class="apexcharts-tooltip-series-group">
+            <div class="apexcharts-tooltip-text">
+              <div class="apexcharts-tooltip-y-group">
+                <span class="apexcharts-tooltip-text-label">Total Stock:</span>
+                <span class="apexcharts-tooltip-text-value">${series[seriesIndex]} units</span>
+              </div>
+              <div class="apexcharts-tooltip-y-group">
+                <span class="apexcharts-tooltip-text-label">Products:</span>
+                <span class="apexcharts-tooltip-text-value">${productCount} items</span>
+              </div>
+              <div class="apexcharts-tooltip-y-group">
+                <span class="apexcharts-tooltip-text-label">Includes:</span>
+                <span class="apexcharts-tooltip-text-value">${productNames}${moreText}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '45%'
+        }
+      }
+    }
+  };
+
+  // Chart options for Outgoing Products
+  const outgoingChartOptions = {
+    chart: {
+      type: 'pie',
+      animations: {
+        enabled: true,
+        easing: 'easeinout',
+        speed: 800,
+      }
+    },
+    labels: outgoingLabels,
+    colors: ['#ff6b6b', '#ff9e6b'],
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: {
+          width: 300
+        },
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }],
+    legend: {
+      position: 'bottom',
+      horizontalAlign: 'center'
+    },
+    title: {
+      text: 'Outgoing Products Stock',
+      align: 'center',
+      style: {
+        fontSize: '16px',
+        fontWeight: 'bold'
+      }
+    },
+    tooltip: {
+      custom: function({ series, seriesIndex, dataPointIndex, w }) {
+        const productCount = dataPointIndex === 0 ? outgoingProducts.length : (remainingProducts.length + incomingProducts.length);
+        const productList = dataPointIndex === 0 ? outgoingProducts : [...remainingProducts, ...incomingProducts];
+        const productNames = productList.slice(0, 5).map(p => p.name).join(', ');
+        const moreText = productList.length > 5 ? ` and ${productList.length - 5} more...` : '';
+        
+        return `
+          <div class="apexcharts-tooltip-title">${w.config.labels[seriesIndex]}</div>
+          <div class="apexcharts-tooltip-series-group">
+            <div class="apexcharts-tooltip-text">
+              <div class="apexcharts-tooltip-y-group">
+                <span class="apexcharts-tooltip-text-label">Total Stock:</span>
+                <span class="apexcharts-tooltip-text-value">${series[seriesIndex]} units</span>
+              </div>
+              <div class="apexcharts-tooltip-y-group">
+                <span class="apexcharts-tooltip-text-label">Products:</span>
+                <span class="apexcharts-tooltip-text-value">${productCount} items</span>
+              </div>
+              <div class="apexcharts-tooltip-y-group">
+                <span class="apexcharts-tooltip-text-label">Includes:</span>
+                <span class="apexcharts-tooltip-text-value">${productNames}${moreText}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '45%'
+        }
+      }
+    }
+  };
+
+  return (
+    <Card p={6} bg={cardBg}>
+      <Flex justify="space-between" align="center" mb={6}>
+        <Text fontSize="lg" fontWeight="bold">Product Stock Analysis</Text>
+        <Button 
+          size="sm" 
+          colorScheme="blue" 
+          onClick={handleRefresh}
+          isLoading={isRefreshing}
+          leftIcon={<FaBoxOpen />}
+        >
+          Refresh Data
+        </Button>
+      </Flex>
+      
+      {/* Charts Section */}
+      <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={8} mb={8}>
+        {/* Incoming Products Chart */}
+        <Box>
+          <ReactApexChart 
+            options={incomingChartOptions} 
+            series={incomingSeries} 
+            type="pie" 
+            height={350}
+          />
+        </Box>
+        
+        {/* Outgoing Products Chart */}
+        <Box>
+          <ReactApexChart 
+            options={outgoingChartOptions} 
+            series={outgoingSeries} 
+            type="pie" 
+            height={350}
+          />
+        </Box>
+      </Grid>
+
+      {/* Summary Statistics */}
+      <Grid templateColumns={{ base: "1fr", md: "1fr 1fr 1fr 1fr" }} gap={4} mb={6}>
+        <Card p={4} bg={useColorModeValue("gray.50", "gray.700")}>
+          <Text fontSize="sm" color="gray.600" mb={2}>Total Products</Text>
+          <Text fontSize="2xl" fontWeight="bold" color="#5a189a">{products?.length || 0}</Text>
+        </Card>
+        
+        <Card p={4} bg={useColorModeValue("gray.50", "gray.700")}>
+          <Text fontSize="sm" color="gray.600" mb={2}>Incoming Products</Text>
+          <Text fontSize="2xl" fontWeight="bold" color="#5a189a">
+            {incomingProducts.length}
+          </Text>
+          <Text fontSize="xs" color="gray.500" mt={1}>
+            {incomingProducts.reduce((sum, product) => sum + (product.stock || 0), 0)} units
+          </Text>
+        </Card>
+        
+        <Card p={4} bg={useColorModeValue("gray.50", "gray.700")}>
+          <Text fontSize="sm" color="gray.600" mb={2}>Outgoing Products</Text>
+          <Text fontSize="2xl" fontWeight="bold" color="#ff6b6b">
+            {outgoingProducts.length}
+          </Text>
+          <Text fontSize="xs" color="gray.500" mt={1}>
+            {outgoingProducts.reduce((sum, product) => sum + (product.stock || 0), 0)} units
+          </Text>
+        </Card>
+
+        <Card p={4} bg={useColorModeValue("gray.50", "gray.700")}>
+          <Text fontSize="sm" color="gray.600" mb={2}>Out of Stock</Text>
+          <Text fontSize="2xl" fontWeight="bold" color="red.500">
+            {zeroStockProducts.length}
+          </Text>
+        </Card>
+      </Grid>
+    </Card>
+  );
 };
 
 // Edit Admin Modal Component
@@ -235,7 +533,7 @@ export default function AdminProfile() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   
   // States for edit admin modal
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isEditAdminOpen, onOpen: onEditAdminOpen, onClose: onEditAdminClose } = useDisclosure();
   const [selectedAdmin, setSelectedAdmin] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -249,23 +547,18 @@ export default function AdminProfile() {
   // Check if current user is super admin
   const isSuperAdmin = currentUserRole === 'super admin' || currentUserRole === 'superadmin';
 
-  // Check if current user is admin
-  const isAdmin = currentUserRole === 'admin';
-
   const fetchAllAdmins = async () => {
     setDataLoading(true);
     try {
       const allAdmins = await getAllAdmins();
       const adminsArray = Array.isArray(allAdmins) ? allAdmins : (allAdmins.admins || []);
       
-      // Safely process admin data
       const safeAdmins = adminsArray.map(admin => ({
         ...admin,
         name: getSafeString(admin.name),
         email: getSafeString(admin.email),
         role: getSafeString(admin.role),
         avatar: getSafeImage(admin.avatar || admin.profileImage || admin.image),
-        // Ensure createdAt is properly handled
         createdAt: admin.createdAt || admin.created_date || new Date()
       }));
       
@@ -284,7 +577,6 @@ export default function AdminProfile() {
       const allUsers = await getAllUsers();
       const usersArray = Array.isArray(allUsers) ? allUsers : (allUsers.users || allUsers.data || []);
       
-      // Safely process user data
       const safeUsers = usersArray.map(user => ({
         ...user,
         name: getSafeString(user.name || user.username),
@@ -292,7 +584,6 @@ export default function AdminProfile() {
         role: getSafeString(user.role) || 'user',
         avatar: getSafeImage(user.avatar || user.profileImage || user.image),
         status: getSafeString(user.status) || 'active',
-        // Ensure createdAt is properly handled
         createdAt: user.createdAt || user.created_date || user.registeredAt || new Date()
       }));
       
@@ -309,8 +600,8 @@ export default function AdminProfile() {
     setDataLoading(true);
     try {
       const response = await getAllProducts();
+      console.log("🔄 Fetching products... Raw response:", response);
       
-      // Extract products array from response
       let products = [];
       if (Array.isArray(response)) {
         products = response;
@@ -319,33 +610,43 @@ export default function AdminProfile() {
       } else if (response && Array.isArray(response.data)) {
         products = response.data;
       } else {
-        // Try to find array in response object
         const maybeArray = Object.values(response || {}).find((v) => Array.isArray(v));
         if (Array.isArray(maybeArray)) {
           products = maybeArray;
         }
       }
 
-      console.log("Raw products data:", products);
+      console.log("📊 Processed products count:", products.length);
       
-      // Safely process products data
-      const processedProducts = products.map(product => ({
-        id: product._id || product.id,
-        name: getSafeString(product.name || product.title),
-        category: getSafeCategory(product.category),
-        price: product.price || product.cost || 0,
-        stock: product.stock || product.quantity || 0,
-        status: getSafeString(product.status) || (product.isActive !== false ? 'Active' : 'Inactive'),
-        createdAt: product.createdAt || product.dateAdded || new Date(),
-        description: getSafeString(product.description),
-        image: getSafeImage(product.image || product.imageUrl || product.thumbnail)
-      }));
+      const processedProducts = products.map(product => {
+        const stock = product.variants?.[0]?.stock || product.stock || product.quantity || 0;
+        console.log(`Product: ${product.name}, Stock: ${stock}`);
+        
+        return {
+          id: product._id || product.id,
+          name: getSafeString(product.name || product.title),
+          category: getSafeCategory(product.category),
+          price: product.variants?.[0]?.price || product.price || product.cost || 0,
+          stock: stock,
+          status: getSafeString(product.status) || (product.isActive !== false ? 'Active' : 'Inactive'),
+          createdAt: product.createdAt || product.dateAdded || new Date(),
+          description: getSafeString(product.description),
+          image: getSafeImage(product.image || product.imageUrl || product.thumbnail)
+        };
+      });
 
-      console.log("Processed products:", processedProducts);
+      console.log("✅ Final processed products:", processedProducts);
       
       setAdminData(prev => ({ ...prev, adminProducts: processedProducts }));
+      
+      toast({ 
+        title: "Data Updated", 
+        description: `Loaded ${processedProducts.length} products`, 
+        status: "success", 
+        duration: 2000 
+      });
     } catch (err) {
-      console.error("Error fetching products:", err);
+      console.error("❌ Error fetching products:", err);
       toast({ 
         title: "Error", 
         description: "Failed to fetch products", 
@@ -356,32 +657,42 @@ export default function AdminProfile() {
     }
   };
 
+  // Enhanced useEffect to handle product updates
   useEffect(() => {
+    console.log(`🔄 Current view changed to: ${currentView}`);
     if (currentView === "users") {
       if (isSuperAdmin) {
-        fetchAllAdmins(); // Super admin sees admin details
+        fetchAllAdmins();
       } else {
-        fetchAllUsers(); // Regular admin sees user details
+        fetchAllUsers();
       }
-    } else if (currentView === "products") {
+    } else if (currentView === "products" || currentView === "analytics") {
       fetchAdminProducts();
     }
   }, [currentView, isSuperAdmin]);
 
+  // Add this function to force refresh products
+  const refreshProductsData = async () => {
+    await fetchAdminProducts();
+  };
+
   const handleActionClick = async (action) => {
+    console.log(`🖱️ Action clicked: ${action.label}`);
     if (action.label === "Manage Products") {
       setCurrentView("products");
       await fetchAdminProducts();
       setCurrentPage(1);
     } else if (action.label === "Manage Users") {
       setCurrentView("users");
-      // Fetch appropriate data based on user role
       if (isSuperAdmin) {
         await fetchAllAdmins();
       } else {
         await fetchAllUsers();
       }
       setCurrentPage(1);
+    } else if (action.label === "Product Stock Overview") {
+      setCurrentView("analytics");
+      await fetchAdminProducts();
     } else {
       setCurrentView("dashboard");
     }
@@ -406,11 +717,10 @@ export default function AdminProfile() {
   // Edit Admin functions
   const handleEditAdmin = (admin) => {
     setSelectedAdmin(admin);
-    onOpen();
+    onEditAdminOpen();
   };
 
   const handleSaveAdmin = (updatedAdmin) => {
-    // Update the admin in the local state
     const updatedAdmins = adminData.createdAdmins.map(admin => 
       admin._id === updatedAdmin._id ? { ...admin, ...updatedAdmin } : admin
     );
@@ -438,30 +748,9 @@ export default function AdminProfile() {
   const currentProducts = adminData.adminProducts.slice(indexOfLastProduct - productsPerPage, indexOfLastProduct);
   const totalProductPages = Math.ceil(adminData.adminProducts.length / productsPerPage);
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'active': return 'green';
-      case 'inactive': return 'red';
-      case 'draft': return 'yellow';
-      case 'published': return 'blue';
-      default: return 'gray';
-    }
-  };
-
-  const getRoleColor = (role) => {
-    switch (role?.toLowerCase()) {
-      case 'super admin':
-      case 'superadmin': return 'purple';
-      case 'admin': return 'blue';
-      case 'user': return 'green';
-      case 'moderator': return 'orange';
-      default: return 'gray';
-    }
-  };
-
   return (
     <Flex direction={{ base: "column", md: "row" }} gap={8} p={6} mt={12}>
-      {/* Left Panel - Fixed Card (Always shows profile view) */}
+      {/* Left Panel - Fixed Card */}
       <Card
         w={{ base: "100%", md: "280px" }}
         bg={cardBg}
@@ -488,7 +777,6 @@ export default function AdminProfile() {
             borderColor="#5a189a"
           />
 
-          {/* Always show profile details in left panel */}
           <VStack spacing={2} align="center" w="100%">
             <Text fontSize="lg" fontWeight="bold">{adminData.name}</Text>
             <Badge colorScheme={getRoleColor(adminData.role)} fontSize="sm" px={2} py={1}>
@@ -508,19 +796,21 @@ export default function AdminProfile() {
                   leftIcon={
                     action.icon === "users" ? <FaUsers /> :
                     action.icon === "box" ? <FaBoxOpen /> :
-                    <IoSettingsSharp />
+                    <FaChartPie />
                   }
                   onClick={() => handleActionClick(action)}
-                  colorScheme={currentView === "users" && action.label === "Manage Users" ? "#5a189a" : 
-                              currentView === "products" && action.label === "Manage Products" ? "#5a189a" : 
-                              currentView === "dashboard" && action.label === "Settings" ? "blue" : "gray"}
+                  colorScheme={
+                    currentView === "users" && action.label === "Manage Users" ? "#5a189a" : 
+                    currentView === "products" && action.label === "Manage Products" ? "#5a189a" : 
+                    currentView === "analytics" && action.label === "Product Stock Overview" ? "#5a189a" : 
+                    "gray"
+                  }
                 >
                   {action.label}
                 </Button>
               ))}
             </VStack>
 
-            {/* Show Edit Profile button only for admin users, not for super admin */}
             {!isSuperAdmin && (
               <VStack spacing={2} w="100%">
                 <Button 
@@ -539,9 +829,8 @@ export default function AdminProfile() {
         </Flex>
       </Card>
 
-      {/* Right Panel - Shows either edit form or content based on currentView and isEditingProfile */}
+      {/* Right Panel */}
       <Grid templateColumns="1fr" gap={4} flex="1" mt={12}>
-        {/* Show Edit Profile Form when isEditingProfile is true */}
         {isEditingProfile && (
           <ProfileEditComponent
             adminData={adminData}
@@ -550,114 +839,194 @@ export default function AdminProfile() {
           />
         )}
 
-        {/* Show regular content when NOT editing profile */}
         {!isEditingProfile && (
           <>
             {currentView === "dashboard" && (
               <Card p={6} bg={cardBg}>
                 <Text fontSize="lg" fontWeight="bold">Welcome, {adminData.name}!</Text>
                 <Text mt={2} color="gray.600">
-                  Use the navigation menu to manage {isSuperAdmin ? 'admins' : 'users'}, products, or update your profile settings.
+                  Use the navigation menu to manage {isSuperAdmin ? 'admins' : 'users'}, products, or view stock analytics.
                 </Text>
               </Card>
             )}
 
             {currentView === "users" && (
-              <Card p={6} bg={cardBg}>
-                <Text fontSize="lg" fontWeight="bold" mb={4}>
-                  {isSuperAdmin ? 'All Admins' : 'All Users'}
-                </Text>
-                {dataLoading ? (
-                  <Flex justify="center" py={8}>
-                    <Spinner size="lg" />
-                  </Flex>
-                ) : (
-                  <>
-                    <Table variant="simple">
-                      <Thead>
-                        <Tr>
-                          <Th>Avatar</Th>
-                          <Th>Name</Th>
-                          <Th>Email</Th>
-                          <Th>Role</Th>
-                          <Th>Status</Th>
-                          <Th>Created</Th>
-                          {isSuperAdmin && <Th>Actions</Th>}
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {(isSuperAdmin ? currentAdmins : currentUsers).length > 0 ? (
-                          (isSuperAdmin ? currentAdmins : currentUsers).map((person, i) => (
-                            <Tr key={i}>
-                              <Td>
-                                <Avatar 
-                                  size="sm" 
-                                  name={getSafeString(person.name)}
-                                  bg="#5a189a"
-                                  color="white"
-                                />
-                              </Td>
-                              <Td>{getSafeString(person.name)}</Td>
-                              <Td>{getSafeString(person.email)}</Td>
-                              <Td>
-                                <Badge colorScheme={getRoleColor(getSafeString(person.role))}>
-                                  {getSafeString(person.role)}
-                                </Badge>
-                              </Td>
-                              <Td>
-                                <Badge colorScheme={getStatusColor(person.status)}>
-                                  {getSafeString(person.status) || 'Active'}
-                                </Badge>
-                              </Td>
-                              <Td>{person.createdAt ? new Date(person.createdAt).toLocaleDateString() : "N/A"}</Td>
-                              {isSuperAdmin && (
-                                <Td>
-                                  <Button
-                                    bg={"#5a189a"}
-                                    size="sm"
-                                    color="white"
-                                    _hover={{ bg: "#4a148c" }}
-                                    leftIcon={<FaEdit />}
-                                    onClick={() => handleEditAdmin(person)}
-                                  >
-                                    Edit
-                                  </Button>
-                                </Td>
-                              )}
-                            </Tr>
-                          ))
-                        ) : (
-                          <Tr>
-                            <Td colSpan={isSuperAdmin ? 7 : 6} textAlign="center" py={8}>
-                              <Text color="gray.500">No {isSuperAdmin ? 'admins' : 'users'} found</Text>
-                            </Td>
-                          </Tr>
-                        )}
-                      </Tbody>
-                    </Table>
-                    {(isSuperAdmin ? adminData.createdAdmins.length : adminData.allUsers.length) > (isSuperAdmin ? adminsPerPage : usersPerPage) && (
-                      <Flex justifyContent="space-between" mt={4}>
-                        <Button 
-                          onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} 
-                          isDisabled={currentPage === 1}
-                        >
-                          Previous
-                        </Button>
-                        <Text>
-                          Page {currentPage} of {isSuperAdmin ? totalAdminPages : totalUserPages}
-                        </Text>
-                        <Button 
-                          onClick={() => setCurrentPage(p => Math.min(p + 1, isSuperAdmin ? totalAdminPages : totalUserPages))} 
-                          isDisabled={currentPage === (isSuperAdmin ? totalAdminPages : totalUserPages)}
-                        >
-                          Next
-                        </Button>
-                      </Flex>
-                    )}
-                  </>
-                )}
-              </Card>
+  <Card 
+    p={{ base: 3, md: 5 }} 
+    bg={cardBg} 
+    w="100%" 
+    overflowX="auto"
+  >
+    <Text 
+      fontSize={{ base: "md", md: "lg" }} 
+      fontWeight="bold" 
+      mb={4}
+    >
+      {isSuperAdmin ? "All Admins" : "All Users"}
+    </Text>
+
+    {dataLoading ? (
+      <Flex justify="center" py={8}>
+        <Spinner size="lg" />
+      </Flex>
+    ) : (
+      <>
+        <Table 
+          variant="simple" 
+          size="sm" 
+          className="responsive-table"
+        >
+          <Thead display={{ base: "none", md: "table-header-group" }}>
+            <Tr>
+              <Th>Avatar</Th>
+              <Th>Name</Th>
+              <Th>Email</Th>
+              <Th>Role</Th>
+              <Th>Status</Th>
+              <Th>Created</Th>
+            </Tr>
+          </Thead>
+
+          <Tbody>
+            {(isSuperAdmin ? currentAdmins : currentUsers).length > 0 ? (
+              (isSuperAdmin ? currentAdmins : currentUsers).map((person, i) => (
+                <Tr 
+                  key={i}
+                  fontSize={{ base: "sm", md: "md" }}
+                  display={{ base: "block", md: "table-row" }}
+                  borderBottom={{ base: "1px solid #eee", md: "none" }}
+                  p={{ base: 2, md: 0 }}
+                >
+                  {/* Avatar */}
+                  <Td 
+                    display="flex" 
+                    alignItems="center" 
+                    gap={3} 
+                    py={2}
+                    border="none"
+                  >
+                    <Avatar 
+                      size="sm" 
+                      name={getSafeString(person.name)}
+                      bg="#5a189a"
+                      color="white"
+                    />
+                    <Box display={{ base: "block", md: "none" }}>
+                      <Text fontWeight="bold">
+                        {getSafeString(person.name)}
+                      </Text>
+                      <Text fontSize="xs" color="gray.500">
+                        {getSafeString(person.email)}
+                      </Text>
+                    </Box>
+                  </Td>
+
+                  {/* Name (desktop only) */}
+                  <Td display={{ base: "none", md: "table-cell" }}>
+                    {getSafeString(person.name)}
+                  </Td>
+
+                  {/* Email */}
+                  <Td display={{ base: "none", md: "table-cell" }}>
+                    {getSafeString(person.email)}
+                  </Td>
+
+                  {/* Role */}
+                  <Td>
+                    <Badge 
+                      colorScheme={getRoleColor(getSafeString(person.role))}
+                      px={2}
+                      py={1}
+                      borderRadius="md"
+                      fontSize="0.75rem"
+                    >
+                      {getSafeString(person.role)}
+                    </Badge>
+                  </Td>
+
+                  {/* Status */}
+                  <Td>
+                    <Badge 
+                      colorScheme={getStatusColor(person.status)}
+                      px={2}
+                      py={1}
+                      borderRadius="md"
+                      fontSize="0.75rem"
+                    >
+                      {getSafeString(person.status) || "Active"}
+                    </Badge>
+                  </Td>
+
+                  {/* Created */}
+                  <Td>
+                    {person.createdAt
+                      ? new Date(person.createdAt).toLocaleDateString()
+                      : "N/A"}
+                  </Td>
+                </Tr>
+              ))
+            ) : (
+              <Tr>
+                <Td 
+                  colSpan={6} 
+                  textAlign="center" 
+                  py={8}
+                >
+                  <Text color="gray.500">
+                    No {isSuperAdmin ? "admins" : "users"} found
+                  </Text>
+                </Td>
+              </Tr>
             )}
+          </Tbody>
+        </Table>
+
+        {/* Pagination */}
+        {(isSuperAdmin ? adminData.createdAdmins.length : adminData.allUsers.length) >
+          (isSuperAdmin ? adminsPerPage : usersPerPage) && (
+          <Flex 
+            justifyContent="space-between" 
+            mt={4} 
+            px={2}
+            fontSize={{ base: "sm", md: "md" }}
+          >
+            <Button
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              isDisabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+
+            <Text>
+              Page {currentPage} of{" "}
+              {isSuperAdmin ? totalAdminPages : totalUserPages}
+            </Text>
+
+            <Button
+              size="sm"
+              onClick={() =>
+                setCurrentPage(p =>
+                  Math.min(
+                    p + 1,
+                    isSuperAdmin ? totalAdminPages : totalUserPages
+                  )
+                )
+              }
+              isDisabled={
+                currentPage ===
+                (isSuperAdmin ? totalAdminPages : totalUserPages)
+              }
+            >
+              Next
+            </Button>
+          </Flex>
+        )}
+      </>
+    )}
+  </Card>
+)}
+
 
             {currentView === "products" && (
               <Card p={6} bg={cardBg}>
@@ -694,16 +1063,16 @@ export default function AdminProfile() {
                                   {getSafeString(product.category)}
                                 </Badge>
                               </Td>
-                              <Td>₹{product.price ?? product.variants?.[0]?.price ?? "-"}</Td>
+                              <Td>₹{product.price ?? "-"}</Td>
                               <Td>
                                 <Badge 
                                   colorScheme={
-                                    (product.stock ?? product.variants?.[0]?.stock) > 0
+                                    (product.stock) > 0
                                     ? "green"
                                     : "red"
                                   }
                                 >
-                                  {product.stock ?? product.variants?.[0]?.stock ?? 0} in stock
+                                  {product.stock ?? 0} in stock
                                 </Badge>
                               </Td>
                               <Td>
@@ -749,6 +1118,13 @@ export default function AdminProfile() {
                 )}
               </Card>
             )}
+
+            {currentView === "analytics" && (
+              <StockAnalysisComponent 
+                products={adminData.adminProducts} 
+                refreshProducts={refreshProductsData}
+              />
+            )}
           </>
         )}
       </Grid>
@@ -756,8 +1132,8 @@ export default function AdminProfile() {
       {/* Edit Admin Modal - Only for super admin */}
       {isSuperAdmin && (
         <EditAdminModal
-          isOpen={isOpen}
-          onClose={onClose}
+          isOpen={isEditAdminOpen}
+          onClose={onEditAdminClose}
           admin={selectedAdmin}
           onSave={handleSaveAdmin}
         />

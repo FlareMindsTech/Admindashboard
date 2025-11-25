@@ -2485,72 +2485,138 @@ export default function ProductManagement() {
               </SimpleGrid>
             )}
 
-            {viewModalType === "product" && selectedProduct && (
-              <SimpleGrid columns={1} spacing={4}>
-                <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="sm">Name:</Text>
-                  <Text fontSize="md" mt={1}>{selectedProduct.name}</Text>
-                </Box>
-                <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="sm">Category:</Text>
-                  <Text fontSize="md" mt={1}>
-                    {selectedProduct.category?.name || 
-                    categories.find(c => c._id === selectedProduct.category)?.name || 
-                    "N/A"}
-                  </Text>
-                </Box>
-                <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="sm">Price:</Text>
-                  <Text fontSize="md" mt={1}>₹{selectedProduct.price || selectedProduct.variants?.[0]?.price || "-"}</Text>
-                </Box>
-                <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="sm">Stock Status:</Text>
-                  <Flex direction="column" gap={1} mt={1}>
-                    <StockStatusBadge product={selectedProduct} />
-                    <Text fontSize="sm" color="gray.600">
-                      Total Stock: {selectedProduct.stock || selectedProduct.variants?.[0]?.stock || 0}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      Available: {calculateAvailableStock(selectedProduct)}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      Ordered: {(selectedProduct.stock || selectedProduct.variants?.[0]?.stock || 0) - calculateAvailableStock(selectedProduct)}
-                    </Text>
-                  </Flex>
-                </Box>
-                <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="sm">Color:</Text>
-                  <Text fontSize="md" mt={1}>{selectedProduct.variants?.[0]?.color || "Default"}</Text>
-                </Box>
-                <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="sm">Size:</Text>
-                  <Text fontSize="md" mt={1}>{selectedProduct.variants?.[0]?.size || "Default"}</Text>
-                </Box>
-                <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="sm">Description:</Text>
-                  <Text fontSize="md" mt={1}>{selectedProduct.description || "No description"}</Text>
-                </Box>
-                {selectedProduct.images && selectedProduct.images.length > 0 && (
-                  <Box>
-                    <Text fontWeight="bold" color="gray.600" fontSize="sm">Images:</Text>
-                    <Flex wrap="wrap" gap={2} mt={2}>
-                      {selectedProduct.images.map((img, index) => (
-                        <Image
-                          key={img.public_id || index}
-                          src={img.url || img}
-                          alt={`Product image ${index + 1}`}
-                          boxSize="60px"
-                          objectFit="cover"
-                          borderRadius="md"
-                          border="1px"
-                          borderColor="gray.200"
-                        />
-                      ))}
-                    </Flex>
-                  </Box>
-                )}
-              </SimpleGrid>
-            )}
+          {viewModalType === "product" && selectedProduct && (
+  <Box
+    bg={useColorModeValue("white", "gray.800")}
+    borderRadius="xl"
+    boxShadow="lg"
+    p={5}
+    w="100%"
+    maxW="480px"
+    mx="auto"
+  >
+    {/* Square Layout with Image and Details Side by Side */}
+    <Flex gap={4} mb={4}>
+      {/* Left Side - Image */}
+      <Box
+        w="140px"
+        h="140px"
+        borderRadius="lg"
+        overflow="hidden"
+        bg="gray.100"
+        flexShrink={0}
+      >
+        <Image
+          src={
+            selectedProduct.images?.[0]?.url ||
+            selectedProduct.images?.[0] ||
+            "/placeholder.png"
+          }
+          alt="product"
+          w="100%"
+          h="100%"
+          objectFit="cover"
+        />
+      </Box>
+
+      {/* Right Side - Details Grid */}
+      <Box flex="1">
+        <Text fontSize="lg" fontWeight="bold" mb={1} noOfLines={2}>
+          {selectedProduct.name}
+        </Text>
+        
+        <SimpleGrid columns={2} spacing={2} mt={2}>
+          <Box>
+            <Text fontSize="xs" color="gray.500">Category</Text>
+            <Text fontSize="sm" fontWeight="medium">
+              {selectedProduct.category?.name || "N/A"}
+            </Text>
+          </Box>
+          
+          <Box>
+            <Text fontSize="xs" color="gray.500">Price</Text>
+            <Text fontSize="sm" fontWeight="bold" color="green.600">
+              ₹{selectedProduct.price || selectedProduct.variants?.[0]?.price || "-"}
+            </Text>
+          </Box>
+          
+          <Box>
+            <Text fontSize="xs" color="gray.500">Color</Text>
+            <Text fontSize="sm">{selectedProduct.variants?.[0]?.color || "Default"}</Text>
+          </Box>
+          
+          <Box>
+            <Text fontSize="xs" color="gray.500">Size</Text>
+            <Text fontSize="sm">{selectedProduct.variants?.[0]?.size || "Default"}</Text>
+          </Box>
+        </SimpleGrid>
+      </Box>
+    </Flex>
+
+    {/* Stock Information in 2x2 Grid */}
+    <Box mb={4}>
+      <Text fontWeight="bold" color="gray.500" fontSize="sm" mb={2}>Stock Information</Text>
+      <SimpleGrid columns={2} spacing={3}>
+        <Box textAlign="center" bg={useColorModeValue("gray.50", "gray.700")} p={2} borderRadius="md">
+          <Text fontSize="xs" color="gray.500">Total Stock</Text>
+          <Text fontSize="lg" fontWeight="bold">
+            {selectedProduct.stock || selectedProduct.variants?.[0]?.stock || 0}
+          </Text>
+        </Box>
+        
+        <Box textAlign="center" bg={useColorModeValue("gray.50", "gray.700")} p={2} borderRadius="md">
+          <Text fontSize="xs" color="gray.500">Available</Text>
+          <Text fontSize="lg" fontWeight="bold" color="green.600">
+            {calculateAvailableStock(selectedProduct)}
+          </Text>
+        </Box>
+        
+       
+        
+        <Box textAlign="center" bg={useColorModeValue("gray.50", "gray.700")} p={2} borderRadius="md">
+          <Text fontSize="xs" color="gray.500">Status</Text>
+          <Box mt={1}>
+            <StockStatusBadge product={selectedProduct} />
+          </Box>
+        </Box>
+      </SimpleGrid>
+    </Box>
+
+    {/* Description */}
+    <Box mb={4}>
+      <Text fontWeight="bold" color="gray.500" fontSize="sm" mb={1}>Description</Text>
+      <Text fontSize="sm" lineHeight="1.4">
+        {selectedProduct.description || "No description available"}
+      </Text>
+    </Box>
+
+    {/* Images Grid */}
+    {selectedProduct.images && selectedProduct.images.length > 0 && (
+      <Box>
+        <Text fontWeight="bold" color="gray.500" fontSize="sm" mb={2}>Images</Text>
+        <SimpleGrid columns={4} spacing={2}>
+          {selectedProduct.images.map((img, index) => (
+            <Box
+              key={img.public_id || index}
+              borderRadius="md"
+              overflow="hidden"
+            >
+              <Image
+                src={img.url || img}
+                alt={`Image ${index + 1}`}
+                w="100%"
+                h="60px"
+                objectFit="cover"
+                border="1px solid"
+                borderColor="gray.200"
+              />
+            </Box>
+          ))}
+        </SimpleGrid>
+      </Box>
+    )}
+  </Box>
+)}
           </ModalBody>
           <ModalFooter>
             <Button 
