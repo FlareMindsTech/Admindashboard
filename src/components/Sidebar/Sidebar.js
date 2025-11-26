@@ -21,6 +21,7 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   useToast,
+  Image,
 } from "@chakra-ui/react";
 import IconBox from "components/Icons/IconBox";
 import {
@@ -36,6 +37,7 @@ import { SidebarHelp } from "components/Sidebar/SidebarHelp";
 import React, { useRef, useState } from "react";
 import { Scrollbars } from "react-custom-scrollbars";
 import { NavLink } from "react-router-dom";
+import FlareMindslogo from "assets/img/fm logo.png"; 
 
 function Sidebar(props) {
   const { sidebarVariant, logo, routes } = props;
@@ -402,26 +404,22 @@ function Sidebar(props) {
               </Box>
             </Stack>
           </Box>
-          <Box
+          <Box 
             textAlign="center"
-            py={{
-              base: "8px",   // 320px - 480px
-              sm: "10px",    // 481px - 767px
-              md: "12px",    // 768px - 1024px
-              lg: "12px",    // 1025px - 1280px
-              xl: "12px"     // 1281px +
-            }}
-            fontSize={{
-              base: "11px",  // 320px - 480px
-              sm: "12px",    // 481px - 767px
-              md: "13px",    // 768px - 1024px
-              lg: "13px",    // 1025px - 1280px
-              xl: "13px"     // 1281px +
-            }}
+            py={{ base: "10px", md: "12px" }}
+            fontSize={{ base: "11px", sm: "12px", md: "13px" }}
             color="#888"
             flexShrink={0}
           >
-            © 2025 FlareMinds ❤️
+            <Image 
+             src={FlareMindslogo}
+  alt="FlareMinds Logo"
+  mx="auto"
+  mb={2}
+  boxSize={{ base: "24px", sm: "26px", md: "28px" }}
+  objectFit="contain"
+            />
+            © 2025 Developed by <strong>FlareMinds</strong> ❤️
           </Box>
         </Box>
       </Box>
@@ -852,7 +850,15 @@ export function SidebarResponsive(props) {
                 color="#888"
                 flexShrink={0}
               >
-                2025 ❤️ Flaremind
+                <Image 
+                  src={FlareMindslogo} 
+                  alt="FlareMinds Logo"
+                  mx="auto"
+                  mb={2}
+                  boxSize={{ base: "24px", sm: "26px", md: "28px" }}
+                  objectFit="contain"
+                />
+                © 2025 Developed by <strong>FlareMinds</strong> ❤️
               </Box>
             </Box>
           </DrawerBody>

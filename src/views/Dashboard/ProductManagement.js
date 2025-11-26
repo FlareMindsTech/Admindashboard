@@ -123,15 +123,15 @@ export default function ProductManagement() {
   const [itemsPerPage] = useState(5);
 
   const initialCategory = { name: "", description: "" };
-  const initialProduct = {
-    name: "",
-    price: "",
-    stock: "",
-    color: "",
-    size: "",
-    description: "",
-    images: [],
-  };
+ const initialProduct = {
+  name: "",
+  price: "",
+  stock: "",
+  colors: [], 
+  sizes: [],  
+  description: "",
+  images: [],
+};
 
   const [newCategory, setNewCategory] = useState(initialCategory);
   const [newProduct, setNewProduct] = useState(initialProduct);
@@ -232,15 +232,14 @@ export default function ProductManagement() {
     const stockProducts = [...products]
       .filter(product => {
         const availableStock = calculateAvailableStock(product);
-        return availableStock > 0; // Only show products with available stock
+        return availableStock > 0; 
       })
       .sort((a, b) => {
         const stockA = calculateAvailableStock(a);
         const stockB = calculateAvailableStock(b);
-        return stockB - stockA; // Sort by available stock descending
+        return stockB - stockA;
       })
-      .slice(0, 10); // Show top 10 products
-
+      .slice(0, 10); 
     const categories = stockProducts.map(product => 
       product.name.length > 20 ? product.name.substring(0, 20) + '...' : product.name
     );
@@ -808,125 +807,136 @@ export default function ProductManagement() {
     setIsDeleting(false);
   };
 
+
   // Product Submit (Add/Edit)
-  const handleSubmitProduct = async () => {
-    if (!newProduct.name || !newProduct.price || !newProduct.stock) {
-      return toast({
-        title: "Validation Error",
-        description: "Name, Price, and Stock are required fields.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-    if (!selectedCategory?._id) {
-      return toast({
-        title: "Category Error",
-        description: "Please select a category first.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-
-    try {
-      setIsSubmitting(true);
-
-      const productData = {
-        name: newProduct.name.trim(),
-        description: newProduct.description?.trim() || "",
-        category: selectedCategory._id,
-        price: Number(newProduct.price),
-        stock: Number(newProduct.stock),
-        color: newProduct.color || "default",
-        size: newProduct.size || "default",
-        variants: [
-          {
-            color: newProduct.color || "default",
-            size: newProduct.size || "default",
-            price: Number(newProduct.price),
-            stock: Number(newProduct.stock),
-            sku: selectedProduct
-              ? selectedProduct.variants?.[0]?.sku
-              : `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          },
-        ],
-      };
-
-      let response;
-      if (selectedProduct) {
-        response = await updateProducts(selectedProduct._id, productData);
-        
-        if (newProduct.images && newProduct.images.some(img => img.isNew)) {
-          for (const img of newProduct.images) {
-            if (img.isNew && img.file) {
-              await uploadProductImage(selectedProduct._id, img.file);
-            }
-          }
-        }
-        
-        toast({
-          title: "Product Updated",
-          description: `"${productData.name}" updated successfully.`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-      } else {
-        response = await createProducts(productData);
-        
-        if (newProduct.images && newProduct.images.length > 0) {
-          const createdProduct = response.data || response.product;
-          for (const img of newProduct.images) {
-            if (img.file) {
-              await uploadProductImage(createdProduct._id, img.file);
-            }
-          }
-        }
-        
-        toast({
-          title: "Product Created",
-          description: `"${productData.name}" added successfully.`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
-
-      await fetchData();
-      handleBack();
-    } catch (err) {
-      console.error("Product submission error:", err);
-      toast({
-        title: selectedProduct ? "Error Updating Product" : "Error Creating Product",
-        description: err.message || "Failed to save product",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Edit Product handler
-  const handleEditProduct = (product) => {
-    setSelectedProduct(product);
-    setSelectedCategory(categories.find((c) => c._id === product.category?._id || c._id === product.category));
-    
-    const productImages = product.images || [];
-    
-    setNewProduct({
-      name: product.name,
-      price: product.variants?.[0]?.price || "",
-      stock: product.variants?.[0]?.stock || "",
-      color: product.variants?.[0]?.color || "",
-      size: product.variants?.[0]?.size || "",
-      description: product.description || "",
-      images: productImages,
+const handleSubmitProduct = async () => {
+  if (!newProduct.name || !newProduct.price || !newProduct.stock) {
+    return toast({
+      title: "Validation Error",
+      description: "Name, Price, and Stock are required fields.",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
     });
-    setCurrentView("addProduct");
-  };
+  }
+  
+  if (!selectedCategory?._id) {
+    return toast({
+      title: "Category Error",
+      description: "Please select a category first.",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+
+  if (!newProduct.colors?.length || !newProduct.sizes?.length) {
+    return toast({
+      title: "Validation Error",
+      description: "Please select at least one color and one size.",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+
+  try {
+    setIsSubmitting(true);
+
+    const productData = {
+      name: newProduct.name.trim(),
+      description: newProduct.description?.trim() || "",
+      category: selectedCategory._id,
+      price: Number(newProduct.price),
+      stock: Number(newProduct.stock),
+      variants: [
+        {
+          color: newProduct.colors, 
+          size: newProduct.sizes,   
+          price: Number(newProduct.price),
+          stock: Number(newProduct.stock),
+          sku: selectedProduct
+            ? selectedProduct.variants?.[0]?.sku
+            : `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        },
+      ],
+    };
+
+    let response;
+    if (selectedProduct) {
+      response = await updateProducts(selectedProduct._id, productData);
+      
+      if (newProduct.images && newProduct.images.some(img => img.isNew)) {
+        for (const img of newProduct.images) {
+          if (img.isNew && img.file) {
+            await uploadProductImage(selectedProduct._id, img.file);
+          }
+        }
+      }
+      
+      toast({
+        title: "Product Updated",
+        description: `"${productData.name}" updated successfully.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } else {
+      response = await createProducts(productData);
+      
+      if (newProduct.images && newProduct.images.length > 0) {
+        const createdProduct = response.data || response.product;
+        for (const img of newProduct.images) {
+          if (img.file) {
+            await uploadProductImage(createdProduct._id, img.file);
+          }
+        }
+      }
+      
+      toast({
+        title: "Product Created",
+        description: `"${productData.name}" added successfully.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
+    await fetchData();
+    handleBack();
+  } catch (err) {
+    console.error("Product submission error:", err);
+    toast({
+      title: selectedProduct ? "Error Updating Product" : "Error Creating Product",
+      description: err.message || "Failed to save product",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+// Edit Product handler
+const handleEditProduct = (product) => {
+  setSelectedProduct(product);
+  setSelectedCategory(categories.find((c) => c._id === product.category?._id || c._id === product.category));
+  
+  const productImages = product.images || [];
+  const variant = product.variants?.[0] || {};
+  
+  setNewProduct({
+    name: product.name,
+    price: variant.price || "",
+    stock: variant.stock || "",
+    colors: variant.color || [], 
+    sizes: variant.size || [],   
+    description: product.description || "",
+    images: productImages,
+  });
+  setCurrentView("addProduct");
+};
 
   const handleEditCategory = (category) => {
     setSelectedCategory(category);
@@ -1119,254 +1129,297 @@ export default function ProductManagement() {
             )}
 
             {/* Product Form */}
-            {currentView === "addProduct" && (
-              <Box 
-                flex="1" 
-                display="flex" 
-                flexDirection="column" 
-                overflow="hidden"
-                bg="transparent"
-              >
-                {/* Scrollable Form Container */}
-                <Box
-                  flex="1"
-                  overflowY="auto"
-                  overflowX="hidden"
-                  css={globalScrollbarStyles}
-                  pr={2}
-                >
-                  <Box p={4}>
-                    {!selectedCategory && (
-                      <FormControl mb="20px">
-                        <FormLabel htmlFor="category" color="gray.700" fontSize="sm">Category *</FormLabel>
-                        <Select
-                          id="category"
-                          placeholder="Select category"
-                          value={selectedCategory?._id || ""}
-                          onChange={(e) => {
-                            const category = categories.find(c => c._id === e.target.value);
-                            setSelectedCategory(category);
-                          }}
-                          borderColor={`${customColor}50`}
-                          _hover={{ borderColor: customColor }}
-                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                          bg="white"
-                          size="sm"
-                        >
-                          {categories.map((cat) => (
-                            <option key={cat._id} value={cat._id}>{cat.name}</option>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    )}
+{currentView === "addProduct" && (
+  <Box 
+    flex="1" 
+    display="flex" 
+    flexDirection="column" 
+    overflow="hidden"
+    bg="transparent"
+  >
+    {/* Scrollable Form Container */}
+    <Box
+      flex="1"
+      overflowY="auto"
+      overflowX="hidden"
+      css={globalScrollbarStyles}
+      pr={2}
+    >
+      <Box p={4}>
+        {!selectedCategory && (
+          <FormControl mb="20px">
+            <FormLabel htmlFor="category" color="gray.700" fontSize="sm">Category *</FormLabel>
+            <Select
+              id="category"
+              placeholder="Select category"
+              value={selectedCategory?._id || ""}
+              onChange={(e) => {
+                const category = categories.find(c => c._id === e.target.value);
+                setSelectedCategory(category);
+              }}
+              borderColor={`${customColor}50`}
+              _hover={{ borderColor: customColor }}
+              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+              bg="white"
+              size="sm"
+            >
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat._id}>{cat.name}</option>
+              ))}
+            </Select>
+          </FormControl>
+        )}
 
-                    <Grid templateColumns={["1fr", "1fr 1fr"]} gap={4} mb={4}>
-                      <FormControl isRequired>
-                        <FormLabel color="gray.700" fontSize="sm">Product Name *</FormLabel>
-                        <Input
-                          value={newProduct.name}
-                          onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                          placeholder="Enter product name"
-                          borderColor={`${customColor}50`}
-                          _hover={{ borderColor: customColor }}
-                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                          bg="white"
-                          size="sm"
-                        />
-                      </FormControl>
+        <Grid templateColumns={["1fr", "1fr 1fr"]} gap={4} mb={4}>
+          <FormControl isRequired>
+            <FormLabel color="gray.700" fontSize="sm">Product Name *</FormLabel>
+            <Input
+              value={newProduct.name}
+              onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+              placeholder="Enter product name"
+              borderColor={`${customColor}50`}
+              _hover={{ borderColor: customColor }}
+              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+              bg="white"
+              size="sm"
+            />
+          </FormControl>
 
-                      <FormControl isRequired>
-                        <FormLabel color="gray.700" fontSize="sm">Price *</FormLabel>
-                        <Input
-                          type="number"
-                          value={newProduct.price}
-                          onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-                          placeholder="Enter price"
-                          min="0"
-                          step="0.01"
-                          borderColor={`${customColor}50`}
-                          _hover={{ borderColor: customColor }}
-                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                          bg="white"
-                          size="sm"
-                        />
-                      </FormControl>
+          <FormControl isRequired>
+            <FormLabel color="gray.700" fontSize="sm">Price *</FormLabel>
+            <Input
+              type="number"
+              value={newProduct.price}
+              onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+              placeholder="Enter price"
+              min="0"
+              step="0.01"
+              borderColor={`${customColor}50`}
+              _hover={{ borderColor: customColor }}
+              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+              bg="white"
+              size="sm"
+            />
+          </FormControl>
 
-                      <FormControl isRequired>
-                        <FormLabel color="gray.700" fontSize="sm">Stock *</FormLabel>
-                        <Input
-                          type="number"
-                          value={newProduct.stock}
-                          onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })}
-                          placeholder="Enter stock quantity"
-                          min="0"
-                          borderColor={`${customColor}50`}
-                          _hover={{ borderColor: customColor }}
-                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                          bg="white"
-                          size="sm"
-                        />
-                      </FormControl>
+          <FormControl isRequired>
+            <FormLabel color="gray.700" fontSize="sm">Stock *</FormLabel>
+            <Input
+              type="number"
+              value={newProduct.stock}
+              onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })}
+              placeholder="Enter stock quantity"
+              min="0"
+              borderColor={`${customColor}50`}
+              _hover={{ borderColor: customColor }}
+              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+              bg="white"
+              size="sm"
+            />
+          </FormControl>
+        </Grid>
 
-                      <FormControl>
-                        <FormLabel color="gray.700" fontSize="sm">Color</FormLabel>
-                        <Select
-                          value={newProduct.color}
-                          onChange={(e) => setNewProduct({ ...newProduct, color: e.target.value })}
-                          borderColor={`${customColor}50`}
-                          _hover={{ borderColor: customColor }}
-                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                          bg="white"
-                          size="sm"
-                        >
-                          <option value="">Select Color</option>
-                          <option value="Red">Red</option>
-                          <option value="Blue">Blue</option>
-                          <option value="Green">Green</option>
-                          <option value="Black">Black</option>
-                          <option value="White">White</option>
-                          <option value="Yellow">Yellow</option>
-                          <option value="Pink">Pink</option>
-                          <option value="Gray">Gray</option>
-                          <option value="Maroon">Maroon</option>
-                          <option value="Purple">Purple</option>
-                        </Select>
-                      </FormControl>
+        {/* Multiple Colors Selection */}
+        <FormControl mb="20px">
+  <FormLabel color="gray.700" fontSize="sm">Colors *</FormLabel>
+  <Flex flexWrap="wrap" gap={2} mb={2}>
+    {['Red', 'Blue', 'Green', 'Black', 'White', 'Yellow', 'Pink', 'Gray', 'Maroon', 'Purple'].map((color) => {
+      const isSelected = newProduct.colors?.includes(color);
+      return (
+        <Button
+          key={color}
+          size="xs"
+          variant={isSelected ? "solid" : "outline"}
+          colorScheme={isSelected ? "purple" : "gray"}
+          fontWeight={isSelected ? "bold" : "normal"} // Bold for selected
+          fontSize={isSelected ? "sm" : "xs"} // Larger font for selected
+          transform={isSelected ? "scale(1.05)" : "scale(1)"} // Slightly larger for selected
+          transition="all 0.2s ease-in-out"
+          _hover={{
+            transform: "scale(1.05)",
+            shadow: "md"
+          }}
+          onClick={() => {
+            const currentColors = newProduct.colors || [];
+            if (currentColors.includes(color)) {
+              setNewProduct({
+                ...newProduct,
+                colors: currentColors.filter(c => c !== color)
+              });
+            } else {
+              setNewProduct({
+                ...newProduct,
+                colors: [...currentColors, color]
+              });
+            }
+          }}
+        >
+          {color}
+        </Button>
+      );
+    })}
+  </Flex>
+  <Text fontSize="xs" color="gray.500">
+    Selected: <Text as="span" fontWeight="bold" color="purple.600">{newProduct.colors?.join(', ') || 'No colors selected'}</Text>
+  </Text>
+</FormControl>
 
-                      <FormControl>
-                        <FormLabel color="gray.700" fontSize="sm">Size</FormLabel>
-                        <Select
-                          value={newProduct.size}
-                          onChange={(e) => setNewProduct({ ...newProduct, size: e.target.value })}
-                          borderColor={`${customColor}50`}
-                          _hover={{ borderColor: customColor }}
-                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                          bg="white"
-                          size="sm"
-                        >
-                          <option value="">Select Size</option>
-                          <option value="XS">XS</option>
-                          <option value="S">S</option>
-                          <option value="M">M</option>
-                          <option value="L">L</option>
-                          <option value="XL">XL</option>
-                          <option value="XXL">XXL</option>
-                        </Select>
-                      </FormControl>
-                    </Grid>
+{/* Multiple Sizes Selection */}
+<FormControl mb="20px">
+  <FormLabel color="gray.700" fontSize="sm">Sizes *</FormLabel>
+  <Flex flexWrap="wrap" gap={2} mb={2}>
+    {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map((size) => {
+      const isSelected = newProduct.sizes?.includes(size);
+      return (
+        <Button
+          key={size}
+          size="xs"
+          variant={isSelected ? "solid" : "outline"}
+          colorScheme={isSelected ? "purple" : "gray"}
+          fontWeight={isSelected ? "bold" : "normal"} // Bold for selected
+          fontSize={isSelected ? "sm" : "xs"} // Larger font for selected
+          transform={isSelected ? "scale(1.05)" : "scale(1)"} // Slightly larger for selected
+          transition="all 0.2s ease-in-out"
+          _hover={{
+            transform: "scale(1.05)",
+            shadow: "md"
+          }}
+          onClick={() => {
+            const currentSizes = newProduct.sizes || [];
+            if (currentSizes.includes(size)) {
+              setNewProduct({
+                ...newProduct,
+                sizes: currentSizes.filter(s => s !== size)
+              });
+            } else {
+              setNewProduct({
+                ...newProduct,
+                sizes: [...currentSizes, size]
+              });
+            }
+          }}
+        >
+          {size}
+        </Button>
+      );
+    })}
+  </Flex>
+  <Text fontSize="xs" color="gray.500">
+    Selected: <Text as="span" fontWeight="bold" color="purple.600">{newProduct.sizes?.join(', ') || 'No sizes selected'}</Text>
+  </Text>
+</FormControl>
+        <FormControl mb="20px">
+          <FormLabel color="gray.700" fontSize="sm">Description</FormLabel>
+          <Textarea
+            value={newProduct.description}
+            onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+            placeholder="Enter product description"
+            rows={3}
+            borderColor={`${customColor}50`}
+            _hover={{ borderColor: customColor }}
+            _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+            bg="white"
+            size="sm"
+          />
+        </FormControl>
 
-                    <FormControl mb="20px">
-                      <FormLabel color="gray.700" fontSize="sm">Description</FormLabel>
-                      <Textarea
-                        value={newProduct.description}
-                        onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                        placeholder="Enter product description"
-                        rows={3}
-                        borderColor={`${customColor}50`}
-                        _hover={{ borderColor: customColor }}
-                        _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                        bg="white"
-                        size="sm"
-                      />
-                    </FormControl>
+        {/* Image Upload Section */}
+        <FormControl mb="20px">
+          <FormLabel color="gray.700" fontSize="sm">Product Images</FormLabel>
+          
+          {/* Image Upload Input */}
+          <Input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleImageUpload}
+            borderColor={`${customColor}50`}
+            _hover={{ borderColor: customColor }}
+            _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+            bg="white"
+            size="sm"
+            mb={3}
+          />
+          <Text fontSize="xs" color="gray.500">
+            Upload product images (multiple images supported)
+          </Text>
 
-                    {/* Image Upload Section */}
-                    <FormControl mb="20px">
-                      <FormLabel color="gray.700" fontSize="sm">Product Images</FormLabel>
-                      
-                      {/* Image Upload Input */}
-                      <Input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        borderColor={`${customColor}50`}
-                        _hover={{ borderColor: customColor }}
-                        _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                        bg="white"
-                        size="sm"
-                        mb={3}
-                      />
-                      <Text fontSize="xs" color="gray.500">
-                        Upload product images (multiple images supported)
-                      </Text>
-
-                      {/* Display Current Images */}
-                      {newProduct.images && newProduct.images.length > 0 && (
-                        <Box mt={3}>
-                          <Text fontSize="sm" color="gray.700" mb={2}>
-                            Current Images:
-                          </Text>
-                          <Flex wrap="wrap" gap={3}>
-                            {newProduct.images.map((img, index) => (
-                              <Box 
-                                key={img.public_id || index} 
-                                position="relative" 
-                                border="1px" 
-                                borderColor="gray.200" 
-                                borderRadius="md" 
-                                p={1}
-                              >
-                                <Image
-                                  src={img.url || img.preview || img}
-                                  alt={`Product image ${index + 1}`}
-                                  boxSize="50px"
-                                  objectFit="cover"
-                                  borderRadius="md"
-                                />
-                                <IconButton
-                                  aria-label="Remove image"
-                                  icon={<FaTrash />}
-                                  size="xs"
-                                  colorScheme="red"
-                                  position="absolute"
-                                  top={-1}
-                                  right={-1}
-                                  onClick={() => handleRemoveImage(img.public_id || index)}
-                                />
-                              </Box>
-                            ))}
-                          </Flex>
-                        </Box>
-                      )}
-                    </FormControl>
+          {/* Display Current Images */}
+          {newProduct.images && newProduct.images.length > 0 && (
+            <Box mt={3}>
+              <Text fontSize="sm" color="gray.700" mb={2}>
+                Current Images:
+              </Text>
+              <Flex wrap="wrap" gap={3}>
+                {newProduct.images.map((img, index) => (
+                  <Box 
+                    key={img.public_id || index} 
+                    position="relative" 
+                    border="1px" 
+                    borderColor="gray.200" 
+                    borderRadius="md" 
+                    p={1}
+                  >
+                    <Image
+                      src={img.url || img.preview || img}
+                      alt={`Product image ${index + 1}`}
+                      boxSize="50px"
+                      objectFit="cover"
+                      borderRadius="md"
+                    />
+                    <IconButton
+                      aria-label="Remove image"
+                      icon={<FaTrash />}
+                      size="xs"
+                      colorScheme="red"
+                      position="absolute"
+                      top={-1}
+                      right={-1}
+                      onClick={() => handleRemoveImage(img.public_id || index)}
+                    />
                   </Box>
-                </Box>
+                ))}
+              </Flex>
+            </Box>
+          )}
+        </FormControl>
+      </Box>
+    </Box>
 
-                {/* Fixed Footer with Buttons */}
-                <Box 
-                  flexShrink={0} 
-                  p={4} 
-                  borderTop="1px solid" 
-                  borderColor={`${customColor}20`}
-                  bg="transparent"
-                >
-                  <Flex justify="flex-end">
-                    <Button 
-                      variant="outline" 
-                      mr={3} 
-                      onClick={handleResetProduct}
-                      border="1px"
-                      borderColor="gray.300"
-                      size="sm"
-                    >
-                      Reset
-                    </Button>
-                    <Button
-                      bg={customColor}
-                      _hover={{ bg: customHoverColor }}
-                      color="white"
-                      onClick={handleSubmitProduct}
-                      isLoading={isSubmitting}
-                      isDisabled={!selectedCategory}
-                      size="sm"
-                    >
-                      {selectedProduct ? "Update Product" : "Create Product"}
-                    </Button>
-                  </Flex>
-                </Box>
-              </Box>
-            )}
+    {/* Fixed Footer with Buttons */}
+    <Box 
+      flexShrink={0} 
+      p={4} 
+      borderTop="1px solid" 
+      borderColor={`${customColor}20`}
+      bg="transparent"
+    >
+      <Flex justify="flex-end">
+        <Button 
+          variant="outline" 
+          mr={3} 
+          onClick={handleResetProduct}
+          border="1px"
+          borderColor="gray.300"
+          size="sm"
+        >
+          Reset
+        </Button>
+        <Button
+          bg={customColor}
+          _hover={{ bg: customHoverColor }}
+          color="white"
+          onClick={handleSubmitProduct}
+          isLoading={isSubmitting}
+          isDisabled={!selectedCategory || !newProduct.colors?.length || !newProduct.sizes?.length}
+          size="sm"
+        >
+          {selectedProduct ? "Update Product" : "Create Product"}
+        </Button>
+      </Flex>
+    </Box>
+  </Box>
+)}
           </CardBody>
         </Card>
       </Flex>
@@ -1381,293 +1434,295 @@ export default function ProductManagement() {
       height="100vh" 
       overflow="hidden"
       css={globalScrollbarStyles}
+      
     >
       {/* Fixed Statistics Cards */}
       <Box
-        flexShrink={0}
-        p={4}
-        pb={0}
-      >
-        <Grid
-          templateColumns={{ base: "1fr 1fr", md: "1fr 1fr 1fr 1fr" }}
-          gap="15px"
-          mb="20px"
-        >
-          {/* All Categories Card */}
-          <Card
-            minH="75px"
-            cursor="pointer"
-            onClick={() => setCurrentView("categories")}
-            border={currentView === "categories" ? "2px solid" : "1px solid"}
-            borderColor={currentView === "categories" ? customColor : `${customColor}30`}
+   flexShrink={0}
+  p={{ base: 1, md: 4 }} 
+  pb={0}
+  mt={{ base: 0, md: 0 }}
+>
+  <Grid
+    templateColumns={{ base: "1fr 1fr", md: "1fr 1fr 1fr 1fr" }}
+    gap={{ base: "10px", md: "15px" }} 
+    mb={{ base: "15px", md: "20px" }}
+  >
+    {/* All Categories Card */}
+    <Card
+      minH={{ base: "65px", md: "75px" }} 
+      cursor="pointer"
+      onClick={() => setCurrentView("categories")}
+      border={currentView === "categories" ? "2px solid" : "1px solid"}
+      borderColor={currentView === "categories" ? customColor : `${customColor}30`}
+      transition="all 0.2s ease-in-out"
+      bg="white"
+      position="relative"
+      overflow="hidden"
+      _before={{
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+        opacity: 0,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+      _hover={{
+        transform: { base: "none", md: "translateY(-2px)" }, 
+        shadow: { base: "none", md: "lg" },
+        _before: {
+          opacity: 1,
+        },
+        borderColor: customColor,
+      }}
+    >
+      <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}> {/* Reduced padding on mobile */}
+        <Flex flexDirection="row" align="center" justify="center" w="100%">
+          <Stat me="auto">
+            <StatLabel
+              fontSize={{ base: "2xs", md: "xs" }} 
+              color="gray.600"
+              fontWeight="bold"
+              pb="1px"
+            >
+              All Categories
+            </StatLabel>
+            <Flex>
+              <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> {/* Smaller font on mobile */}
+                {isLoadingCategories ? <Spinner size="xs" /> : categories.length}
+              </StatNumber>
+            </Flex>
+          </Stat>
+          <IconBox 
+            as="box" 
+            h={{ base: "30px", md: "35px" }} 
+            w={{ base: "30px", md: "35px" }} 
+            bg={customColor}
             transition="all 0.2s ease-in-out"
-            bg="white"
-            position="relative"
-            overflow="hidden"
-            _before={{
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
-              opacity: 0,
-              transition: "opacity 0.2s ease-in-out",
-            }}
-            _hover={{
-              transform: "translateY(-2px)",
-              shadow: "lg",
-              _before: {
-                opacity: 1,
-              },
-              borderColor: customColor,
-            }}
           >
-            <CardBody position="relative" zIndex={1} p={4}>
-              <Flex flexDirection="row" align="center" justify="center" w="100%">
-                <Stat me="auto">
-                  <StatLabel
-                    fontSize="xs"
-                    color="gray.600"
-                    fontWeight="bold"
-                    pb="1px"
-                  >
-                    All Categories
-                  </StatLabel>
-                  <Flex>
-                    <StatNumber fontSize="md" color={textColor}>
-                      {isLoadingCategories ? <Spinner size="xs" /> : categories.length}
-                    </StatNumber>
-                  </Flex>
-                </Stat>
-                <IconBox 
-                  as="box" 
-                  h={"35px"} 
-                  w={"35px"} 
-                  bg={customColor}
-                  transition="all 0.2s ease-in-out"
-                >
-                  <Icon
-                    as={MdCategory}
-                    h={"18px"}
-                    w={"18px"}
-                    color="white"
-                  />
-                </IconBox>
-              </Flex>
-            </CardBody>
-          </Card>
+            <Icon
+              as={MdCategory}
+              h={{ base: "14px", md: "18px" }}
+              w={{ base: "14px", md: "18px" }} 
+              color="white"
+            />
+          </IconBox>
+        </Flex>
+      </CardBody>
+    </Card>
 
-          {/* All Products Card */}
-          <Card
-            minH="75px"
-            cursor="pointer"
-            onClick={() => setCurrentView("products")}
-            border={currentView === "products" ? "2px solid" : "1px solid"}
-            borderColor={currentView === "products" ? customColor : `${customColor}30`}
+    {/* All Products Card */}
+    <Card
+      minH={{ base: "65px", md: "75px" }}
+      cursor="pointer"
+      onClick={() => setCurrentView("products")}
+      border={currentView === "products" ? "2px solid" : "1px solid"}
+      borderColor={currentView === "products" ? customColor : `${customColor}30`}
+      transition="all 0.2s ease-in-out"
+      bg="white"
+      position="relative"
+      overflow="hidden"
+      _before={{
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+        opacity: 0,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+      _hover={{
+        transform: { base: "none", md: "translateY(-2px)" }, 
+        shadow: { base: "none", md: "lg" },
+        _before: {
+          opacity: 1,
+        },
+        borderColor: customColor,
+      }}
+    >
+      <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}> 
+        <Flex flexDirection="row" align="center" justify="center" w="100%">
+          <Stat me="auto">
+            <StatLabel
+              fontSize={{ base: "2xs", md: "xs" }} 
+              color="gray.600"
+              fontWeight="bold"
+              pb="1px"
+            >
+              All Products
+            </StatLabel>
+            <Flex>
+              <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
+                {isLoadingProducts ? <Spinner size="xs" /> : products.length}
+              </StatNumber>
+            </Flex>
+          </Stat>
+          <IconBox 
+            as="box" 
+            h={{ base: "30px", md: "35px" }} 
+            w={{ base: "30px", md: "35px" }}
+            bg={customColor}
             transition="all 0.2s ease-in-out"
-            bg="white"
-            position="relative"
-            overflow="hidden"
-            _before={{
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
-              opacity: 0,
-              transition: "opacity 0.2s ease-in-out",
-            }}
-            _hover={{
-              transform: "translateY(-2px)",
-              shadow: "lg",
-              _before: {
-                opacity: 1,
-              },
-              borderColor: customColor,
-            }}
           >
-            <CardBody position="relative" zIndex={1} p={4}>
-              <Flex flexDirection="row" align="center" justify="center" w="100%">
-                <Stat me="auto">
-                  <StatLabel
-                    fontSize="xs"
-                    color="gray.600"
-                    fontWeight="bold"
-                    pb="1px"
-                  >
-                    All Products
-                  </StatLabel>
-                  <Flex>
-                    <StatNumber fontSize="md" color={textColor}>
-                      {isLoadingProducts ? <Spinner size="xs" /> : products.length}
-                    </StatNumber>
-                  </Flex>
-                </Stat>
-                <IconBox 
-                  as="box" 
-                  h={"35px"} 
-                  w={"35px"} 
-                  bg={customColor}
-                  transition="all 0.2s ease-in-out"
-                >
-                  <Icon
-                    as={IoCheckmarkDoneCircleSharp}
-                    h={"18px"}
-                    w={"18px"}
-                    color="white"
-                  />
-                </IconBox>
-              </Flex>
-            </CardBody>
-          </Card>
+            <Icon
+              as={IoCheckmarkDoneCircleSharp}
+              h={{ base: "14px", md: "18px" }}
+              w={{ base: "14px", md: "18px" }}
+              color="white"
+            />
+          </IconBox>
+        </Flex>
+      </CardBody>
+    </Card>
 
-          {/* Available Stock Card */}
-          <Card
-            minH="75px"
-            cursor="pointer"
-            onClick={() => setCurrentView("stockAnalysis")}
-            border={currentView === "stockAnalysis" ? "2px solid" : "1px solid"}
-            borderColor={currentView === "stockAnalysis" ? customColor : `${customColor}30`}
+    {/* Available Stock Card */}
+    <Card
+      minH={{ base: "65px", md: "75px" }} // Reduced height on mobile
+      cursor="pointer"
+      onClick={() => setCurrentView("stockAnalysis")}
+      border={currentView === "stockAnalysis" ? "2px solid" : "1px solid"}
+      borderColor={currentView === "stockAnalysis" ? customColor : `${customColor}30`}
+      transition="all 0.2s ease-in-out"
+      bg="white"
+      position="relative"
+      overflow="hidden"
+      _before={{
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+        opacity: 0,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+      _hover={{
+        transform: { base: "none", md: "translateY(-2px)" }, 
+        shadow: { base: "none", md: "lg" },
+        _before: {
+          opacity: 1,
+        },
+        borderColor: customColor,
+      }}
+    >
+      <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}>
+        <Flex flexDirection="row" align="center" justify="center" w="100%">
+          <Stat me="auto">
+            <StatLabel
+              fontSize={{ base: "2xs", md: "xs" }} 
+              color="gray.600"
+              fontWeight="bold"
+              pb="1px"
+            >
+              Available Stock
+            </StatLabel>
+            <Flex>
+              <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
+                {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
+                  calculateTotalAvailableStock().toLocaleString()
+                }
+              </StatNumber>
+            </Flex>
+            <Text fontSize={{ base: "2xs", md: "xs" }} color="gray.500" mt={{ base: 0.5, md: 1 }}> 
+              {getLowStockProducts().length} low stock
+            </Text>
+          </Stat>
+          <IconBox 
+            as="box" 
+            h={{ base: "30px", md: "35px" }} 
+            w={{ base: "30px", md: "35px" }} 
+            bg={customColor}
             transition="all 0.2s ease-in-out"
-            bg="white"
-            position="relative"
-            overflow="hidden"
-            _before={{
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
-              opacity: 0,
-              transition: "opacity 0.2s ease-in-out",
-            }}
-            _hover={{
-              transform: "translateY(-2px)",
-              shadow: "lg",
-              _before: {
-                opacity: 1,
-              },
-              borderColor: customColor,
-            }}
           >
-            <CardBody position="relative" zIndex={1} p={4}>
-              <Flex flexDirection="row" align="center" justify="center" w="100%">
-                <Stat me="auto">
-                  <StatLabel
-                    fontSize="xs"
-                    color="gray.600"
-                    fontWeight="bold"
-                    pb="1px"
-                  >
-                    Available Stock
-                  </StatLabel>
-                  <Flex>
-                    <StatNumber fontSize="md" color={textColor}>
-                      {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
-                        calculateTotalAvailableStock().toLocaleString()
-                      }
-                    </StatNumber>
-                  </Flex>
-                  <Text fontSize="xs" color="gray.500" mt={1}>
-                    {getLowStockProducts().length} low stock
-                  </Text>
-                </Stat>
-                <IconBox 
-                  as="box" 
-                  h={"35px"} 
-                  w={"35px"} 
-                  bg={customColor}
-                  transition="all 0.2s ease-in-out"
-                >
-                  <Icon
-                    as={FaChartLine}
-                    h={"18px"}
-                    w={"18px"}
-                    color="white"
-                  />
-                </IconBox>
-              </Flex>
-            </CardBody>
-          </Card>
+            <Icon
+              as={FaChartLine}
+              h={{ base: "14px", md: "18px" }} 
+              w={{ base: "14px", md: "18px" }} 
+              color="white"
+            />
+          </IconBox>
+        </Flex>
+      </CardBody>
+    </Card>
 
-          {/* Stock Alerts Card */}
-          <Card
-            minH="75px"
-            cursor="pointer"
-            onClick={() => setCurrentView("stockAlerts")}
-            border={currentView === "stockAlerts" ? "2px solid" : "1px solid"}
-            borderColor={currentView === "stockAlerts" ? customColor : `${customColor}30`}
+    {/* Stock Alerts Card */}
+    <Card
+      minH={{ base: "65px", md: "75px" }}
+      cursor="pointer"
+      onClick={() => setCurrentView("stockAlerts")}
+      border={currentView === "stockAlerts" ? "2px solid" : "1px solid"}
+      borderColor={currentView === "stockAlerts" ? customColor : `${customColor}30`}
+      transition="all 0.2s ease-in-out"
+      bg="white"
+      position="relative"
+      overflow="hidden"
+      _before={{
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+        opacity: 0,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+      _hover={{
+        transform: { base: "none", md: "translateY(-2px)" }, 
+        shadow: { base: "none", md: "lg" },
+        _before: {
+          opacity: 1,
+        },
+        borderColor: customColor,
+      }}
+    >
+      <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}> 
+        <Flex flexDirection="row" align="center" justify="center" w="100%">
+          <Stat me="auto">
+            <StatLabel
+              fontSize={{ base: "2xs", md: "xs" }} 
+              color="gray.600"
+              fontWeight="bold"
+              pb="1px"
+            >
+              Stock Alerts
+            </StatLabel>
+            <Flex>
+              <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
+                {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
+                  getOutOfStockProducts().length
+                }
+              </StatNumber>
+            </Flex>
+            <Text fontSize={{ base: "2xs", md: "xs" }} color="red.500" mt={{ base: 0.5, md: 1 }}> 
+              {getOutOfStockProducts().length} out of stock
+            </Text>
+          </Stat>
+          <IconBox 
+            as="box" 
+            h={{ base: "30px", md: "35px" }} 
+            w={{ base: "30px", md: "35px" }} 
+            bg="red.500"
             transition="all 0.2s ease-in-out"
-            bg="white"
-            position="relative"
-            overflow="hidden"
-            _before={{
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
-              opacity: 0,
-              transition: "opacity 0.2s ease-in-out",
-            }}
-            _hover={{
-              transform: "translateY(-2px)",
-              shadow: "lg",
-              _before: {
-                opacity: 1,
-              },
-              borderColor: customColor,
-            }}
           >
-            <CardBody position="relative" zIndex={1} p={4}>
-              <Flex flexDirection="row" align="center" justify="center" w="100%">
-                <Stat me="auto">
-                  <StatLabel
-                    fontSize="xs"
-                    color="gray.600"
-                    fontWeight="bold"
-                    pb="1px"
-                  >
-                    Stock Alerts
-                  </StatLabel>
-                  <Flex>
-                    <StatNumber fontSize="md" color={textColor}>
-                      {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
-                        getOutOfStockProducts().length
-                      }
-                    </StatNumber>
-                  </Flex>
-                  <Text fontSize="xs" color="red.500" mt={1}>
-                    {getOutOfStockProducts().length} out of stock
-                  </Text>
-                </Stat>
-                <IconBox 
-                  as="box" 
-                  h={"35px"} 
-                  w={"35px"} 
-                  bg="red.500"
-                  transition="all 0.2s ease-in-out"
-                >
-                  <Icon
-                    as={FaExclamationTriangle}
-                    h={"14px"}
-                    w={"14px"}
-                    color="white"
-                  />
-                </IconBox>
-              </Flex>
-            </CardBody>
-          </Card>
-        </Grid>
-      </Box>
+            <Icon
+              as={FaExclamationTriangle}
+              h={{ base: "12px", md: "14px" }} 
+              w={{ base: "12px", md: "14px" }} 
+              color="white"
+            />
+          </IconBox>
+        </Flex>
+      </CardBody>
+    </Card>
+  </Grid>
+</Box>
 
       {/* Scrollable Table Container */}
       <Box 
@@ -2485,7 +2540,7 @@ export default function ProductManagement() {
               </SimpleGrid>
             )}
 
-          {viewModalType === "product" && selectedProduct && (
+   {viewModalType === "product" && selectedProduct && (
   <Box
     bg={useColorModeValue("white", "gray.800")}
     borderRadius="xl"
