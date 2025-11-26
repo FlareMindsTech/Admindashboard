@@ -808,7 +808,7 @@ export default function AdminProfile() {
               ))}
             </VStack>
 
-            {!isSuperAdmin && (
+            {/* {!isSuperAdmin && (
               <VStack spacing={2} w="100%">
                 <Button 
                   bg={"#5a189a"}
@@ -821,7 +821,7 @@ export default function AdminProfile() {
                   Edit Profile
                 </Button>
               </VStack>
-            )}
+            )} */}
           </VStack>
         </Flex>
       </Card>
@@ -1230,14 +1230,14 @@ export default function AdminProfile() {
       </Grid>
 
       {/* Edit Admin Modal - Only for super admin */}
-      {isSuperAdmin && (
+      {/* {isSuperAdmin && (
         <EditAdminModal
           isOpen={isEditAdminOpen}
           onClose={onEditAdminClose}
           admin={selectedAdmin}
           onSave={handleSaveAdmin}
         />
-      )}
+      )} */}
     </Flex>
   );
 }
