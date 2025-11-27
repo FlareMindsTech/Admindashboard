@@ -1525,7 +1525,7 @@ function UserManagement() {
                                     </Td>
                                     <Td borderColor={`${customColor}20`}>
                                       <Flex gap={2}>
-                                        <IconButton
+                                        {/* <IconButton
                                           aria-label="Edit user"
                                           icon={<FaEdit />}
                                           bg="white"
@@ -1535,7 +1535,7 @@ function UserManagement() {
                                           _hover={{ bg: customColor, color: "white" }}
                                           size="sm"
                                           onClick={() => handleEditUser(user)}
-                                        />
+                                        /> */}
                                         <IconButton
                                           aria-label="Delete user"
                                           icon={<FaTrash />}

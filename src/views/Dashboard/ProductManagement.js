@@ -1231,9 +1231,9 @@ const handleEditProduct = (product) => {
           size="xs"
           variant={isSelected ? "solid" : "outline"}
           colorScheme={isSelected ? "purple" : "gray"}
-          fontWeight={isSelected ? "bold" : "normal"} // Bold for selected
-          fontSize={isSelected ? "sm" : "xs"} // Larger font for selected
-          transform={isSelected ? "scale(1.05)" : "scale(1)"} // Slightly larger for selected
+          fontWeight={isSelected ? "bold" : "normal"} 
+          fontSize={isSelected ? "sm" : "xs"} 
+          transform={isSelected ? "scale(1.05)" : "scale(1)"} 
           transition="all 0.2s ease-in-out"
           _hover={{
             transform: "scale(1.05)",
@@ -2595,15 +2595,26 @@ const handleEditProduct = (product) => {
             </Text>
           </Box>
           
-          <Box>
-            <Text fontSize="xs" color="gray.500">Color</Text>
-            <Text fontSize="sm">{selectedProduct.variants?.[0]?.color || "Default"}</Text>
-          </Box>
-          
-          <Box>
-            <Text fontSize="xs" color="gray.500">Size</Text>
-            <Text fontSize="sm">{selectedProduct.variants?.[0]?.size || "Default"}</Text>
-          </Box>
+         <Box>
+  <Text fontSize="xs" color="gray.500">Color</Text>
+  <Text fontSize="sm">
+    {selectedProduct.variants
+      ?.map(v => v.color)
+      .filter(Boolean)
+      .join(", ") || "Default"}
+  </Text>
+</Box>
+
+<Box>
+  <Text fontSize="xs" color="gray.500">Size</Text>
+  <Text fontSize="sm">
+    {selectedProduct.variants
+      ?.map(v => v.size)
+      .filter(Boolean)
+      .join(", ") || "Default"}
+  </Text>
+</Box>
+
         </SimpleGrid>
       </Box>
     </Flex>
