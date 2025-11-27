@@ -217,7 +217,8 @@ export default function CleanedBilling() {
   const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
   const [paymentDatePreset, setPaymentDatePreset] = useState("all");
-  const [state, setState] = useState("")
+  const [shippingDate, setShippingDate] = useState("");
+  const [deliveredDate, setDeliveredDate] = useState("")
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -230,6 +231,8 @@ export default function CleanedBilling() {
   const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
 
   const searchRef = useRef(null);
+
+  const today = new Date().toISOString().split("T")[0];
 
   // Responsive detection
   const isMobile = useBreakpointValue({ base: true, md: false });
@@ -408,39 +411,12 @@ export default function CleanedBilling() {
     }));
   };
 
-  // Fixed Confirm_Order (calls fetchOrders)
-  const Confirm_Order = async () => {
-    try {
-      const orderId = safeGet(selectedOrder, "_id");
-      await updateOrders(orderId, { status: "confirmed" });
-
-      toast({
-        title: "Order Confirmed",
-        description: `Order ${orderId} marked as confirmed.`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-
-      await fetchOrders();
-      closeModal();
-    } catch (error) {
-      console.error("Error confirming order:", error);
-      toast({
-        title: "Error",
-        description: "Failed to confirm the order. Please try again.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
 
   const ShipingDate = async () => {
     console.log(state)
     try {
       const orderId = safeGet(selectedOrder, "_id");
-      await updateOrders(orderId, { ShipingDate: state });
+      await updateOrders(orderId, { shipmentUpdatedAt: state });
 
       toast({
         title: "Shipment Date",
@@ -463,6 +439,76 @@ export default function CleanedBilling() {
       });
     }
   };
+
+  const handleDateChange = (e) => {
+    setShippingDate(e.target.value)
+    const DeliveredDate = new Date(e.target.value);
+    DeliveredDate.setDate(DeliveredDate.getDate() + 2);   // Add 2 days
+    const finalDate = DeliveredDate.toISOString().split("T")[0];
+    setDeliveredDate(finalDate);
+  };
+
+
+
+const updateShippingDate = async (date) => {
+
+  console.log("Shipping Date:", date,"Delivered Date:",deliveredDate);
+  console.log(selectedOrder.status)
+    try {
+      const orderId = safeGet(selectedOrder, "_id");
+      await updateOrders(orderId, { shipmentUpdatedAt: date, expectedDelivery:deliveredDate });
+
+      toast({
+        title: "Shipment Date",
+        description: `Shipment Date :${date}.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      await fetchOrders();
+      closeModal();
+    } catch (error) {
+      console.error("Error marking order as delivered:", error);
+      toast({
+        title: "Error",
+        description: "Failed to mark the order as delivered. Please try again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  // axios PUT request here
+};
+
+const updateOrderStatus = async (status) => {
+  console.log("Updated Status:", status);
+  try {
+    const orderId = safeGet(selectedOrder, "_id");
+    await updateOrders(orderId, { shipmentStatus: status });
+
+    toast({
+      title: "Updated Status",
+      description: `Updated Status :${status}.`,
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+
+    await fetchOrders();
+    closeModal();
+  } catch (error) {
+    console.error("Error marking order as delivered:", error);
+    toast({
+      title: "Error",
+      description: "Failed to mark the order as delivered. Please try again.",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+};
+
 
   const markAsDelivered = async () => {
     try {
@@ -1387,6 +1433,15 @@ export default function CleanedBilling() {
                     </HStack>
                   </VStack>
 
+                  <VStack align="start" spacing={1}>
+                      <Text fontSize="md" fontWeight="semibold">Shipping Date</Text>
+                      <Text fontSize="sm" color="gray.600">
+                      {selectedOrder?.shipmentUpdatedAt
+                       ? new Date(selectedOrder.shipmentUpdatedAt).toLocaleDateString()
+                      : "Not Assigned"}
+                      </Text>
+                  </VStack>
+
                   <Badge bg={getStatusColor(safeGet(selectedOrder, "status", "")).bg} color={getStatusColor(safeGet(selectedOrder, "status", "")).color} px={4} py={2} borderRadius="full" fontSize="md" fontWeight="bold">
                     {String(safeGet(selectedOrder, "status", "UNKNOWN")).toUpperCase()}
                   </Badge>
@@ -1424,21 +1479,86 @@ export default function CleanedBilling() {
                 </Box>
 
                 <HStack spacing={3} justify="flex-end" flexWrap="wrap">
+
+
+{selectedOrder.status != "confirmed" ? <></> : 
+<HStack spacing={3} justify="space-between" flexWrap="wrap">
+
+  {/* <VStack align="start" spacing={1}>
+    <Text fontSize="md" fontWeight="semibold">Shipping Date</Text>
+    <Text fontSize="sm" color="gray.600">
+      {selectedOrder?.shipmentUpdatedAt
+        ? new Date(selectedOrder.shipmentUpdatedAt).toLocaleDateString()
+        : "Not Assigned"}
+    </Text>
+  </VStack> */}
+
+<HStack justify="space-between" spacing={4}>
+  <Text fontWeight="semibold" fontSize="md">Order Status</Text>
+
+  <select
+    style={{
+      padding: "8px 12px",
+      borderRadius: "8px",
+      border: "1px solid #ccc",
+      backgroundColor: "#fff",
+      fontWeight: "600",
+    }}
+    value={selectedOrder?.status}
+    onChange={(e) => updateOrderStatus(e.target.value)}
+  >
+    <option value="pending">Pending</option>
+    <option value="packed">Packed</option>
+    <option value="shipped">Shipped</option>
+    <option value="out-for-delivery">Out For Delivery</option>
+    <option value="delivered">Delivered</option>
+  </select>
+</HStack>
+
+  <HStack>
+  <Input
+  width={150}
+  height={9}
+  bg="#10B981"
+  color="white"
+  border="none"
+  type="date"
+  borderRadius="lg"
+  value={shippingDate}
+  min={today}              // ⬅️ Prevents selecting past dates
+  onChange={handleDateChange}
+  // onChange={(e) => setShippingDate(e.target.value)}
+  _placeholder={{ color: "white" }}
+/>
+    <Button
+      leftIcon={<FiTruck />}
+      bg="#10B981"
+      _hover={{ bg: "#059669" }}
+      color="white"
+      onClick={() => updateShippingDate(shippingDate)}
+    >
+      Save
+    </Button>
+
+
+
+  </HStack>
+
+  <Button 
+    leftIcon={<FiTruck />} 
+    bg="#10B981" 
+    hover={{ bg: "#059669" }} 
+    color="white" 
+    onClick={markAsDelivered}>Mark Delivered</Button>
+
+</HStack> 
+}
+
+
+
+
+
                   
-                  <Button leftIcon={<IoCheckmarkDoneCircleSharp />} bg="#3B82F6" _hover={{ bg: "#2563EB" }} color="white" onClick={() => {
-                    Confirm_Order();
-                  }}>Confirm Order</Button>
-
-
-
-                  
-
-
-                  <Button leftIcon={<FiTruck />} bg="#10B981" _hover={{ bg: "#059669" }} color="white" onClick={ShipingDate} >Shiping Date : 
-                  <Input width={150} height={5} border={"none"}  type="date" onChange={(e) => setState(e.target.value)}/>
-                  </Button>
-
-                  <Button leftIcon={<FiTruck />} bg="#10B981" _hover={{ bg: "#059669" }} color="white" onClick={markAsDelivered}>Mark Delivered</Button>
 
                 </HStack>
               </VStack>
