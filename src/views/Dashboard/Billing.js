@@ -1,16 +1,3 @@
-// billing
-// CleanedBilling.js (Mobile-friendly table / compact-scroll version)
-// Updated to keep table layout but be responsive & mobile-friendly.
-// - Horizontal scroll on small screens
-// - Compact table sizes on mobile
-// - Filters & search stacked on mobile
-// - Pagination buttons full-width / touch-friendly on mobile
-// - Bugfix: Confirm_Order calls fetchOrders()
-// - Keep rest of features identical to original file
-
-/* eslint-disable react/prop-types */
-/* eslint-disable no-unused-vars */
-
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   Box,
@@ -1452,22 +1439,51 @@ const updateOrderStatus = async (status) => {
                 <Box>
                   <Text fontSize="lg" fontWeight="semibold" mb={4}>Order Items</Text>
                   <VStack spacing={3} align="stretch">
-                    {(safeGet(selectedOrder, "orderItems", []) || []).map((item, index) => (
-                      <HStack key={index} justify="space-between" p={3} bg="gray.50" borderRadius="lg">
-                        <HStack spacing={3}>
-                          {item?.image ? (
-                            <Image alt={safeGet(item, "name", "")} src={item.image} boxSize="50px" objectFit="cover" borderRadius="8px" />
-                          ) : (
-                            <Box boxSize="50px" display="flex" alignItems="center" justifyContent="center" bg="gray.100" borderRadius="8px"><Text fontSize="xs">No Image</Text></Box>
-                          )}
-                          <VStack align="start" spacing={0}>
-                            <Text fontWeight="medium">{safeGet(item, "name", "Unnamed")}</Text>
-                            <Text fontSize="sm" color="gray.600">₹{safeGet(item, "price", 0)} × {safeGet(item, "qty", 1)}</Text>
-                          </VStack>
-                        </HStack>
-                        <Text fontWeight="bold" fontSize="lg">₹{(safeGet(item, "price", 0) * safeGet(item, "qty", 1)).toLocaleString()}</Text>
-                      </HStack>
-                    ))}
+                  {(safeGet(selectedOrder, "orderItems", []) || []).map((item, index) => {
+  const productName = safeGet(item, "product.name", "No Name");
+  const productImage = safeGet(item, "product.images.0.url", null);
+  const price = safeGet(item, "price", 0);
+  const qty = safeGet(item, "quantity", 1);
+
+  return (
+    <HStack key={index} justify="space-between" p={3} bg="gray.50" borderRadius="lg">
+      <HStack spacing={3}>
+        {productImage ? (
+          <Image
+            alt={productName}
+            src={productImage}
+            boxSize="50px"
+            objectFit="cover"
+            borderRadius="8px"
+          />
+        ) : (
+          <Box
+            boxSize="50px"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            bg="gray.100"
+            borderRadius="8px"
+          >
+            <Text fontSize="xs">No Image</Text>
+          </Box>
+        )}
+
+        <VStack align="start" spacing={0}>
+          <Text fontWeight="medium">{productName}</Text>
+          <Text fontSize="sm" color="gray.600">
+            ₹{price} × {qty}
+          </Text>
+        </VStack>
+      </HStack>
+
+      <Text fontWeight="bold" fontSize="lg">
+        ₹{(price * qty).toLocaleString()}
+      </Text>
+    </HStack>
+  );
+})}
+
                   </VStack>
                 </Box>
 
