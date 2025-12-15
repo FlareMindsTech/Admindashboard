@@ -76,6 +76,8 @@ import {
   FaChevronRight,
   FaExclamationTriangle,
   FaChartLine,
+  FaPlus,
+  FaTimes,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdCategory, MdInventory, MdWarning } from "react-icons/md";
@@ -122,19 +124,39 @@ export default function ProductManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
 
+  // Category doesn't have status field
   const initialCategory = { name: "", description: "" };
- const initialProduct = {
-  name: "",
-  price: "",
-  stock: "",
-  colors: [], 
-  sizes: [],  
-  description: "",
-  images: [],
-};
-
+  
+  // Product has status field
+  const initialProduct = {
+    name: "",
+    description: "",
+    images: [],
+    status: "Available",
+  };
+  
+  const statusOptions = ["Available", "Out of Stock", "Discontinued"];
+  
   const [newCategory, setNewCategory] = useState(initialCategory);
   const [newProduct, setNewProduct] = useState(initialProduct);
+  
+  // Color management states
+  const [availableColors, setAvailableColors] = useState([
+    'Red', 'Blue', 'Green', 'Black', 'White', 
+    'Yellow', 'Pink', 'Gray', 'Maroon', 'Purple'
+  ]);
+  const [customColorInput, setCustomColorInput] = useState("");
+
+  // Variants management
+  const [variants, setVariants] = useState([
+    { 
+      color: '', 
+      size: '', 
+      price: '', 
+      stock: '', 
+      sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}` 
+    }
+  ]);
 
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -163,7 +185,8 @@ export default function ProductManagement() {
   // Function to calculate available stock for a product
   const calculateAvailableStock = useCallback((product) => {
     if (!product || !orders.length) {
-      return product?.stock || product?.variants?.[0]?.stock || 0;
+      const totalStock = product.variants?.reduce((sum, variant) => sum + (variant.stock || 0), 0) || 0;
+      return totalStock;
     }
 
     const totalOrderedQuantity = orders.reduce((total, order) => {
@@ -190,7 +213,7 @@ export default function ProductManagement() {
       return total + orderedQty;
     }, 0);
 
-    const totalStock = product.stock || product.variants?.[0]?.stock || 0;
+    const totalStock = product.variants?.reduce((sum, variant) => sum + (variant.stock || 0), 0) || 0;
     const availableStock = Math.max(0, totalStock - totalOrderedQuantity);
 
     return availableStock;
@@ -245,7 +268,9 @@ export default function ProductManagement() {
     );
     
     const availableStockData = stockProducts.map(product => calculateAvailableStock(product));
-    const totalStockData = stockProducts.map(product => product.stock || product.variants?.[0]?.stock || 0);
+    const totalStockData = stockProducts.map(product => 
+      product.variants?.reduce((sum, variant) => sum + (variant.stock || 0), 0) || 0
+    );
 
     return {
       series: [
@@ -327,14 +352,16 @@ export default function ProductManagement() {
   // Prepare stock alert chart data
   const prepareStockAlertChartData = useCallback(() => {
     const alertProducts = [...getOutOfStockProducts(), ...getLowStockProducts()]
-      .slice(0, 10); // Show top 10 alert products
+      .slice(0, 10);
 
     const categories = alertProducts.map(product => 
       product.name.length > 20 ? product.name.substring(0, 20) + '...' : product.name
     );
     
     const availableStockData = alertProducts.map(product => calculateAvailableStock(product));
-    const totalStockData = alertProducts.map(product => product.stock || product.variants?.[0]?.stock || 0);
+    const totalStockData = alertProducts.map(product => 
+      product.variants?.reduce((sum, variant) => sum + (variant.stock || 0), 0) || 0
+    );
 
     return {
       series: [
@@ -522,6 +549,112 @@ export default function ProductManagement() {
     }
   };
 
+  // Color management functions
+  const handleAddCustomColor = () => {
+    const color = customColorInput.trim();
+    
+    if (!color) {
+      toast({
+        title: "Empty Color",
+        description: "Please enter a color name",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    if (availableColors.includes(color)) {
+      toast({
+        title: "Color Exists",
+        description: `Color "${color}" already exists in the list`,
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    setAvailableColors(prev => [...prev, color]);
+    setCustomColorInput("");
+    
+    toast({
+      title: "Color Added",
+      description: `Color "${color}" added successfully`,
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
+  const handleRemoveColor = (colorToRemove) => {
+    // Don't allow removal if it's used in any variant
+    const isColorUsed = variants.some(variant => variant.color === colorToRemove);
+    if (isColorUsed) {
+      toast({
+        title: "Cannot Remove",
+        description: `Color "${colorToRemove}" is currently used in variants. Please remove or change variants first.`,
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    setAvailableColors(prev => prev.filter(color => color !== colorToRemove));
+    
+    toast({
+      title: "Color Removed",
+      description: `Color "${colorToRemove}" removed from available colors`,
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
+  // Variant management functions
+  const handleAddVariant = () => {
+    setVariants([
+      ...variants,
+      { 
+        color: '', 
+        size: '', 
+        price: '', 
+        stock: '', 
+        sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}` 
+      }
+    ]);
+  };
+
+  const handleRemoveVariant = (index) => {
+    if (variants.length === 1) {
+      toast({
+        title: "Cannot Remove",
+        description: "At least one variant is required",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    setVariants(variants.filter((_, i) => i !== index));
+  };
+
+  const handleVariantChange = (index, field, value) => {
+    const updatedVariants = [...variants];
+    updatedVariants[index][field] = value;
+    
+    // Auto-generate SKU if color and size are set
+    if ((field === 'color' || field === 'size') && updatedVariants[index].color && updatedVariants[index].size) {
+      const colorCode = updatedVariants[index].color.substring(0, 3).toUpperCase();
+      const sizeCode = updatedVariants[index].size.toUpperCase();
+      updatedVariants[index].sku = `SKU-${colorCode}-${sizeCode}-${Date.now().toString().slice(-6)}`;
+    }
+    
+    setVariants(updatedVariants);
+  };
+
   // Pagination handlers
   const handleNextPage = () => {
     if (currentView === "categories" && currentPage < totalCategoryPages) {
@@ -611,6 +744,7 @@ export default function ProductManagement() {
       setOrders(ordersArray);
       
     } catch (err) {
+      console.error("Fetch error:", err);
       toast({
         title: "Fetch Error",
         description: err.message || "Failed to load dashboard data.",
@@ -648,11 +782,29 @@ export default function ProductManagement() {
     setSelectedProduct(null);
     setNewCategory(initialCategory);
     setNewProduct(initialProduct);
+    setCustomColorInput("");
+    setVariants([{ 
+      color: '', 
+      size: '', 
+      price: '', 
+      stock: '', 
+      sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}` 
+    }]);
   };
 
   // Reset form
   const handleResetCategory = () => setNewCategory(initialCategory);
-  const handleResetProduct = () => setNewProduct(initialProduct);
+  const handleResetProduct = () => {
+    setNewProduct(initialProduct);
+    setCustomColorInput("");
+    setVariants([{ 
+      color: '', 
+      size: '', 
+      price: '', 
+      stock: '', 
+      sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}` 
+    }]);
+  };
 
   // Category Submit
   const handleSubmitCategory = async () => {
@@ -807,140 +959,211 @@ export default function ProductManagement() {
     setIsDeleting(false);
   };
 
-
   // Product Submit (Add/Edit)
-const handleSubmitProduct = async () => {
-  if (!newProduct.name || !newProduct.price || !newProduct.stock) {
-    return toast({
-      title: "Validation Error",
-      description: "Name, Price, and Stock are required fields.",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  }
-  
-  if (!selectedCategory?._id) {
-    return toast({
-      title: "Category Error",
-      description: "Please select a category first.",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  }
-
-  if (!newProduct.colors?.length || !newProduct.sizes?.length) {
-    return toast({
-      title: "Validation Error",
-      description: "Please select at least one color and one size.",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  }
-
-  try {
-    setIsSubmitting(true);
-
-    const productData = {
-      name: newProduct.name.trim(),
-      description: newProduct.description?.trim() || "",
-      category: selectedCategory._id,
-      price: Number(newProduct.price),
-      stock: Number(newProduct.stock),
-      variants: [
-        {
-          color: newProduct.colors, 
-          size: newProduct.sizes,   
-          price: Number(newProduct.price),
-          stock: Number(newProduct.stock),
-          sku: selectedProduct
-            ? selectedProduct.variants?.[0]?.sku
-            : `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        },
-      ],
-    };
-
-    let response;
-    if (selectedProduct) {
-      response = await updateProducts(selectedProduct._id, productData);
-      
-      if (newProduct.images && newProduct.images.some(img => img.isNew)) {
-        for (const img of newProduct.images) {
-          if (img.isNew && img.file) {
-            await uploadProductImage(selectedProduct._id, img.file);
-          }
-        }
-      }
-      
-      toast({
-        title: "Product Updated",
-        description: `"${productData.name}" updated successfully.`,
-        status: "success",
+  const handleSubmitProduct = async () => {
+    if (!newProduct.name) {
+      return toast({
+        title: "Validation Error",
+        description: "Product name is required.",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
-    } else {
-      response = await createProducts(productData);
-      
-      if (newProduct.images && newProduct.images.length > 0) {
-        const createdProduct = response.data || response.product;
-        for (const img of newProduct.images) {
-          if (img.file) {
-            await uploadProductImage(createdProduct._id, img.file);
-          }
-        }
-      }
-      
-      toast({
-        title: "Product Created",
-        description: `"${productData.name}" added successfully.`,
-        status: "success",
+    }
+    
+    if (!selectedCategory?._id) {
+      return toast({
+        title: "Category Error",
+        description: "Please select a category first.",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
 
-    await fetchData();
-    handleBack();
-  } catch (err) {
-    console.error("Product submission error:", err);
-    toast({
-      title: selectedProduct ? "Error Updating Product" : "Error Creating Product",
-      description: err.message || "Failed to save product",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
+    // Validate all variants
+    const invalidVariants = variants.filter(variant => 
+      !variant.color || !variant.size || !variant.price || !variant.stock
+    );
+    
+    if (invalidVariants.length > 0) {
+      return toast({
+        title: "Validation Error",
+        description: "Please fill all fields for each variant (color, size, price, stock).",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
+    // Check for duplicate variants
+    const variantKeys = variants.map(v => `${v.color}-${v.size}`.toLowerCase());
+    const hasDuplicates = new Set(variantKeys).size !== variantKeys.length;
+    
+    if (hasDuplicates) {
+      return toast({
+        title: "Duplicate Variants",
+        description: "Duplicate color-size combinations are not allowed.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // Prepare product data
+      const productData = {
+        name: newProduct.name.trim(),
+        description: newProduct.description?.trim() || "",
+        category: selectedCategory._id,
+        status: newProduct.status || "Available", // Product status validation
+        images: newProduct.images?.filter(img => img.url || img.preview).map(img => img.url || img.preview) || [],
+        variants: variants.map(variant => ({
+          color: variant.color,
+          size: variant.size,
+          price: Number(variant.price),
+          stock: Number(variant.stock),
+          sku: variant.sku || `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        })),
+      };
+
+      let response;
+      if (selectedProduct) {
+        response = await updateProducts(selectedProduct._id, productData);
+        
+        // Handle image uploads for existing product
+        if (newProduct.images && newProduct.images.some(img => img.isNew)) {
+          for (const img of newProduct.images) {
+            if (img.isNew && img.file) {
+              try {
+                await uploadProductImage(selectedProduct._id, img.file);
+              } catch (imgError) {
+                console.error("Image upload failed:", imgError);
+              }
+            }
+          }
+        }
+        
+        toast({
+          title: "Product Updated",
+          description: `"${productData.name}" updated successfully.`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        response = await createProducts(productData);
+        
+        // Handle image uploads for new product
+        if (newProduct.images && newProduct.images.length > 0) {
+          const createdProduct = response.data || response.product || response;
+          
+          for (const img of newProduct.images) {
+            if (img.file) {
+              try {
+                await uploadProductImage(createdProduct._id, img.file);
+              } catch (imgError) {
+                console.error("Image upload failed:", imgError);
+              }
+            }
+          }
+        }
+        
+        toast({
+          title: "Product Created",
+          description: `"${productData.name}" added successfully.`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+
+      await fetchData();
+      handleBack();
+    } catch (err) {
+      console.error("Product submission error:", err);
+      
+      let errorTitle = selectedProduct ? "Error Updating Product" : "Error Creating Product";
+      let errorDescription = err.message;
+      
+      if (err.message?.includes("500")) {
+        errorDescription = "Server error. Please check backend connection.";
+      } else if (err.message?.includes("401") || err.message?.includes("403")) {
+        errorDescription = "Authentication error. Please log in again.";
+      } else if (err.message?.includes("Network")) {
+        errorDescription = "Network error. Check your internet connection.";
+      } else if (err.message?.includes("category")) {
+        errorDescription = "Category error. Please select a valid category.";
+      } else if (err.status === 500) {
+        errorDescription = "Server error (500). Please check backend logs.";
+      } else if (err.response?.data?.message) {
+        errorDescription = err.response.data.message;
+      }
+      
+      toast({
+        title: errorTitle,
+        description: errorDescription,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "top",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Edit Product handler
+  const handleEditProduct = (product) => {
+    setSelectedProduct(product);
+    setSelectedCategory(categories.find((c) => c._id === product.category?._id || c._id === product.category));
+    
+    const productImages = product.images || [];
+    
+    // Set variants from product data
+    if (product.variants && product.variants.length > 0) {
+      setVariants(product.variants.map(variant => {
+        const color = Array.isArray(variant.color) ? variant.color[0] || '' : variant.color || '';
+        const size = Array.isArray(variant.size) ? variant.size[0] || '' : variant.size || '';
+        
+        return {
+          color: color,
+          size: size,
+          price: variant.price || '',
+          stock: variant.stock || '',
+          sku: variant.sku || `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        };
+      }));
+    } else {
+      setVariants([
+        { 
+          color: '', 
+          size: '', 
+          price: '', 
+          stock: '', 
+          sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}` 
+        }
+      ]);
+    }
+    
+    setNewProduct({
+      name: product.name || '',
+      description: product.description || '',
+      images: productImages,
+      status: product.status || "Available", // Product status
     });
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+    setCurrentView("addProduct");
+  };
 
-// Edit Product handler
-const handleEditProduct = (product) => {
-  setSelectedProduct(product);
-  setSelectedCategory(categories.find((c) => c._id === product.category?._id || c._id === product.category));
-  
-  const productImages = product.images || [];
-  const variant = product.variants?.[0] || {};
-  
-  setNewProduct({
-    name: product.name,
-    price: variant.price || "",
-    stock: variant.stock || "",
-    colors: variant.color || [], 
-    sizes: variant.size || [],   
-    description: product.description || "",
-    images: productImages,
-  });
-  setCurrentView("addProduct");
-};
-
+  // Edit Category handler - No status field
   const handleEditCategory = (category) => {
     setSelectedCategory(category);
-    setNewCategory({ name: category.name, description: category.description || "" });
+    setNewCategory({ 
+      name: category.name, 
+      description: category.description || "" 
+    });
     setCurrentView("editCategory");
   };
 
@@ -972,7 +1195,7 @@ const handleEditProduct = (product) => {
   // Stock status badge component
   const StockStatusBadge = ({ product }) => {
     const availableStock = calculateAvailableStock(product);
-    const totalStock = product.stock || product.variants?.[0]?.stock || 0;
+    const totalStock = product.variants?.reduce((sum, variant) => sum + (variant.stock || 0), 0) || 0;
     
     if (availableStock <= 0) {
       return (
@@ -1071,7 +1294,7 @@ const handleEditProduct = (product) => {
             overflow="auto"
             css={globalScrollbarStyles}
           >
-            {/* Category Form */}
+            {/* Category Form - NO STATUS FIELD */}
             {(currentView === "addCategory" || currentView === "editCategory") && (
               <Box p={4}>
                 <FormControl mb="20px">
@@ -1103,6 +1326,7 @@ const handleEditProduct = (product) => {
                     size="sm"
                   />
                 </FormControl>
+                
                 <Flex justify="flex-end" mt={4} flexShrink={0}>
                   <Button 
                     variant="outline" 
@@ -1128,298 +1352,381 @@ const handleEditProduct = (product) => {
               </Box>
             )}
 
-            {/* Product Form */}
-{currentView === "addProduct" && (
-  <Box 
-    flex="1" 
-    display="flex" 
-    flexDirection="column" 
-    overflow="hidden"
-    bg="transparent"
-  >
-    {/* Scrollable Form Container */}
-    <Box
-      flex="1"
-      overflowY="auto"
-      overflowX="hidden"
-      css={globalScrollbarStyles}
-      pr={2}
-    >
-      <Box p={4}>
-        {!selectedCategory && (
-          <FormControl mb="20px">
-            <FormLabel htmlFor="category" color="gray.700" fontSize="sm">Category *</FormLabel>
-            <Select
-              id="category"
-              placeholder="Select category"
-              value={selectedCategory?._id || ""}
-              onChange={(e) => {
-                const category = categories.find(c => c._id === e.target.value);
-                setSelectedCategory(category);
-              }}
-              borderColor={`${customColor}50`}
-              _hover={{ borderColor: customColor }}
-              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-              bg="white"
-              size="sm"
-            >
-              {categories.map((cat) => (
-                <option key={cat._id} value={cat._id}>{cat.name}</option>
-              ))}
-            </Select>
-          </FormControl>
-        )}
+            {/* Product Form - WITH STATUS FIELD */}
+            {currentView === "addProduct" && (
+              <Box 
+                flex="1" 
+                display="flex" 
+                flexDirection="column" 
+                overflow="hidden"
+                bg="transparent"
+              >
+                {/* Scrollable Form Container */}
+                <Box
+                  flex="1"
+                  overflowY="auto"
+                  overflowX="hidden"
+                  css={globalScrollbarStyles}
+                  pr={2}
+                >
+                  <Box p={4}>
+                    {!selectedCategory && (
+                      <FormControl mb="20px">
+                        <FormLabel htmlFor="category" color="gray.700" fontSize="sm">Category *</FormLabel>
+                        <Select
+                          id="category"
+                          placeholder="Select category"
+                          value={selectedCategory?._id || ""}
+                          onChange={(e) => {
+                            const category = categories.find(c => c._id === e.target.value);
+                            setSelectedCategory(category);
+                          }}
+                          borderColor={`${customColor}50`}
+                          _hover={{ borderColor: customColor }}
+                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                          bg="white"
+                          size="sm"
+                        >
+                          {categories.map((cat) => (
+                            <option key={cat._id} value={cat._id}>{cat.name}</option>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    )}
 
-        <Grid templateColumns={["1fr", "1fr 1fr"]} gap={4} mb={4}>
-          <FormControl isRequired>
-            <FormLabel color="gray.700" fontSize="sm">Product Name *</FormLabel>
-            <Input
-              value={newProduct.name}
-              onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-              placeholder="Enter product name"
-              borderColor={`${customColor}50`}
-              _hover={{ borderColor: customColor }}
-              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-              bg="white"
-              size="sm"
-            />
-          </FormControl>
+                    <Grid templateColumns={["1fr", "1fr 1fr"]} gap={4} mb={4}>
+                      <FormControl isRequired>
+                        <FormLabel color="gray.700" fontSize="sm">Product Name *</FormLabel>
+                        <Input
+                          value={newProduct.name}
+                          onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                          placeholder="Enter product name"
+                          borderColor={`${customColor}50`}
+                          _hover={{ borderColor: customColor }}
+                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                          bg="white"
+                          size="sm"
+                        />
+                      </FormControl>
+                      
+                      {/* Status Field for Product ONLY */}
+                      <FormControl>
+                        <FormLabel color="gray.700" fontSize="sm">Product Status</FormLabel>
+                        <Select
+                          value={newProduct.status}
+                          onChange={(e) => setNewProduct({ ...newProduct, status: e.target.value })}
+                          borderColor={`${customColor}50`}
+                          _hover={{ borderColor: customColor }}
+                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                          bg="white"
+                          size="sm"
+                        >
+                          {statusOptions.map((status) => (
+                            <option key={status} value={status}>{status}</option>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
 
-          <FormControl isRequired>
-            <FormLabel color="gray.700" fontSize="sm">Price *</FormLabel>
-            <Input
-              type="number"
-              value={newProduct.price}
-              onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-              placeholder="Enter price"
-              min="0"
-              step="0.01"
-              borderColor={`${customColor}50`}
-              _hover={{ borderColor: customColor }}
-              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-              bg="white"
-              size="sm"
-            />
-          </FormControl>
+                    {/* Custom Color Input Section */}
+                    <Box mb="20px">
+                      <FormLabel color="gray.700" fontSize="sm">Manage Colors</FormLabel>
+                      <Flex mb={3} gap={2}>
+                        <Input
+                          placeholder="Add custom color (e.g., Navy Blue, Teal)"
+                          value={customColorInput}
+                          onChange={(e) => setCustomColorInput(e.target.value)}
+                          size="sm"
+                          borderColor={`${customColor}50`}
+                          _hover={{ borderColor: customColor }}
+                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                          bg="white"
+                        />
+                        <Button
+                          size="sm"
+                          leftIcon={<FaPlus />}
+                          onClick={handleAddCustomColor}
+                          bg={customColor}
+                          _hover={{ bg: customHoverColor }}
+                          color="white"
+                          isDisabled={!customColorInput.trim()}
+                        >
+                          Add Color
+                        </Button>
+                      </Flex>
 
-          <FormControl isRequired>
-            <FormLabel color="gray.700" fontSize="sm">Stock *</FormLabel>
-            <Input
-              type="number"
-              value={newProduct.stock}
-              onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })}
-              placeholder="Enter stock quantity"
-              min="0"
-              borderColor={`${customColor}50`}
-              _hover={{ borderColor: customColor }}
-              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-              bg="white"
-              size="sm"
-            />
-          </FormControl>
-        </Grid>
+                      {/* Available Colors Display */}
+                      <Flex flexWrap="wrap" gap={2} mb={2}>
+                        {availableColors.map((color) => {
+                          const isDefaultColor = ['Red', 'Blue', 'Green', 'Black', 'White', 'Yellow', 'Pink', 'Gray', 'Maroon', 'Purple'].includes(color);
+                          return (
+                            <Box key={color} position="relative">
+                              <Button
+                                size="xs"
+                                variant="outline"
+                                colorScheme="gray"
+                                fontSize="xs"
+                                _hover={{ shadow: "sm" }}
+                              >
+                                {color}
+                              </Button>
+                              {!isDefaultColor && (
+                                <IconButton
+                                  aria-label={`Remove ${color}`}
+                                  icon={<FaTimes />}
+                                  size="2xs"
+                                  colorScheme="red"
+                                  position="absolute"
+                                  top={-2}
+                                  right={-2}
+                                  borderRadius="full"
+                                  onClick={() => handleRemoveColor(color)}
+                                />
+                              )}
+                            </Box>
+                          );
+                        })}
+                      </Flex>
+                    </Box>
 
-        {/* Multiple Colors Selection */}
-        <FormControl mb="20px">
-  <FormLabel color="gray.700" fontSize="sm">Colors *</FormLabel>
-  <Flex flexWrap="wrap" gap={2} mb={2}>
-    {['Red', 'Blue', 'Green', 'Black', 'White', 'Yellow', 'Pink', 'Gray', 'Maroon', 'Purple'].map((color) => {
-      const isSelected = newProduct.colors?.includes(color);
-      return (
-        <Button
-          key={color}
-          size="xs"
-          variant={isSelected ? "solid" : "outline"}
-          colorScheme={isSelected ? "purple" : "gray"}
-          fontWeight={isSelected ? "bold" : "normal"} 
-          fontSize={isSelected ? "sm" : "xs"} 
-          transform={isSelected ? "scale(1.05)" : "scale(1)"} 
-          transition="all 0.2s ease-in-out"
-          _hover={{
-            transform: "scale(1.05)",
-            shadow: "md"
-          }}
-          onClick={() => {
-            const currentColors = newProduct.colors || [];
-            if (currentColors.includes(color)) {
-              setNewProduct({
-                ...newProduct,
-                colors: currentColors.filter(c => c !== color)
-              });
-            } else {
-              setNewProduct({
-                ...newProduct,
-                colors: [...currentColors, color]
-              });
-            }
-          }}
-        >
-          {color}
-        </Button>
-      );
-    })}
-  </Flex>
-  <Text fontSize="xs" color="gray.500">
-    Selected: <Text as="span" fontWeight="bold" color="purple.600">{newProduct.colors?.join(', ') || 'No colors selected'}</Text>
-  </Text>
-</FormControl>
+                    {/* Variants Section */}
+                    <Box mb="20px">
+                      <Flex justify="space-between" align="center" mb={3}>
+                        <FormLabel color="gray.700" fontSize="sm" m={0}>Product Variants *</FormLabel>
+                        <Button
+                          size="sm"
+                          leftIcon={<FaPlus />}
+                          onClick={handleAddVariant}
+                          bg={customColor}
+                          _hover={{ bg: customHoverColor }}
+                          color="white"
+                        >
+                          Add Variant
+                        </Button>
+                      </Flex>
+                      
+                      {variants.map((variant, index) => (
+                        <Box 
+                          key={index} 
+                          p={4} 
+                          border="1px" 
+                          borderColor="gray.200" 
+                          borderRadius="md" 
+                          mb={3}
+                          position="relative"
+                        >
+                          <Flex justify="space-between" align="center" mb={3}>
+                            <Text fontSize="sm" fontWeight="bold" color="gray.700">
+                              Variant {index + 1}
+                            </Text>
+                            {variants.length > 1 && (
+                              <IconButton
+                                aria-label="Remove variant"
+                                icon={<FaTimes />}
+                                size="xs"
+                                colorScheme="red"
+                                onClick={() => handleRemoveVariant(index)}
+                              />
+                            )}
+                          </Flex>
+                          
+                          <Grid templateColumns={["1fr", "1fr 1fr", "1fr 1fr 1fr 1fr"]} gap={4}>
+                            {/* Color Selection */}
+                            <FormControl isRequired>
+                              <FormLabel fontSize="xs" color="gray.600">Color</FormLabel>
+                              <Select
+                                value={variant.color}
+                                onChange={(e) => handleVariantChange(index, 'color', e.target.value)}
+                                placeholder="Select color"
+                                size="sm"
+                                borderColor={`${customColor}50`}
+                                _hover={{ borderColor: customColor }}
+                                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                                bg="white"
+                              >
+                                <option value="">Select color</option>
+                                {availableColors.map(color => (
+                                  <option key={color} value={color}>{color}</option>
+                                ))}
+                              </Select>
+                            </FormControl>
 
-{/* Multiple Sizes Selection */}
-<FormControl mb="20px">
-  <FormLabel color="gray.700" fontSize="sm">Sizes *</FormLabel>
-  <Flex flexWrap="wrap" gap={2} mb={2}>
-    {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map((size) => {
-      const isSelected = newProduct.sizes?.includes(size);
-      return (
-        <Button
-          key={size}
-          size="xs"
-          variant={isSelected ? "solid" : "outline"}
-          colorScheme={isSelected ? "purple" : "gray"}
-          fontWeight={isSelected ? "bold" : "normal"} // Bold for selected
-          fontSize={isSelected ? "sm" : "xs"} // Larger font for selected
-          transform={isSelected ? "scale(1.05)" : "scale(1)"} // Slightly larger for selected
-          transition="all 0.2s ease-in-out"
-          _hover={{
-            transform: "scale(1.05)",
-            shadow: "md"
-          }}
-          onClick={() => {
-            const currentSizes = newProduct.sizes || [];
-            if (currentSizes.includes(size)) {
-              setNewProduct({
-                ...newProduct,
-                sizes: currentSizes.filter(s => s !== size)
-              });
-            } else {
-              setNewProduct({
-                ...newProduct,
-                sizes: [...currentSizes, size]
-              });
-            }
-          }}
-        >
-          {size}
-        </Button>
-      );
-    })}
-  </Flex>
-  <Text fontSize="xs" color="gray.500">
-    Selected: <Text as="span" fontWeight="bold" color="purple.600">{newProduct.sizes?.join(', ') || 'No sizes selected'}</Text>
-  </Text>
-</FormControl>
-        <FormControl mb="20px">
-          <FormLabel color="gray.700" fontSize="sm">Description</FormLabel>
-          <Textarea
-            value={newProduct.description}
-            onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-            placeholder="Enter product description"
-            rows={3}
-            borderColor={`${customColor}50`}
-            _hover={{ borderColor: customColor }}
-            _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-            bg="white"
-            size="sm"
-          />
-        </FormControl>
+                            {/* Size Selection */}
+                            <FormControl isRequired>
+                              <FormLabel fontSize="xs" color="gray.600">Size</FormLabel>
+                              <Select
+                                value={variant.size}
+                                onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
+                                placeholder="Select size"
+                                size="sm"
+                                borderColor={`${customColor}50`}
+                                _hover={{ borderColor: customColor }}
+                                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                                bg="white"
+                              >
+                                <option value="">Select size</option>
+                                {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(size => (
+                                  <option key={size} value={size}>{size}</option>
+                                ))}
+                              </Select>
+                            </FormControl>
 
-        {/* Image Upload Section */}
-        <FormControl mb="20px">
-          <FormLabel color="gray.700" fontSize="sm">Product Images</FormLabel>
-          
-          {/* Image Upload Input */}
-          <Input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleImageUpload}
-            borderColor={`${customColor}50`}
-            _hover={{ borderColor: customColor }}
-            _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-            bg="white"
-            size="sm"
-            mb={3}
-          />
-          <Text fontSize="xs" color="gray.500">
-            Upload product images (multiple images supported)
-          </Text>
+                            {/* Price */}
+                            <FormControl isRequired>
+                              <FormLabel fontSize="xs" color="gray.600">Price (₹)</FormLabel>
+                              <Input
+                                type="number"
+                                value={variant.price}
+                                onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
+                                placeholder="Enter price"
+                                min="0"
+                                step="0.01"
+                                size="sm"
+                                borderColor={`${customColor}50`}
+                                _hover={{ borderColor: customColor }}
+                                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                                bg="white"
+                              />
+                            </FormControl>
 
-          {/* Display Current Images */}
-          {newProduct.images && newProduct.images.length > 0 && (
-            <Box mt={3}>
-              <Text fontSize="sm" color="gray.700" mb={2}>
-                Current Images:
-              </Text>
-              <Flex wrap="wrap" gap={3}>
-                {newProduct.images.map((img, index) => (
-                  <Box 
-                    key={img.public_id || index} 
-                    position="relative" 
-                    border="1px" 
-                    borderColor="gray.200" 
-                    borderRadius="md" 
-                    p={1}
-                  >
-                    <Image
-                      src={img.url || img.preview || img}
-                      alt={`Product image ${index + 1}`}
-                      boxSize="50px"
-                      objectFit="cover"
-                      borderRadius="md"
-                    />
-                    <IconButton
-                      aria-label="Remove image"
-                      icon={<FaTrash />}
-                      size="xs"
-                      colorScheme="red"
-                      position="absolute"
-                      top={-1}
-                      right={-1}
-                      onClick={() => handleRemoveImage(img.public_id || index)}
-                    />
+                            {/* Stock */}
+                            <FormControl isRequired>
+                              <FormLabel fontSize="xs" color="gray.600">Stock</FormLabel>
+                              <Input
+                                type="number"
+                                value={variant.stock}
+                                onChange={(e) => handleVariantChange(index, 'stock', e.target.value)}
+                                placeholder="Enter stock"
+                                min="0"
+                                size="sm"
+                                borderColor={`${customColor}50`}
+                                _hover={{ borderColor: customColor }}
+                                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                                bg="white"
+                              />
+                            </FormControl>
+                          </Grid>
+                          
+                          {/* SKU Display */}
+                          {variant.sku && (
+                            <Text fontSize="xs" color="gray.500" mt={2}>
+                              SKU: <Text as="span" fontWeight="bold">{variant.sku}</Text>
+                            </Text>
+                          )}
+                        </Box>
+                      ))}
+                    </Box>
+
+                    <FormControl mb="20px">
+                      <FormLabel color="gray.700" fontSize="sm">Description</FormLabel>
+                      <Textarea
+                        value={newProduct.description}
+                        onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                        placeholder="Enter product description"
+                        rows={3}
+                        borderColor={`${customColor}50`}
+                        _hover={{ borderColor: customColor }}
+                        _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                        bg="white"
+                        size="sm"
+                      />
+                    </FormControl>
+
+                    {/* Image Upload Section */}
+                    <FormControl mb="20px">
+                      <FormLabel color="gray.700" fontSize="sm">Product Images</FormLabel>
+                      
+                      <Input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        borderColor={`${customColor}50`}
+                        _hover={{ borderColor: customColor }}
+                        _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                        bg="white"
+                        size="sm"
+                        mb={3}
+                      />
+                      <Text fontSize="xs" color="gray.500">
+                        Upload product images (multiple images supported)
+                      </Text>
+
+                      {newProduct.images && newProduct.images.length > 0 && (
+                        <Box mt={3}>
+                          <Text fontSize="sm" color="gray.700" mb={2}>
+                            Current Images:
+                          </Text>
+                          <Flex wrap="wrap" gap={3}>
+                            {newProduct.images.map((img, index) => (
+                              <Box 
+                                key={img.public_id || index} 
+                                position="relative" 
+                                border="1px" 
+                                borderColor="gray.200" 
+                                borderRadius="md" 
+                                p={1}
+                              >
+                                <Image
+                                  src={img.url || img.preview || img}
+                                  alt={`Product image ${index + 1}`}
+                                  boxSize="50px"
+                                  objectFit="cover"
+                                  borderRadius="md"
+                                />
+                                <IconButton
+                                  aria-label="Remove image"
+                                  icon={<FaTrash />}
+                                  size="xs"
+                                  colorScheme="red"
+                                  position="absolute"
+                                  top={-1}
+                                  right={-1}
+                                  onClick={() => handleRemoveImage(img.public_id || index)}
+                                />
+                              </Box>
+                            ))}
+                          </Flex>
+                        </Box>
+                      )}
+                    </FormControl>
                   </Box>
-                ))}
-              </Flex>
-            </Box>
-          )}
-        </FormControl>
-      </Box>
-    </Box>
+                </Box>
 
-    {/* Fixed Footer with Buttons */}
-    <Box 
-      flexShrink={0} 
-      p={4} 
-      borderTop="1px solid" 
-      borderColor={`${customColor}20`}
-      bg="transparent"
-    >
-      <Flex justify="flex-end">
-        <Button 
-          variant="outline" 
-          mr={3} 
-          onClick={handleResetProduct}
-          border="1px"
-          borderColor="gray.300"
-          size="sm"
-        >
-          Reset
-        </Button>
-        <Button
-          bg={customColor}
-          _hover={{ bg: customHoverColor }}
-          color="white"
-          onClick={handleSubmitProduct}
-          isLoading={isSubmitting}
-          isDisabled={!selectedCategory || !newProduct.colors?.length || !newProduct.sizes?.length}
-          size="sm"
-        >
-          {selectedProduct ? "Update Product" : "Create Product"}
-        </Button>
-      </Flex>
-    </Box>
-  </Box>
-)}
+                {/* Fixed Footer with Buttons */}
+                <Box 
+                  flexShrink={0} 
+                  p={4} 
+                  borderTop="1px solid" 
+                  borderColor={`${customColor}20`}
+                  bg="transparent"
+                >
+                  <Flex justify="flex-end">
+                    <Button 
+                      variant="outline" 
+                      mr={3} 
+                      onClick={handleResetProduct}
+                      border="1px"
+                      borderColor="gray.300"
+                      size="sm"
+                    >
+                      Reset
+                    </Button>
+                    <Button
+                      bg={customColor}
+                      _hover={{ bg: customHoverColor }}
+                      color="white"
+                      onClick={handleSubmitProduct}
+                      isLoading={isSubmitting}
+                      isDisabled={!selectedCategory || variants.length === 0}
+                      size="sm"
+                    >
+                      {selectedProduct ? "Update Product" : "Create Product"}
+                    </Button>
+                  </Flex>
+                </Box>
+              </Box>
+            )}
           </CardBody>
         </Card>
       </Flex>
@@ -1434,295 +1741,294 @@ const handleEditProduct = (product) => {
       height="100vh" 
       overflow="hidden"
       css={globalScrollbarStyles}
-      
     >
       {/* Fixed Statistics Cards */}
       <Box
-   flexShrink={0}
-  p={{ base: 1, md: 4 }} 
-  pb={0}
-  mt={{ base: 0, md: 0 }}
->
-  <Grid
-    templateColumns={{ base: "1fr 1fr", md: "1fr 1fr 1fr 1fr" }}
-    gap={{ base: "10px", md: "15px" }} 
-    mb={{ base: "15px", md: "20px" }}
-  >
-    {/* All Categories Card */}
-    <Card
-      minH={{ base: "65px", md: "75px" }} 
-      cursor="pointer"
-      onClick={() => setCurrentView("categories")}
-      border={currentView === "categories" ? "2px solid" : "1px solid"}
-      borderColor={currentView === "categories" ? customColor : `${customColor}30`}
-      transition="all 0.2s ease-in-out"
-      bg="white"
-      position="relative"
-      overflow="hidden"
-      _before={{
-        content: '""',
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: `linear-gradient(135deg, ${customColor}15, transparent)`,
-        opacity: 0,
-        transition: "opacity 0.2s ease-in-out",
-      }}
-      _hover={{
-        transform: { base: "none", md: "translateY(-2px)" }, 
-        shadow: { base: "none", md: "lg" },
-        _before: {
-          opacity: 1,
-        },
-        borderColor: customColor,
-      }}
-    >
-      <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}> {/* Reduced padding on mobile */}
-        <Flex flexDirection="row" align="center" justify="center" w="100%">
-          <Stat me="auto">
-            <StatLabel
-              fontSize={{ base: "2xs", md: "xs" }} 
-              color="gray.600"
-              fontWeight="bold"
-              pb="1px"
-            >
-              All Categories
-            </StatLabel>
-            <Flex>
-              <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> {/* Smaller font on mobile */}
-                {isLoadingCategories ? <Spinner size="xs" /> : categories.length}
-              </StatNumber>
-            </Flex>
-          </Stat>
-          <IconBox 
-            as="box" 
-            h={{ base: "30px", md: "35px" }} 
-            w={{ base: "30px", md: "35px" }} 
-            bg={customColor}
+        flexShrink={0}
+        p={{ base: 1, md: 4 }} 
+        pb={0}
+        mt={{ base: 0, md: 0 }}
+      >
+        <Grid
+          templateColumns={{ base: "1fr 1fr", md: "1fr 1fr 1fr 1fr" }}
+          gap={{ base: "10px", md: "15px" }} 
+          mb={{ base: "15px", md: "20px" }}
+        >
+          {/* All Categories Card */}
+          <Card
+            minH={{ base: "65px", md: "75px" }} 
+            cursor="pointer"
+            onClick={() => setCurrentView("categories")}
+            border={currentView === "categories" ? "2px solid" : "1px solid"}
+            borderColor={currentView === "categories" ? customColor : `${customColor}30`}
             transition="all 0.2s ease-in-out"
+            bg="white"
+            position="relative"
+            overflow="hidden"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: { base: "none", md: "translateY(-2px)" }, 
+              shadow: { base: "none", md: "lg" },
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}
           >
-            <Icon
-              as={MdCategory}
-              h={{ base: "14px", md: "18px" }}
-              w={{ base: "14px", md: "18px" }} 
-              color="white"
-            />
-          </IconBox>
-        </Flex>
-      </CardBody>
-    </Card>
+            <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}>
+              <Flex flexDirection="row" align="center" justify="center" w="100%">
+                <Stat me="auto">
+                  <StatLabel
+                    fontSize={{ base: "2xs", md: "xs" }} 
+                    color="gray.600"
+                    fontWeight="bold"
+                    pb="1px"
+                  >
+                    All Categories
+                  </StatLabel>
+                  <Flex>
+                    <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}>
+                      {isLoadingCategories ? <Spinner size="xs" /> : categories.length}
+                    </StatNumber>
+                  </Flex>
+                </Stat>
+                <IconBox 
+                  as="box" 
+                  h={{ base: "30px", md: "35px" }} 
+                  w={{ base: "30px", md: "35px" }} 
+                  bg={customColor}
+                  transition="all 0.2s ease-in-out"
+                >
+                  <Icon
+                    as={MdCategory}
+                    h={{ base: "14px", md: "18px" }}
+                    w={{ base: "14px", md: "18px" }} 
+                    color="white"
+                  />
+                </IconBox>
+              </Flex>
+            </CardBody>
+          </Card>
 
-    {/* All Products Card */}
-    <Card
-      minH={{ base: "65px", md: "75px" }}
-      cursor="pointer"
-      onClick={() => setCurrentView("products")}
-      border={currentView === "products" ? "2px solid" : "1px solid"}
-      borderColor={currentView === "products" ? customColor : `${customColor}30`}
-      transition="all 0.2s ease-in-out"
-      bg="white"
-      position="relative"
-      overflow="hidden"
-      _before={{
-        content: '""',
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: `linear-gradient(135deg, ${customColor}15, transparent)`,
-        opacity: 0,
-        transition: "opacity 0.2s ease-in-out",
-      }}
-      _hover={{
-        transform: { base: "none", md: "translateY(-2px)" }, 
-        shadow: { base: "none", md: "lg" },
-        _before: {
-          opacity: 1,
-        },
-        borderColor: customColor,
-      }}
-    >
-      <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}> 
-        <Flex flexDirection="row" align="center" justify="center" w="100%">
-          <Stat me="auto">
-            <StatLabel
-              fontSize={{ base: "2xs", md: "xs" }} 
-              color="gray.600"
-              fontWeight="bold"
-              pb="1px"
-            >
-              All Products
-            </StatLabel>
-            <Flex>
-              <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
-                {isLoadingProducts ? <Spinner size="xs" /> : products.length}
-              </StatNumber>
-            </Flex>
-          </Stat>
-          <IconBox 
-            as="box" 
-            h={{ base: "30px", md: "35px" }} 
-            w={{ base: "30px", md: "35px" }}
-            bg={customColor}
+          {/* All Products Card */}
+          <Card
+            minH={{ base: "65px", md: "75px" }}
+            cursor="pointer"
+            onClick={() => setCurrentView("products")}
+            border={currentView === "products" ? "2px solid" : "1px solid"}
+            borderColor={currentView === "products" ? customColor : `${customColor}30`}
             transition="all 0.2s ease-in-out"
+            bg="white"
+            position="relative"
+            overflow="hidden"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: { base: "none", md: "translateY(-2px)" }, 
+              shadow: { base: "none", md: "lg" },
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}
           >
-            <Icon
-              as={IoCheckmarkDoneCircleSharp}
-              h={{ base: "14px", md: "18px" }}
-              w={{ base: "14px", md: "18px" }}
-              color="white"
-            />
-          </IconBox>
-        </Flex>
-      </CardBody>
-    </Card>
+            <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}> 
+              <Flex flexDirection="row" align="center" justify="center" w="100%">
+                <Stat me="auto">
+                  <StatLabel
+                    fontSize={{ base: "2xs", md: "xs" }} 
+                    color="gray.600"
+                    fontWeight="bold"
+                    pb="1px"
+                  >
+                    All Products
+                  </StatLabel>
+                  <Flex>
+                    <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
+                      {isLoadingProducts ? <Spinner size="xs" /> : products.length}
+                    </StatNumber>
+                  </Flex>
+                </Stat>
+                <IconBox 
+                  as="box" 
+                  h={{ base: "30px", md: "35px" }} 
+                  w={{ base: "30px", md: "35px" }}
+                  bg={customColor}
+                  transition="all 0.2s ease-in-out"
+                >
+                  <Icon
+                    as={IoCheckmarkDoneCircleSharp}
+                    h={{ base: "14px", md: "18px" }}
+                    w={{ base: "14px", md: "18px" }}
+                    color="white"
+                  />
+                </IconBox>
+              </Flex>
+            </CardBody>
+          </Card>
 
-    {/* Available Stock Card */}
-    <Card
-      minH={{ base: "65px", md: "75px" }} // Reduced height on mobile
-      cursor="pointer"
-      onClick={() => setCurrentView("stockAnalysis")}
-      border={currentView === "stockAnalysis" ? "2px solid" : "1px solid"}
-      borderColor={currentView === "stockAnalysis" ? customColor : `${customColor}30`}
-      transition="all 0.2s ease-in-out"
-      bg="white"
-      position="relative"
-      overflow="hidden"
-      _before={{
-        content: '""',
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: `linear-gradient(135deg, ${customColor}15, transparent)`,
-        opacity: 0,
-        transition: "opacity 0.2s ease-in-out",
-      }}
-      _hover={{
-        transform: { base: "none", md: "translateY(-2px)" }, 
-        shadow: { base: "none", md: "lg" },
-        _before: {
-          opacity: 1,
-        },
-        borderColor: customColor,
-      }}
-    >
-      <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}>
-        <Flex flexDirection="row" align="center" justify="center" w="100%">
-          <Stat me="auto">
-            <StatLabel
-              fontSize={{ base: "2xs", md: "xs" }} 
-              color="gray.600"
-              fontWeight="bold"
-              pb="1px"
-            >
-              Available Stock
-            </StatLabel>
-            <Flex>
-              <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
-                {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
-                  calculateTotalAvailableStock().toLocaleString()
-                }
-              </StatNumber>
-            </Flex>
-            <Text fontSize={{ base: "2xs", md: "xs" }} color="gray.500" mt={{ base: 0.5, md: 1 }}> 
-              {getLowStockProducts().length} low stock
-            </Text>
-          </Stat>
-          <IconBox 
-            as="box" 
-            h={{ base: "30px", md: "35px" }} 
-            w={{ base: "30px", md: "35px" }} 
-            bg={customColor}
+          {/* Available Stock Card */}
+          <Card
+            minH={{ base: "65px", md: "75px" }}
+            cursor="pointer"
+            onClick={() => setCurrentView("stockAnalysis")}
+            border={currentView === "stockAnalysis" ? "2px solid" : "1px solid"}
+            borderColor={currentView === "stockAnalysis" ? customColor : `${customColor}30`}
             transition="all 0.2s ease-in-out"
+            bg="white"
+            position="relative"
+            overflow="hidden"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: { base: "none", md: "translateY(-2px)" }, 
+              shadow: { base: "none", md: "lg" },
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}
           >
-            <Icon
-              as={FaChartLine}
-              h={{ base: "14px", md: "18px" }} 
-              w={{ base: "14px", md: "18px" }} 
-              color="white"
-            />
-          </IconBox>
-        </Flex>
-      </CardBody>
-    </Card>
+            <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}>
+              <Flex flexDirection="row" align="center" justify="center" w="100%">
+                <Stat me="auto">
+                  <StatLabel
+                    fontSize={{ base: "2xs", md: "xs" }} 
+                    color="gray.600"
+                    fontWeight="bold"
+                    pb="1px"
+                  >
+                    Available Stock
+                  </StatLabel>
+                  <Flex>
+                    <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
+                      {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
+                        calculateTotalAvailableStock().toLocaleString()
+                      }
+                    </StatNumber>
+                  </Flex>
+                  <Text fontSize={{ base: "2xs", md: "xs" }} color="gray.500" mt={{ base: 0.5, md: 1 }}> 
+                    {getLowStockProducts().length} low stock
+                  </Text>
+                </Stat>
+                <IconBox 
+                  as="box" 
+                  h={{ base: "30px", md: "35px" }} 
+                  w={{ base: "30px", md: "35px" }} 
+                  bg={customColor}
+                  transition="all 0.2s ease-in-out"
+                >
+                  <Icon
+                    as={FaChartLine}
+                    h={{ base: "14px", md: "18px" }} 
+                    w={{ base: "14px", md: "18px" }} 
+                    color="white"
+                  />
+                </IconBox>
+              </Flex>
+            </CardBody>
+          </Card>
 
-    {/* Stock Alerts Card */}
-    <Card
-      minH={{ base: "65px", md: "75px" }}
-      cursor="pointer"
-      onClick={() => setCurrentView("stockAlerts")}
-      border={currentView === "stockAlerts" ? "2px solid" : "1px solid"}
-      borderColor={currentView === "stockAlerts" ? customColor : `${customColor}30`}
-      transition="all 0.2s ease-in-out"
-      bg="white"
-      position="relative"
-      overflow="hidden"
-      _before={{
-        content: '""',
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: `linear-gradient(135deg, ${customColor}15, transparent)`,
-        opacity: 0,
-        transition: "opacity 0.2s ease-in-out",
-      }}
-      _hover={{
-        transform: { base: "none", md: "translateY(-2px)" }, 
-        shadow: { base: "none", md: "lg" },
-        _before: {
-          opacity: 1,
-        },
-        borderColor: customColor,
-      }}
-    >
-      <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}> 
-        <Flex flexDirection="row" align="center" justify="center" w="100%">
-          <Stat me="auto">
-            <StatLabel
-              fontSize={{ base: "2xs", md: "xs" }} 
-              color="gray.600"
-              fontWeight="bold"
-              pb="1px"
-            >
-              Stock Alerts
-            </StatLabel>
-            <Flex>
-              <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
-                {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
-                  getOutOfStockProducts().length
-                }
-              </StatNumber>
-            </Flex>
-            <Text fontSize={{ base: "2xs", md: "xs" }} color="red.500" mt={{ base: 0.5, md: 1 }}> 
-              {getOutOfStockProducts().length} out of stock
-            </Text>
-          </Stat>
-          <IconBox 
-            as="box" 
-            h={{ base: "30px", md: "35px" }} 
-            w={{ base: "30px", md: "35px" }} 
-            bg="red.500"
+          {/* Stock Alerts Card */}
+          <Card
+            minH={{ base: "65px", md: "75px" }}
+            cursor="pointer"
+            onClick={() => setCurrentView("stockAlerts")}
+            border={currentView === "stockAlerts" ? "2px solid" : "1px solid"}
+            borderColor={currentView === "stockAlerts" ? customColor : `${customColor}30`}
             transition="all 0.2s ease-in-out"
+            bg="white"
+            position="relative"
+            overflow="hidden"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: { base: "none", md: "translateY(-2px)" }, 
+              shadow: { base: "none", md: "lg" },
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}
           >
-            <Icon
-              as={FaExclamationTriangle}
-              h={{ base: "12px", md: "14px" }} 
-              w={{ base: "12px", md: "14px" }} 
-              color="white"
-            />
-          </IconBox>
-        </Flex>
-      </CardBody>
-    </Card>
-  </Grid>
-</Box>
+            <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}> 
+              <Flex flexDirection="row" align="center" justify="center" w="100%">
+                <Stat me="auto">
+                  <StatLabel
+                    fontSize={{ base: "2xs", md: "xs" }} 
+                    color="gray.600"
+                    fontWeight="bold"
+                    pb="1px"
+                  >
+                    Stock Alerts
+                  </StatLabel>
+                  <Flex>
+                    <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
+                      {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
+                        getOutOfStockProducts().length
+                      }
+                    </StatNumber>
+                  </Flex>
+                  <Text fontSize={{ base: "2xs", md: "xs" }} color="red.500" mt={{ base: 0.5, md: 1 }}> 
+                    {getOutOfStockProducts().length} out of stock
+                  </Text>
+                </Stat>
+                <IconBox 
+                  as="box" 
+                  h={{ base: "30px", md: "35px" }} 
+                  w={{ base: "30px", md: "35px" }} 
+                  bg="red.500"
+                  transition="all 0.2s ease-in-out"
+                >
+                  <Icon
+                    as={FaExclamationTriangle}
+                    h={{ base: "12px", md: "14px" }} 
+                    w={{ base: "12px", md: "14px" }} 
+                    color="white"
+                  />
+                </IconBox>
+              </Flex>
+            </CardBody>
+          </Card>
+        </Grid>
+      </Box>
 
       {/* Scrollable Table Container */}
       <Box 
@@ -1812,6 +2118,13 @@ const handleEditProduct = (product) => {
                       setSelectedCategory(null);
                       setSelectedProduct(null);
                       setNewProduct(initialProduct);
+                      setVariants([{ 
+                        color: '', 
+                        size: '', 
+                        price: '', 
+                        stock: '', 
+                        sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}` 
+                      }]);
                       setCurrentView("addProduct");
                     }
                   }}
@@ -1980,52 +2293,51 @@ const handleEditProduct = (product) => {
                                     </Badge>
                                   </Td>
                                  
-                           
-<Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
-  <Flex gap={2}>
-    <IconButton
-      aria-label="View category"
-      icon={<FaEye />}
-      bg="white"
-      color="blue.500"
-      border="1px"
-      borderColor="blue.500"
-      _hover={{ bg: "blue.500", color: "white" }}
-      size="sm"
-      onClick={() => handleViewCategory(cat)}
-    />
-    <IconButton
-      aria-label="Edit category"
-      icon={<FaEdit />}
-      bg="white"
-      color={customColor}
-      border="1px"
-      borderColor={customColor}
-      _hover={{ bg: customColor, color: "white" }}
-      size="sm"
-      onClick={() => handleEditCategory(cat)}
-    />
-    {/* Add Delete Button for Categories */}
-    <IconButton
-      aria-label="Delete category"
-      icon={<FaTrash />}
-      bg="white"
-      color="red.500"
-      border="1px"
-      borderColor="red.500"
-      _hover={{ bg: "red.500", color: "white" }}
-      size="sm"
-      onClick={() => handleDeleteCategory(cat)}
-    />
-  </Flex>
-</Td> </Tr>
+                                  <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
+                                    <Flex gap={2}>
+                                      <IconButton
+                                        aria-label="View category"
+                                        icon={<FaEye />}
+                                        bg="white"
+                                        color="blue.500"
+                                        border="1px"
+                                        borderColor="blue.500"
+                                        _hover={{ bg: "blue.500", color: "white" }}
+                                        size="sm"
+                                        onClick={() => handleViewCategory(cat)}
+                                      />
+                                      <IconButton
+                                        aria-label="Edit category"
+                                        icon={<FaEdit />}
+                                        bg="white"
+                                        color={customColor}
+                                        border="1px"
+                                        borderColor={customColor}
+                                        _hover={{ bg: customColor, color: "white" }}
+                                        size="sm"
+                                        onClick={() => handleEditCategory(cat)}
+                                      />
+                                      <IconButton
+                                        aria-label="Delete category"
+                                        icon={<FaTrash />}
+                                        bg="white"
+                                        color="red.500"
+                                        border="1px"
+                                        borderColor="red.500"
+                                        _hover={{ bg: "red.500", color: "white" }}
+                                        size="sm"
+                                        onClick={() => handleDeleteCategory(cat)}
+                                      />
+                                    </Flex>
+                                  </Td>
+                                </Tr>
                               ))
                             ) : (
                               <Tr>
                                 <Td colSpan={6} textAlign="center" py={6}>
                                   <Text fontSize="sm">
                                     {categories.length === 0
-                                      ? "No categories found."
+                                      ? "No categories found. Click 'Add Category' to create one."
                                       : categorySearch
                                       ? "No categories match your search."
                                       : "No categories available."}
@@ -2207,7 +2519,7 @@ const handleEditProduct = (product) => {
                                 borderBottom="2px solid"
                                 borderBottomColor={`${customColor}50`}
                               >
-                                Price
+                                Price Range
                               </Th>
                               <Th 
                                 color="gray.100" 
@@ -2247,7 +2559,13 @@ const handleEditProduct = (product) => {
                             {currentProducts.length > 0 ? (
                               currentProducts.map((prod, idx) => {
                                 const availableStock = calculateAvailableStock(prod);
-                                const totalStock = prod.stock || prod.variants?.[0]?.stock || 0;
+                                const totalStock = prod.variants?.reduce((sum, variant) => sum + (variant.stock || 0), 0) || 0;
+                                const prices = prod.variants?.map(v => v.price || 0) || [];
+                                const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+                                const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+                                const priceRange = minPrice === maxPrice ? 
+                                  `₹${minPrice}` : 
+                                  `₹${minPrice} - ₹${maxPrice}`;
                                 
                                 return (
                                   <Tr 
@@ -2274,11 +2592,23 @@ const handleEditProduct = (product) => {
                                       </Text>
                                     </Td>
                                     <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
-                                      ₹{prod.price || prod.variants?.[0]?.price || "-"}
+                                      {priceRange}
                                     </Td>
                                     <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
                                       <Flex direction="column" gap={1}>
                                         <StockStatusBadge product={prod} />
+                                        <Badge
+                                          colorScheme={
+                                            prod.status === "Available" ? "green" : 
+                                            prod.status === "Out of Stock" ? "orange" : "red"
+                                          }
+                                          fontSize="xs"
+                                          px={2}
+                                          py={1}
+                                          borderRadius="full"
+                                        >
+                                          {prod.status || "Available"}
+                                        </Badge>
                                         <Text fontSize="xs" color="gray.500">
                                           Total: {totalStock} | Available: {availableStock}
                                         </Text>
@@ -2308,18 +2638,17 @@ const handleEditProduct = (product) => {
                                           size="sm"
                                           onClick={() => handleEditProduct(prod)}
                                         />
-                                
-<IconButton
-  aria-label="Delete product"
-  icon={<FaTrash />}
-  bg="white"
-  color="red.500"
-  border="1px"
-  borderColor="red.500"
-  _hover={{ bg: "red.500", color: "white" }}
-  size="sm"
-  onClick={() => handleDeleteProduct(prod)}
-/>
+                                        <IconButton
+                                          aria-label="Delete product"
+                                          icon={<FaTrash />}
+                                          bg="white"
+                                          color="red.500"
+                                          border="1px"
+                                          borderColor="red.500"
+                                          _hover={{ bg: "red.500", color: "white" }}
+                                          size="sm"
+                                          onClick={() => handleDeleteProduct(prod)}
+                                        />
                                       </Flex>
                                     </Td>
                                   </Tr>
@@ -2330,7 +2659,7 @@ const handleEditProduct = (product) => {
                                 <Td colSpan={6} textAlign="center" py={6}>
                                   <Text fontSize="sm">
                                     {products.length === 0
-                                      ? "No products found."
+                                      ? "No products found. Click 'Add Product' to create one."
                                       : productSearch
                                       ? "No products match your search."
                                       : "No products available."}
@@ -2444,20 +2773,26 @@ const handleEditProduct = (product) => {
                     css={globalScrollbarStyles}
                     p={4}
                   >
-                    
-
                     {/* Available vs Total Stock Chart */}
                     <Card bg="white" shadow="sm" p={4} mb={6}>
                       <Text fontWeight="bold" color="gray.700" mb={4}>
                         Available vs Total Stock (Top 10 Products)
                       </Text>
-                      {stockChartData && (
-                        <ReactApexChart
-                          options={stockChartData.options}
-                          series={stockChartData.series}
-                          type="line"
-                          height={350}
-                        />
+                      {products.length > 0 ? (
+                        stockChartData && (
+                          <ReactApexChart
+                            options={stockChartData.options}
+                            series={stockChartData.series}
+                            type="line"
+                            height={350}
+                          />
+                        )
+                      ) : (
+                        <Center py={10}>
+                          <Text fontSize="md" color="gray.500">
+                            No products available to display stock analysis
+                          </Text>
+                        </Center>
                       )}
                     </Card>
                   </Box>
@@ -2473,20 +2808,26 @@ const handleEditProduct = (product) => {
                     css={globalScrollbarStyles}
                     p={4}
                   >
-                    
-
                     {/* Stock Alerts Chart */}
                     <Card bg="white" shadow="sm" p={4} mb={6}>
                       <Text fontWeight="bold" color="gray.700" mb={4}>
                         Stock Alerts - Low and Out of Stock Products
                       </Text>
-                      {stockAlertChartData && (
-                        <ReactApexChart
-                          options={stockAlertChartData.options}
-                          series={stockAlertChartData.series}
-                          type="line"
-                          height={350}
-                        />
+                      {products.length > 0 ? (
+                        stockAlertChartData && (
+                          <ReactApexChart
+                            options={stockAlertChartData.options}
+                            series={stockAlertChartData.series}
+                            type="line"
+                            height={350}
+                          />
+                        )
+                      ) : (
+                        <Center py={10}>
+                          <Text fontSize="md" color="gray.500">
+                            No products available to display stock alerts
+                          </Text>
+                        </Center>
                       )}
                     </Card>
                   </Box>
@@ -2517,21 +2858,6 @@ const handleEditProduct = (product) => {
                   <Text fontSize="md" mt={1}>{selectedCategory.description || "No description"}</Text>
                 </Box>
                 <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="sm">Status:</Text>
-                  <Badge
-                    bg="#9d4edd"
-                    color="white"
-                    px={2}
-                    py={1}
-                    borderRadius="full"
-                    fontSize="xs"
-                    fontWeight="bold"
-                    mt={1}
-                  >
-                    {selectedCategory.status || "Active"}
-                  </Badge>
-                </Box>
-                <Box>
                   <Text fontWeight="bold" color="gray.600" fontSize="sm">Products in this category:</Text>
                   <Text fontSize="md" mt={1}>
                     {products.filter(p => p.category?._id === selectedCategory._id || p.category === selectedCategory._id).length} products
@@ -2540,149 +2866,194 @@ const handleEditProduct = (product) => {
               </SimpleGrid>
             )}
 
-   {viewModalType === "product" && selectedProduct && (
-  <Box
-    bg={useColorModeValue("white", "gray.800")}
-    borderRadius="xl"
-    boxShadow="lg"
-    p={5}
-    w="100%"
-    maxW="480px"
-    mx="auto"
-  >
-    {/* Square Layout with Image and Details Side by Side */}
-    <Flex gap={4} mb={4}>
-      {/* Left Side - Image */}
-      <Box
-        w="140px"
-        h="140px"
-        borderRadius="lg"
-        overflow="hidden"
-        bg="gray.100"
-        flexShrink={0}
-      >
-        <Image
-          src={
-            selectedProduct.images?.[0]?.url ||
-            selectedProduct.images?.[0] ||
-            "/placeholder.png"
-          }
-          alt="product"
-          w="100%"
-          h="100%"
-          objectFit="cover"
-        />
-      </Box>
-
-      {/* Right Side - Details Grid */}
-      <Box flex="1">
-        <Text fontSize="lg" fontWeight="bold" mb={1} noOfLines={2}>
-          {selectedProduct.name}
-        </Text>
-        
-        <SimpleGrid columns={2} spacing={2} mt={2}>
-          <Box>
-            <Text fontSize="xs" color="gray.500">Category</Text>
-            <Text fontSize="sm" fontWeight="medium">
-              {selectedProduct.category?.name || "N/A"}
-            </Text>
-          </Box>
-          
-          <Box>
-            <Text fontSize="xs" color="gray.500">Price</Text>
-            <Text fontSize="sm" fontWeight="bold" color="green.600">
-              ₹{selectedProduct.price || selectedProduct.variants?.[0]?.price || "-"}
-            </Text>
-          </Box>
-          
-         <Box>
-  <Text fontSize="xs" color="gray.500">Color</Text>
-  <Text fontSize="sm">
-    {selectedProduct.variants
-      ?.map(v => v.color)
-      .filter(Boolean)
-      .join(", ") || "Default"}
-  </Text>
-</Box>
-
-<Box>
-  <Text fontSize="xs" color="gray.500">Size</Text>
-  <Text fontSize="sm">
-    {selectedProduct.variants
-      ?.map(v => v.size)
-      .filter(Boolean)
-      .join(", ") || "Default"}
-  </Text>
-</Box>
-
-        </SimpleGrid>
-      </Box>
-    </Flex>
-
-    {/* Stock Information in 2x2 Grid */}
-    <Box mb={4}>
-      <Text fontWeight="bold" color="gray.500" fontSize="sm" mb={2}>Stock Information</Text>
-      <SimpleGrid columns={2} spacing={3}>
-        <Box textAlign="center" bg={useColorModeValue("gray.50", "gray.700")} p={2} borderRadius="md">
-          <Text fontSize="xs" color="gray.500">Total Stock</Text>
-          <Text fontSize="lg" fontWeight="bold">
-            {selectedProduct.stock || selectedProduct.variants?.[0]?.stock || 0}
-          </Text>
-        </Box>
-        
-        <Box textAlign="center" bg={useColorModeValue("gray.50", "gray.700")} p={2} borderRadius="md">
-          <Text fontSize="xs" color="gray.500">Available</Text>
-          <Text fontSize="lg" fontWeight="bold" color="green.600">
-            {calculateAvailableStock(selectedProduct)}
-          </Text>
-        </Box>
-        
-       
-        
-        <Box textAlign="center" bg={useColorModeValue("gray.50", "gray.700")} p={2} borderRadius="md">
-          <Text fontSize="xs" color="gray.500">Status</Text>
-          <Box mt={1}>
-            <StockStatusBadge product={selectedProduct} />
-          </Box>
-        </Box>
-      </SimpleGrid>
-    </Box>
-
-    {/* Description */}
-    <Box mb={4}>
-      <Text fontWeight="bold" color="gray.500" fontSize="sm" mb={1}>Description</Text>
-      <Text fontSize="sm" lineHeight="1.4">
-        {selectedProduct.description || "No description available"}
-      </Text>
-    </Box>
-
-    {/* Images Grid */}
-    {selectedProduct.images && selectedProduct.images.length > 0 && (
-      <Box>
-        <Text fontWeight="bold" color="gray.500" fontSize="sm" mb={2}>Images</Text>
-        <SimpleGrid columns={4} spacing={2}>
-          {selectedProduct.images.map((img, index) => (
-            <Box
-              key={img.public_id || index}
-              borderRadius="md"
-              overflow="hidden"
-            >
-              <Image
-                src={img.url || img}
-                alt={`Image ${index + 1}`}
+            {viewModalType === "product" && selectedProduct && (
+              <Box
+                bg={useColorModeValue("white", "gray.800")}
+                borderRadius="xl"
+                boxShadow="lg"
+                p={5}
                 w="100%"
-                h="60px"
-                objectFit="cover"
-                border="1px solid"
-                borderColor="gray.200"
-              />
-            </Box>
-          ))}
-        </SimpleGrid>
-      </Box>
-    )}
-  </Box>
-)}
+                maxW="480px"
+                mx="auto"
+              >
+                {/* Square Layout with Image and Details Side by Side */}
+                <Flex gap={4} mb={4}>
+                  {/* Left Side - Image */}
+                  <Box
+                    w="140px"
+                    h="140px"
+                    borderRadius="lg"
+                    overflow="hidden"
+                    bg="gray.100"
+                    flexShrink={0}
+                  >
+                    <Image
+                      src={
+                        selectedProduct.images?.[0]?.url ||
+                        selectedProduct.images?.[0] ||
+                        "/placeholder.png"
+                      }
+                      alt="product"
+                      w="100%"
+                      h="100%"
+                      objectFit="cover"
+                    />
+                  </Box>
+
+                  {/* Right Side - Details Grid */}
+                  <Box flex="1">
+                    <Text fontSize="lg" fontWeight="bold" mb={1} noOfLines={2}>
+                      {selectedProduct.name}
+                    </Text>
+                    
+                    <SimpleGrid columns={2} spacing={2} mt={2}>
+                      <Box>
+                        <Text fontSize="xs" color="gray.500">Category</Text>
+                        <Text fontSize="sm" fontWeight="medium">
+                          {selectedProduct.category?.name || "N/A"}
+                        </Text>
+                      </Box>
+                      
+                      <Box>
+                        <Text fontSize="xs" color="gray.500">Status</Text>
+                        <Badge
+                          colorScheme={
+                            selectedProduct.status === "Available" ? "green" : 
+                            selectedProduct.status === "Out of Stock" ? "orange" : "red"
+                          }
+                          fontSize="xs"
+                          px={2}
+                          py={1}
+                        >
+                          {selectedProduct.status || "Available"}
+                        </Badge>
+                      </Box>
+                    </SimpleGrid>
+                  </Box>
+                </Flex>
+
+                {/* Variants Information */}
+                <Box mb={4}>
+                  <Text fontWeight="bold" color="gray.500" fontSize="sm" mb={2}>Product Variants</Text>
+                  {selectedProduct.variants && selectedProduct.variants.length > 0 ? (
+                    <SimpleGrid columns={1} spacing={2}>
+                      {selectedProduct.variants.map((variant, index) => (
+                        <Box 
+                          key={index}
+                          p={2}
+                          border="1px"
+                          borderColor="gray.200"
+                          borderRadius="md"
+                          bg={useColorModeValue("gray.50", "gray.700")}
+                        >
+                          <Grid templateColumns="1fr 1fr" gap={2}>
+                            <Box>
+                              <Text fontSize="xs" color="gray.500">Color</Text>
+                              <Text fontSize="sm" fontWeight="medium">{variant.color || "N/A"}</Text>
+                            </Box>
+                            <Box>
+                              <Text fontSize="xs" color="gray.500">Size</Text>
+                              <Text fontSize="sm" fontWeight="medium">{variant.size || "N/A"}</Text>
+                            </Box>
+                            <Box>
+                              <Text fontSize="xs" color="gray.500">Price</Text>
+                              <Text fontSize="sm" fontWeight="bold" color="green.600">
+                                ₹{variant.price || "N/A"}
+                              </Text>
+                            </Box>
+                            <Box>
+                              <Text fontSize="xs" color="gray.500">Stock</Text>
+                              <Text fontSize="sm" fontWeight="medium">{variant.stock || "0"}</Text>
+                            </Box>
+                            {variant.sku && (
+                              <Box colSpan={2}>
+                                <Text fontSize="xs" color="gray.500">SKU</Text>
+                                <Text fontSize="xs" fontWeight="medium">{variant.sku}</Text>
+                              </Box>
+                            )}
+                          </Grid>
+                        </Box>
+                      ))}
+                    </SimpleGrid>
+                  ) : (
+                    <Text fontSize="sm" color="gray.500">No variants available</Text>
+                  )}
+                </Box>
+
+                {/* Stock Information */}
+                <Box mb={4}>
+                  <Text fontWeight="bold" color="gray.500" fontSize="sm" mb={2}>Stock Information</Text>
+                  <SimpleGrid columns={2} spacing={3}>
+                    <Box textAlign="center" bg={useColorModeValue("gray.50", "gray.700")} p={2} borderRadius="md">
+                      <Text fontSize="xs" color="gray.500">Total Stock</Text>
+                      <Text fontSize="lg" fontWeight="bold">
+                        {selectedProduct.variants?.reduce((sum, variant) => sum + (variant.stock || 0), 0) || 0}
+                      </Text>
+                    </Box>
+                    
+                    <Box textAlign="center" bg={useColorModeValue("gray.50", "gray.700")} p={2} borderRadius="md">
+                      <Text fontSize="xs" color="gray.500">Available</Text>
+                      <Text fontSize="lg" fontWeight="bold" color="green.600">
+                        {calculateAvailableStock(selectedProduct)}
+                      </Text>
+                    </Box>
+                    
+                    <Box textAlign="center" bg={useColorModeValue("gray.50", "gray.700")} p={2} borderRadius="md" colSpan={2}>
+                      <Text fontSize="xs" color="gray.500">Status</Text>
+                      <Box mt={1}>
+                        <StockStatusBadge product={selectedProduct} />
+                        <Badge
+                          colorScheme={
+                            selectedProduct.status === "Available" ? "green" : 
+                            selectedProduct.status === "Out of Stock" ? "orange" : "red"
+                          }
+                          fontSize="xs"
+                          px={2}
+                          py={1}
+                          mt={1}
+                        >
+                          {selectedProduct.status || "Available"}
+                        </Badge>
+                      </Box>
+                    </Box>
+                  </SimpleGrid>
+                </Box>
+
+                {/* Description */}
+                <Box mb={4}>
+                  <Text fontWeight="bold" color="gray.500" fontSize="sm" mb={1}>Description</Text>
+                  <Text fontSize="sm" lineHeight="1.4">
+                    {selectedProduct.description || "No description available"}
+                  </Text>
+                </Box>
+
+                {/* Images Grid */}
+                {selectedProduct.images && selectedProduct.images.length > 0 && (
+                  <Box>
+                    <Text fontWeight="bold" color="gray.500" fontSize="sm" mb={2}>Images</Text>
+                    <SimpleGrid columns={4} spacing={2}>
+                      {selectedProduct.images.map((img, index) => (
+                        <Box
+                          key={img.public_id || index}
+                          borderRadius="md"
+                          overflow="hidden"
+                        >
+                          <Image
+                            src={img.url || img}
+                            alt={`Image ${index + 1}`}
+                            w="100%"
+                            h="60px"
+                            objectFit="cover"
+                            border="1px solid"
+                            borderColor="gray.200"
+                          />
+                        </Box>
+                      ))}
+                    </SimpleGrid>
+                  </Box>
+                )}
+              </Box>
+            )}
           </ModalBody>
           <ModalFooter>
             <Button 
@@ -2732,7 +3103,6 @@ const handleEditProduct = (product) => {
                 </Flex>
                 <Text fontSize="sm" color="orange.600">
                   This category must be empty (no products) before it can be deleted. 
-                 
                 </Text>
               </Box>
             )}

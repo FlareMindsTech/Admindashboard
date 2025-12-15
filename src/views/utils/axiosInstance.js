@@ -254,14 +254,38 @@ export const createProducts = async (productData) => {
     const token = getToken();
     const response = await fetch(`${BASE_URL}/products/create`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", token },
+      headers: { 
+        "Content-Type": "application/json", 
+        "token": token 
+      },
       body: JSON.stringify(productData),
     });
-    if (!response.ok) throw new Error(`Error: ${response.status}`);
-    return await response.json();
+    
+    console.log("Response status:", response.status);
+    
+    if (!response.ok) {
+  
+      let errorMessage = `Error: ${response.status}`;
+      
+      try {
+        const errorData = await response.json();
+
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch (e) {
+
+        const text = await response.text();
+   
+        errorMessage = text || errorMessage;
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    const data = await response.json();
+  
+    return data;
   } catch (error) {
-    console.error("Error creating product:", error);
-    throw error;
+    throw error; 
   }
 };
 
