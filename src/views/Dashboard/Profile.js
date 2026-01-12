@@ -9,7 +9,7 @@ import {
 import { FaUsers, FaBoxOpen, FaEdit, FaSignOutAlt, FaSave, FaTimes, FaChartPie } from "react-icons/fa";
 import Card from "components/Card/Card";
 import { useNavigate } from "react-router-dom";
-import { getAllAdmins, getAllProducts, getAllUsers, updateAdmin } from "../utils/axiosInstance";
+import { getAllAdmins, getAllProducts, getAllUsers,getAllOrders } from "../utils/axiosInstance";
 import ReactApexChart from 'react-apexcharts';
 
 const getInitialAdminData = () => {
@@ -61,6 +61,8 @@ const getSafeImage = (image, fallback = "https://i.pravatar.cc/150?img=32") => {
   }
   return fallback;
 };
+
+
 
 // Helper function to safely extract category
 const getSafeCategory = (category) => {
@@ -447,78 +449,6 @@ const EditAdminModal = ({ isOpen, onClose, admin, onSave }) => {
   );
 };
 
-// Profile Edit Component for Right Panel
-const ProfileEditComponent = ({ adminData, onSave, onCancel }) => {
-  const [editData, setEditData] = useState(adminData);
-
-  const handleChange = (e) => {
-    setEditData({ ...editData, [e.target.name]: e.target.value });
-  };
-
-  const handleSave = () => {
-    onSave(editData);
-  };
-
-  return (
-    <Card p={6} bg={useColorModeValue("white", "navy.800")}>
-      <Text fontSize="xl" fontWeight="bold" mb={6}>Edit Your Profile</Text>
-      <VStack spacing={4} align="stretch">
-        <FormControl>
-          <FormLabel fontSize="sm" fontWeight="medium">Name</FormLabel>
-          <Input 
-            name="name" 
-            value={editData.name} 
-            onChange={handleChange}
-            placeholder="Enter your name"
-            size="md"
-          />
-        </FormControl>
-        <FormControl>
-          <FormLabel fontSize="sm" fontWeight="medium">Email</FormLabel>
-          <Input 
-            name="email" 
-            type="email"
-            value={editData.email} 
-            onChange={handleChange}
-            placeholder="Enter your email"
-            size="md"
-          />
-        </FormControl>
-        <FormControl>
-          <FormLabel fontSize="sm" fontWeight="medium">Role</FormLabel>
-          <Input 
-            name="role" 
-            value={editData.role} 
-            onChange={handleChange}
-            placeholder="Enter your role"
-            size="md"
-          />
-        </FormControl>
-        <HStack spacing={3} mt={6}>
-          <Button 
-            flex="1" 
-            bg={"#5a189a"}
-            colorScheme="green" 
-            leftIcon={<FaSave />} 
-            onClick={handleSave}
-            size="md"
-          >
-            Save Changes
-          </Button>
-          <Button 
-            flex="1" 
-            colorScheme="gray" 
-            leftIcon={<FaTimes />} 
-            onClick={onCancel}
-            size="md"
-          >
-            Cancel
-          </Button>
-        </HStack>
-      </VStack>
-    </Card>
-  );
-};
 
 export default function AdminProfile() {
   const toast = useToast();
@@ -530,9 +460,7 @@ export default function AdminProfile() {
   const [currentView, setCurrentView] = useState("users");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   
-  // States for edit admin modal
-  const { isOpen: isEditAdminOpen, onOpen: onEditAdminOpen, onClose: onEditAdminClose } = useDisclosure();
-  const [selectedAdmin, setSelectedAdmin] = useState(null);
+ 
 
   const [currentPage, setCurrentPage] = useState(1);
   const adminsPerPage = 5;
@@ -808,20 +736,7 @@ export default function AdminProfile() {
               ))}
             </VStack>
 
-            {/* {!isSuperAdmin && (
-              <VStack spacing={2} w="100%">
-                <Button 
-                  bg={"#5a189a"}
-                  w="100%" 
-                  leftIcon={<FaEdit />} 
-                  color="white"
-                  _hover={{ bg: "#4a148c" }}
-                  onClick={() => setIsEditingProfile(true)}
-                >
-                  Edit Profile
-                </Button>
-              </VStack>
-            )} */}
+       
           </VStack>
         </Flex>
       </Card>
@@ -885,97 +800,98 @@ export default function AdminProfile() {
           </Thead>
 
           <Tbody>
-            {(isSuperAdmin ? currentAdmins : currentUsers).length > 0 ? (
-              (isSuperAdmin ? currentAdmins : currentUsers).map((person, i) => (
-                <Tr 
-                  key={i}
-                  fontSize={{ base: "sm", md: "md" }}
-                  display={{ base: "block", md: "table-row" }}
-                  borderBottom={{ base: "1px solid #eee", md: "none" }}
-                  p={{ base: 2, md: 0 }}
-                >
-                  {/* Avatar */}
-                  <Td 
-                    display="flex" 
-                    alignItems="center" 
-                    gap={3} 
-                    py={2}
-                    border="none"
-                  >
-                    <Avatar 
-                      size="sm" 
-                      name={getSafeString(person.firstName + " " + person.lastName )}
-                      bg="#5a189a"
-                      color="white"
-                    />
-                    <Box display={{ base: "block", md: "none" }}>
-                      <Text fontWeight="bold">
-                        {getSafeString(person.name)}
-                      </Text>
-                      <Text fontSize="xs" color="gray.500">
-                        {getSafeString(person.email)}
-                      </Text>
-                    </Box>
-                  </Td>
+  {(isSuperAdmin ? currentAdmins : currentUsers).length > 0 ? (
+    (isSuperAdmin ? currentAdmins : currentUsers).map((person, i) => {
+      const displayName = getSafeString(person?.name || "N/A");
 
-                  {/* Name (desktop only) */}
-                  <Td display={{ base: "none", md: "table-cell" }}>
-                    {getSafeString(person.firstName + " " + person.lastName )}
-                  </Td>
+      return (
+        <Tr
+          key={person._id || i}
+          fontSize={{ base: "sm", md: "md" }}
+          display={{ base: "block", md: "table-row" }}
+          borderBottom={{ base: "1px solid #eee", md: "none" }}
+          p={{ base: 2, md: 0 }}
+        >
+          {/* Avatar + Mobile View */}
+          <Td
+            display="flex"
+            alignItems="center"
+            gap={3}
+            py={2}
+            border="none"
+          >
+            <Avatar
+              size="sm"
+              name={displayName}
+            
+              bg="#5a189a"
+              color="white"
+            />
 
-                  {/* Email */}
-                  <Td display={{ base: "none", md: "table-cell" }}>
-                    {getSafeString(person.email)}
-                  </Td>
+            <Box display={{ base: "block", md: "none" }}>
+              <Text fontWeight="bold">{displayName}</Text>
+              <Text fontSize="xs" color="gray.500">
+                {getSafeString(person.email)}
+              </Text>
+            </Box>
+          </Td>
 
-                  {/* Role */}
-                  <Td>
-                    <Badge 
-                      colorScheme={getRoleColor(getSafeString(person.role))}
-                      px={2}
-                      py={1}
-                      borderRadius="md"
-                      fontSize="0.75rem"
-                    >
-                      {getSafeString(person.role)}
-                    </Badge>
-                  </Td>
+          {/* Name (Desktop only) */}
+          <Td display={{ base: "none", md: "table-cell" }}>
+            {displayName}
+          </Td>
 
-                  {/* Status */}
-                  <Td>
-                    <Badge 
-                      colorScheme={getStatusColor(person.status)}
-                      px={2}
-                      py={1}
-                      borderRadius="md"
-                      fontSize="0.75rem"
-                    >
-                      {getSafeString(person.status) || "Active"}
-                    </Badge>
-                  </Td>
+          {/* Email */}
+          <Td display={{ base: "none", md: "table-cell" }}>
+            {getSafeString(person.email)}
+          </Td>
 
-                  {/* Created */}
-                  <Td>
-                    {person.createdAt
-                      ? new Date(person.createdAt).toLocaleDateString()
-                      : "N/A"}
-                  </Td>
-                </Tr>
-              ))
-            ) : (
-              <Tr>
-                <Td 
-                  colSpan={6} 
-                  textAlign="center" 
-                  py={8}
-                >
-                  <Text color="gray.500">
-                    No {isSuperAdmin ? "admins" : "users"} found
-                  </Text>
-                </Td>
-              </Tr>
-            )}
-          </Tbody>
+          {/* Role */}
+          <Td>
+            <Badge
+              colorScheme={getRoleColor(getSafeString(person.role))}
+              px={2}
+              py={1}
+              borderRadius="md"
+              fontSize="0.75rem"
+            >
+              {getSafeString(person.role)}
+            </Badge>
+          </Td>
+
+          {/* Status */}
+          <Td>
+            <Badge
+              colorScheme={getStatusColor(person.status)}
+              px={2}
+              py={1}
+              borderRadius="md"
+              fontSize="0.75rem"
+            >
+              {getSafeString(person.status) || "Active"}
+            </Badge>
+          </Td>
+
+          {/* Created Date */}
+          <Td>
+            {person.createdAt
+              ? new Date(person.createdAt).toLocaleDateString()
+              : "N/A"}
+          </Td>
+        </Tr>
+      );
+    })
+  ) : (
+    <Tr>
+      <Td colSpan={6} textAlign="center" py={8}>
+        <Text color="gray.500">
+          No {isSuperAdmin ? "admins" : "users"} found
+        </Text>
+      </Td>
+    </Tr>
+  )}
+</Tbody>
+
         </Table>
 
         {/* Pagination */}
@@ -1229,15 +1145,7 @@ export default function AdminProfile() {
         )}
       </Grid>
 
-      {/* Edit Admin Modal - Only for super admin */}
-      {/* {isSuperAdmin && (
-        <EditAdminModal
-          isOpen={isEditAdminOpen}
-          onClose={onEditAdminClose}
-          admin={selectedAdmin}
-          onSave={handleSaveAdmin}
-        />
-      )} */}
+    
     </Flex>
   );
 }

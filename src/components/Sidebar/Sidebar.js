@@ -404,28 +404,26 @@ function Sidebar(props) {
               </Box>
             </Stack>
           </Box>
-    <Box
+   <Box
   textAlign="center"
-  py={{ base: "10px", md: "12px" }}
-  fontSize={{ base: "11px", sm: "12px", md: "13px" }}
+  py={{ base: "10px", md: "12px", lg: "12px" }}
+  fontSize={{ base: "11px", sm: "12px", md: "13px", lg: "13px" }}
   color="#888"
   flexShrink={0}
 >
-  <Flex 
-    align="center"
-    justify="center"
-  >
+  <Flex align="center" justify="center">
     <Text
-      fontSize={{ base: "12px", sm: "13px", md: "14px" }}
+      fontSize={{ base: "12px", sm: "13px", md: "14px", lg: "14px" }}
       display="flex"
       alignItems="center"
-      gap="6px"
+      gap={{ base: "6px", md: "6px", lg: "6px" }}
+      whiteSpace="nowrap"
     >
       Developed by
       <Image
         src={FlareMindslogo}
         alt="FlareMinds Logo"
-        boxSize={{ base: "20px", sm: "18px", md: "20px" }}
+        boxSize={{ base: "20px", sm: "18px", md: "20px", lg: "20px" }}
         objectFit="contain"
       />
       <strong>FlareMinds</strong> ❤️
