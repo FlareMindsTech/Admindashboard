@@ -47,11 +47,12 @@ import {
 } from "@chakra-ui/react";
 
 import { FaSearch, FaChevronLeft, FaChevronRight, FaArrowLeft, FaTimes,  FaEye, FaCheckCircle } from "react-icons/fa";
-import { FiMoreVertical, FiEye, FiDownload, FiUser, FiCalendar, FiTruck } from "react-icons/fi";
+import { FiMoreVertical, FiEye, FiDownload, FiUser, FiCalendar, FiTruck, FiPrinter } from "react-icons/fi";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdCategory } from "react-icons/md";
 
 import { getAllOrders, updateOrders } from "../utils/axiosInstance";
+import logo from "../../assets/img/LABEL AADVI-10.png";
 
 // Lightweight presentational Card components so this file is self-contained.
 const Card = ({ children, ...props }) => <Box borderRadius="12px" p={0} {...props}>{children}</Box>;
@@ -522,6 +523,113 @@ const updateOrderStatus = async (status) => {
         isClosable: true,
       });
     }
+  };
+
+  const handlePrint = () => {
+    if (!selectedOrder) return;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast({
+        title: "Error",
+        description: "Please allow popups to print the bill.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    const orderId = safeGet(selectedOrder, "_id", "—");
+    const date = new Date(safeGet(selectedOrder, "createdAt", Date.now())).toLocaleString();
+    const customerEmail = safeGet(selectedOrder, "user.email", "—");
+    const items = safeGet(selectedOrder, "orderItems", []);
+    const total = formatINR(safeGet(selectedOrder, "total_amount", 0));
+    
+    const address = safeGet(selectedOrder, "address", {});
+    const customerName = safeGet(selectedOrder, "user.name", "Customer");
+    const customerPhone = safeGet(selectedOrder, "user.phone", "");
+    
+    // Mini bill CSS for thermal printers (approx 80mm / 300px width)
+    const styles = `
+      <style>
+        body { font-family: 'Courier New', Courier, monospace; width: 300px; margin: 0 auto; padding: 10px; color: #000; font-size: 14px; }
+        .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; display: flex; flex-direction: column; align-items: center; }
+        .logo { max-width: 150px; margin-bottom: 10px; }
+        .title { font-size: 1.4em; font-weight: bold; margin-bottom: 5px; }
+        .info { font-size: 1em; margin-bottom: 3px; width: 100%; text-align: left; }
+        .address-section { margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 10px; text-align: left; }
+        .address-title { font-weight: bold; font-size: 1.1em; margin-bottom: 3px; }
+        .address-text { font-weight: bold; font-size: 1em; line-height: 1.2; }
+        .items { border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+        .item { display: flex; justify-content: space-between; font-size: 1em; margin-bottom: 5px; }
+        .item-name { flex: 1; padding-right: 10px; text-align: left; }
+        .item-price { white-space: nowrap; text-align: right; }
+        .total { font-weight: bold; text-align: right; font-size: 1.2em; margin-top: 5px; }
+        .footer { margin-top: 20px; text-align: center; font-size: 0.8em; }
+      </style>
+    `;
+
+    const itemsHtml = items.map(item => `
+      <div class="item">
+        <span class="item-name">${safeGet(item, "product.name", "Item")} x${safeGet(item, "quantity", 1)}</span>
+        <span class="item-price">${formatINR(safeGet(item, "price", 0) * safeGet(item, "quantity", 1))}</span>
+      </div>
+    `).join("");
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Bill - ${orderId}</title>
+          ${styles}
+        </head>
+        <body>
+          <div class="header">
+            <img src="${logo}" alt="Label Aadvi" class="logo" />
+            <div class="title">LABEL AADVI</div>
+            <div class="info">Order: ${orderId}</div>
+            <div class="info">Date: ${date}</div>
+          </div>
+
+          <div class="address-section">
+            <div class="address-title">From:</div>
+            <div class="address-text">
+              Label Aadvi<br/>
+              Address: No.1, near Thangalakshmi Jewellery, Palladam, Tamil Nadu 641664<br/>
+              Phone: +91 8807427126
+            </div>
+          </div>
+
+          <div class="address-section">
+            <div class="address-title">To:</div>
+            <div class="address-text">
+              ${customerEmail}<br/> Address:
+              ${safeGet(address, "street", "")} ${safeGet(address, "city", "")}<br/>
+              ${safeGet(address, "state", "")} - ${safeGet(address, "pincode", "")}<br/>
+              ${safeGet(address, "country", "")}
+            </div>
+          </div>
+
+          <div class="items">
+            ${itemsHtml}
+          </div>
+          <div class="total">
+            Total: ${total}
+          </div>
+          <div class="footer">
+            Thank you for shopping with us!
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Print after a short delay to ensure rendering
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
   };
 
   useEffect(() => {
@@ -1500,15 +1608,6 @@ const updateOrderStatus = async (status) => {
 {selectedOrder.status != "confirmed" ? <></> : 
 <HStack spacing={3} justify="space-between" flexWrap="wrap">
 
-  {/* <VStack align="start" spacing={1}>
-    <Text fontSize="md" fontWeight="semibold">Shipping Date</Text>
-    <Text fontSize="sm" color="gray.600">
-      {selectedOrder?.shipmentUpdatedAt
-        ? new Date(selectedOrder.shipmentUpdatedAt).toLocaleDateString()
-        : "Not Assigned"}
-    </Text>
-  </VStack> */}
-
 <HStack justify="space-between" spacing={4}>
   <Text fontWeight="semibold" fontSize="md">Order Status</Text>
 
@@ -1567,8 +1666,17 @@ const updateOrderStatus = async (status) => {
     color="white" 
     onClick={markAsDelivered}>Mark Delivered</Button>
 
+
+
+
 </HStack> 
 }
+
+{(selectedOrder.status === "confirmed" || selectedOrder.status === "delivered") && (
+  <Button leftIcon={<FiPrinter />} colorScheme="blue" mr={3} onClick={handlePrint}>
+      Print Bill
+  </Button>
+)}
 
 
 
@@ -1583,7 +1691,11 @@ const updateOrderStatus = async (status) => {
             )}
           </ModalBody>
 
-          <ModalFooter><Button onClick={closeModal}>Close</Button></ModalFooter>
+          <ModalFooter>
+
+
+            <Button onClick={closeModal}>Close</Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
     </Flex>
