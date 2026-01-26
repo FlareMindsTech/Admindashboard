@@ -50,15 +50,16 @@ import {
   FaEye,
   FaEyeSlash,
   FaTrash,
+  FaShoppingBag,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
-import { MdAdminPanelSettings, MdPerson } from "react-icons/md";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 import {
   getAllUsers,
   updateUser,
   createUser,
   deleteUser,
+  getAllOrders,
 } from "views/utils/axiosInstance";
 
 // Main User Management Component
@@ -176,27 +177,51 @@ function UserManagement() {
       setTableLoading(true);
       setDataLoaded(false);
       try {
-        const response = await getAllUsers();
-        console.log("Fetched users response:", response);
-        
+        const [usersResponse, ordersResponse] = await Promise.all([
+          getAllUsers(),
+          getAllOrders()
+        ]);
+
         // Handle different response formats
-        const users = response.data?.users || response.data || response?.users || response || [];
+        const users = usersResponse.data?.users || usersResponse.data || usersResponse?.users || usersResponse || [];
+        const allOrders = ordersResponse.data?.orders || ordersResponse.data || ordersResponse?.orders || ordersResponse || [];
 
         // Sort users in alphabetical order by first name, then last name
         const sortedUsers = users.sort((a, b) => {
           const nameA = `${a.firstName || ''} ${a.lastName || ''}`.toLowerCase().trim();
           const nameB = `${b.firstName || ''} ${b.lastName || ''}`.toLowerCase().trim();
-          
+
           // If names are the same, sort by email as fallback
           if (nameA === nameB) {
             return (a.email || '').toLowerCase().localeCompare((b.email || '').toLowerCase());
           }
-          
+
           return nameA.localeCompare(nameB);
         });
 
-        setUserData(sortedUsers);
-        setFilteredData(sortedUsers);
+        // Enrich users with order data
+        const usersWithOrders = sortedUsers.map(user => {
+          const userOrders = allOrders.filter(order =>
+            (order.user && (order.user._id === user._id || order.user.email === user.email))
+          );
+
+          const successfulOrders = userOrders.filter(order => {
+            const payment = order.payment || order.payment_response || order.paymentResponse;
+            return payment?.status === 'success' || order.status === 'delivered';
+          });
+
+          const totalPaid = successfulOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+
+          return {
+            ...user,
+            orderCount: userOrders.length,
+            successOrderCount: successfulOrders.length,
+            totalPaid: totalPaid
+          };
+        });
+
+        setUserData(usersWithOrders);
+        setFilteredData(usersWithOrders);
         setDataLoaded(true);
       } catch (err) {
         console.error("Error fetching users:", err);
@@ -239,8 +264,8 @@ function UserManagement() {
         case "Inactive":
           filtered = userData.filter((user) => user.status === "Inactive");
           break;
-        case "verified":
-          filtered = userData.filter((user) => user.isVerified === true);
+        case "successOrders":
+          filtered = userData.filter((user) => (user.successOrderCount || 0) > 0);
           break;
         default:
           filtered = userData;
@@ -250,23 +275,21 @@ function UserManagement() {
       if (searchTerm.trim() !== "") {
         filtered = filtered.filter(
           (user) =>
-            `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (user.name || `${user.firstName || ""} ${user.lastName || ""}`).toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (user.role && user.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (user.status && user.status.toLowerCase().includes(searchTerm.toLowerCase()))
+            user.phone?.toLowerCase().includes(searchTerm.toLowerCase())
         );
       }
 
       // Maintain alphabetical order after filtering
       const sortedFilteredData = filtered.sort((a, b) => {
-        const nameA = `${a.firstName || ''} ${a.lastName || ''}`.toLowerCase().trim();
-        const nameB = `${b.firstName || ''} ${b.lastName || ''}`.toLowerCase().trim();
-        
+        const nameA = (a.name || `${a.firstName || ''} ${a.lastName || ''}`).toLowerCase().trim();
+        const nameB = (b.name || `${b.firstName || ''} ${b.lastName || ''}`).toLowerCase().trim();
+
         if (nameA === nameB) {
           return (a.email || '').toLowerCase().localeCompare((b.email || '').toLowerCase());
         }
-        
+
         return nameA.localeCompare(nameB);
       });
 
@@ -336,7 +359,7 @@ function UserManagement() {
     setDeleteLoading(true);
     try {
       await deleteUser(userToDelete._id);
-      
+
       toast({
         title: "User Deleted",
         description: `User ${userToDelete.firstName} ${userToDelete.lastName} has been deleted successfully.`,
@@ -348,30 +371,56 @@ function UserManagement() {
       // Refresh user list with alphabetical sorting
       const fetchUsers = async () => {
         try {
-          const usersResponse = await getAllUsers();
+          const [usersResponse, ordersResponse] = await Promise.all([
+            getAllUsers(),
+            getAllOrders()
+          ]);
+
           const users = usersResponse.data?.users || usersResponse.data || usersResponse?.users || usersResponse || [];
-          
+          const allOrders = ordersResponse.data?.orders || ordersResponse.data || ordersResponse?.orders || ordersResponse || [];
+
           // Sort users in alphabetical order
           const sortedUsers = users.sort((a, b) => {
             const nameA = `${a.firstName || ''} ${a.lastName || ''}`.toLowerCase().trim();
             const nameB = `${b.firstName || ''} ${b.lastName || ''}`.toLowerCase().trim();
-            
+
             if (nameA === nameB) {
               return (a.email || '').toLowerCase().localeCompare((b.email || '').toLowerCase());
             }
-            
+
             return nameA.localeCompare(nameB);
           });
 
-          setUserData(sortedUsers);
-          setFilteredData(sortedUsers);
+          // Enrich users with order data
+          const usersWithOrders = sortedUsers.map(user => {
+            const userOrders = allOrders.filter(order =>
+              (order.user && (order.user._id === user._id || order.user.email === user.email))
+            );
+
+            const successfulOrders = userOrders.filter(order => {
+              const payment = order.payment || order.payment_response || order.paymentResponse;
+              return payment?.status === 'success' || order.status === 'delivered';
+            });
+
+            const totalPaid = successfulOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+
+            return {
+              ...user,
+              orderCount: userOrders.length,
+              successOrderCount: successfulOrders.length,
+              totalPaid: totalPaid
+            };
+          });
+
+          setUserData(usersWithOrders);
+          setFilteredData(usersWithOrders);
         } catch (err) {
           console.error("Error refreshing users:", err);
         }
       };
 
       await fetchUsers();
-      
+
     } catch (err) {
       console.error("Error deleting user:", err);
       const errorMessage = err.response?.data?.message || err.message || "Failed to delete user.";
@@ -501,23 +550,49 @@ function UserManagement() {
       // Refresh user list with alphabetical sorting
       const fetchUsers = async () => {
         try {
-          const usersResponse = await getAllUsers();
+          const [usersResponse, ordersResponse] = await Promise.all([
+            getAllUsers(),
+            getAllOrders()
+          ]);
+
           const users = usersResponse.data?.users || usersResponse.data || usersResponse?.users || usersResponse || [];
-          
+          const allOrders = ordersResponse.data?.orders || ordersResponse.data || ordersResponse?.orders || ordersResponse || [];
+
           // Sort users in alphabetical order
           const sortedUsers = users.sort((a, b) => {
             const nameA = `${a.firstName || ''} ${a.lastName || ''}`.toLowerCase().trim();
             const nameB = `${b.firstName || ''} ${b.lastName || ''}`.toLowerCase().trim();
-            
+
             if (nameA === nameB) {
               return (a.email || '').toLowerCase().localeCompare((b.email || '').toLowerCase());
             }
-            
+
             return nameA.localeCompare(nameB);
           });
 
-          setUserData(sortedUsers);
-          setFilteredData(sortedUsers);
+          // Enrich users with order data
+          const usersWithOrders = sortedUsers.map(user => {
+            const userOrders = allOrders.filter(order =>
+              (order.user && (order.user._id === user._id || order.user.email === user.email))
+            );
+
+            const successfulOrders = userOrders.filter(order => {
+              const payment = order.payment || order.payment_response || order.paymentResponse;
+              return payment?.status === 'success' || order.status === 'delivered';
+            });
+
+            const totalPaid = successfulOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+
+            return {
+              ...user,
+              orderCount: userOrders.length,
+              successOrderCount: successfulOrders.length,
+              totalPaid: totalPaid
+            };
+          });
+
+          setUserData(usersWithOrders);
+          setFilteredData(usersWithOrders);
         } catch (err) {
           console.error("Error refreshing users:", err);
         }
@@ -526,7 +601,7 @@ function UserManagement() {
       await fetchUsers();
 
       setSuccess(successMessage);
-      
+
       // Reset form and go back to list
       setFormData({
         firstName: "",
@@ -582,15 +657,6 @@ function UserManagement() {
     }
   };
 
-  // Get verification badge
-  const getVerificationBadge = (isVerified) => {
-    if (isVerified) {
-      return { text: "Verified", color: "green" };
-    } else {
-      return { text: "Not Verified", color: "red" };
-    }
-  };
-
   // Card click handlers
   const handleCardClick = (filterType) => {
     setActiveFilter(filterType);
@@ -624,10 +690,10 @@ function UserManagement() {
   // Render Form View (Add/Edit)
   if (currentView === "add" || currentView === "edit") {
     return (
-      <Flex 
-        flexDirection="column" 
-        pt={{ base: "120px", md: "75px" }} 
-        height="100vh" 
+      <Flex
+        flexDirection="column"
+        pt={{ base: "120px", md: "75px" }}
+        height="100vh"
         overflow="auto"
         css={{
           '&::-webkit-scrollbar': {
@@ -702,7 +768,7 @@ function UserManagement() {
                 {success}
               </Text>
             )}
-            
+
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
               <FormControl isRequired>
                 <FormLabel htmlFor="firstName" color="gray.700">First Name</FormLabel>
@@ -718,7 +784,7 @@ function UserManagement() {
                   bg="white"
                 />
               </FormControl>
-              
+
               <FormControl isRequired>
                 <FormLabel htmlFor="lastName" color="gray.700">Last Name</FormLabel>
                 <Input
@@ -751,7 +817,7 @@ function UserManagement() {
                   bg="white"
                 />
               </FormControl>
-              
+
               <FormControl>
                 <FormLabel htmlFor="phone" color="gray.700">Phone</FormLabel>
                 <Input
@@ -868,9 +934,9 @@ function UserManagement() {
             </SimpleGrid>
 
             <Flex justify="flex-end" mt={6} flexShrink={0}>
-              <Button 
-                variant="outline" 
-                mr={3} 
+              <Button
+                variant="outline"
+                mr={3}
                 onClick={handleBackToList}
                 border="1px"
                 borderColor="gray.300"
@@ -896,11 +962,12 @@ function UserManagement() {
   // Render List View with Fixed Layout
   return (
     <>
-      <Flex 
-        flexDirection="column" 
-        pt={{ base: "5px", md: "45px" }} 
-        height="100vh" 
-        overflow="auto"
+      <Flex
+        flexDirection="column"
+        pt={{ base: "140px", md: "75px" }}
+        height={{ base: "auto", lg: "100vh" }}
+        minHeight="100vh"
+        overflowY="auto"
         css={{
           '&::-webkit-scrollbar': {
             width: '8px',
@@ -931,32 +998,10 @@ function UserManagement() {
         {/* Fixed Statistics Cards */}
         <Box mb="24px">
           {/* Horizontal Cards Container */}
-          <Flex
-            direction="row"
-            wrap="wrap"
-            justify="center"
-            gap={{ base: 3, md: 4 }}
-            overflowX="auto"
-            py={2}
-            css={{
-              '&::-webkit-scrollbar': {
-                height: '6px',
-              },
-              '&::-webkit-scrollbar-track': {
-                background: 'transparent',
-              },
-              '&::-webkit-scrollbar-thumb': {
-                background: 'transparent',
-                borderRadius: '3px',
-                transition: 'background 0.3s ease',
-              },
-              '&:hover::-webkit-scrollbar-thumb': {
-                background: '#cbd5e1',
-              },
-              '&:hover::-webkit-scrollbar-thumb:hover': {
-                background: '#94a3b8',
-              },
-            }}
+          <SimpleGrid
+            columns={{ base: 1, sm: 2, lg: 3 }}
+            spacing={{ base: 3, md: 4 }}
+            w="100%"
           >
             {/* Total Users Card */}
             <Card
@@ -969,9 +1014,7 @@ function UserManagement() {
               bg="white"
               position="relative"
               overflow="hidden"
-              w={{ base: "32%", md: "30%", lg: "25%" }}
-              minW="100px"
-              flex="1"
+              w="100%"
               _before={{
                 content: '""',
                 position: "absolute",
@@ -994,12 +1037,13 @@ function UserManagement() {
             >
               <CardBody position="relative" zIndex={1} p={{ base: 3, md: 4 }}>
                 <Flex flexDirection="row" align="center" justify="space-between" w="100%">
-                  <Stat me="auto">
+                  <Stat me="2">
                     <StatLabel
                       fontSize={{ base: "sm", md: "md" }}
                       color="gray.600"
                       fontWeight="bold"
                       pb="0px"
+                      lineHeight="1.2"
                     >
                       Total Users
                     </StatLabel>
@@ -1038,9 +1082,7 @@ function UserManagement() {
               bg="white"
               position="relative"
               overflow="hidden"
-              w={{ base: "32%", md: "30%", lg: "25%" }}
-              minW="100px"
-              flex="1"
+              w="100%"
               _before={{
                 content: '""',
                 position: "absolute",
@@ -1063,12 +1105,13 @@ function UserManagement() {
             >
               <CardBody position="relative" zIndex={1} p={{ base: 3, md: 4 }}>
                 <Flex flexDirection="row" align="center" justify="space-between" w="100%">
-                  <Stat me="auto">
+                  <Stat me="2">
                     <StatLabel
                       fontSize={{ base: "sm", md: "md" }}
                       color="gray.600"
                       fontWeight="bold"
                       pb="2px"
+                      lineHeight="1.2"
                     >
                       Active Users
                     </StatLabel>
@@ -1078,10 +1121,10 @@ function UserManagement() {
                       </StatNumber>
                     </Flex>
                   </Stat>
-                  <IconBox 
-                    as="box" 
-                    h={{ base: "35px", md: "45px" }} 
-                    w={{ base: "35px", md: "45px" }} 
+                  <IconBox
+                    as="box"
+                    h={{ base: "35px", md: "45px" }}
+                    w={{ base: "35px", md: "45px" }}
                     bg={customColor}
                     transition="all 0.2s ease-in-out"
                     _groupHover={{
@@ -1099,20 +1142,18 @@ function UserManagement() {
               </CardBody>
             </Card>
 
-            {/* Verified Users Card */}
+            {/* Successful Orders Card */}
             <Card
               minH="83px"
               cursor="pointer"
-              onClick={() => handleCardClick("verified")}
-              border={activeFilter === "verified" ? "2px solid" : "1px solid"}
-              borderColor={activeFilter === "verified" ? customColor : `${customColor}30`}
+              onClick={() => handleCardClick("successOrders")}
+              border={activeFilter === "successOrders" ? "2px solid" : "1px solid"}
+              borderColor={activeFilter === "successOrders" ? customColor : `${customColor}30`}
               transition="all 0.2s ease-in-out"
               bg="white"
               position="relative"
               overflow="hidden"
-              w={{ base: "32%", md: "30%", lg: "25%" }}
-              minW="100px"
-              flex="1"
+              w="100%"
               _before={{
                 content: '""',
                 position: "absolute",
@@ -1135,25 +1176,26 @@ function UserManagement() {
             >
               <CardBody position="relative" zIndex={1} p={{ base: 3, md: 4 }}>
                 <Flex flexDirection="row" align="center" justify="space-between" w="100%">
-                  <Stat me="auto">
+                  <Stat me="2">
                     <StatLabel
                       fontSize={{ base: "sm", md: "md" }}
                       color="gray.600"
                       fontWeight="bold"
                       pb="2px"
+                      lineHeight="1.2"
                     >
-                      Verified Users
+                      Successful Orders Users
                     </StatLabel>
                     <Flex>
                       <StatNumber fontSize={{ base: "lg", md: "xl" }} color={textColor}>
-                        {userData.filter((a) => a.isVerified === true).length}
+                        {userData.filter((a) => (a.successOrderCount || 0) > 0).length}
                       </StatNumber>
                     </Flex>
                   </Stat>
-                  <IconBox 
-                    as="box" 
-                    h={{ base: "35px", md: "45px" }} 
-                    w={{ base: "35px", md: "45px" }} 
+                  <IconBox
+                    as="box"
+                    h={{ base: "35px", md: "45px" }}
+                    w={{ base: "35px", md: "45px" }}
                     bg={customColor}
                     transition="all 0.2s ease-in-out"
                     _groupHover={{
@@ -1161,7 +1203,7 @@ function UserManagement() {
                     }}
                   >
                     <Icon
-                      as={MdPerson}
+                      as={FaShoppingBag}
                       h={{ base: "18px", md: "24px" }}
                       w={{ base: "18px", md: "24px" }}
                       color="white"
@@ -1170,7 +1212,7 @@ function UserManagement() {
                 </Flex>
               </CardBody>
             </Card>
-          </Flex>
+          </SimpleGrid>
 
           {/* Success/Error Message Display */}
           {error && (
@@ -1205,7 +1247,7 @@ function UserManagement() {
             <Text fontSize="lg" fontWeight="bold" color={textColor}>
               {activeFilter === "Active" && "Active Users"}
               {activeFilter === "Inactive" && "Inactive Users"}
-              {activeFilter === "verified" && "Verified Users"}
+              {activeFilter === "successOrders" && "Successful Order Users"}
               {activeFilter === "all" && "All Users"}
             </Text>
             {activeFilter !== "all" && (
@@ -1225,28 +1267,28 @@ function UserManagement() {
         </Box>
 
         {/* Table Container - Removed background box */}
-        <Box 
-          mt={-8}
-          flex="1" 
-          display="flex" 
-          flexDirection="column" 
+        <Box
+          mt={{ base: "0px", md: "-32px" }}
+          flex="1"
+          display="flex"
+          flexDirection="column"
           p={2}
           pt={0}
           overflow="hidden"
         >
           {/* Table Card with transparent background */}
-          <Card 
-            shadow="xl" 
+          <Card
+            shadow="xl"
             bg="transparent"
-            display="flex" 
+            display="flex"
             flexDirection="column"
             height="100%"
             minH="0"
             border="none"
           >
             {/* Table Header */}
-            <CardHeader 
-              p="5px" 
+            <CardHeader
+              p="5px"
               pb="5px"
               bg="transparent"
               flexShrink={0}
@@ -1262,7 +1304,7 @@ function UserManagement() {
                 {/* Search Bar */}
                 <Flex align="center" flex="1" maxW="400px">
                   <Input
-                    placeholder="Search by name, email, phone, or role..."
+                    placeholder="Search by name, email, or phone..."
                     value={searchTerm}
                     onChange={handleSearchChange}
                     size="sm"
@@ -1274,9 +1316,9 @@ function UserManagement() {
                   />
                   <Icon as={FaSearch} color="gray.400" />
                   {searchTerm && (
-                    <Button 
-                      size="sm" 
-                      ml={2} 
+                    <Button
+                      size="sm"
+                      ml={2}
                       onClick={handleClearSearch}
                       bg="white"
                       color={customColor}
@@ -1303,14 +1345,14 @@ function UserManagement() {
                 </Button> */}
               </Flex>
             </CardHeader>
-            
+
             {/* Table Content Area - Scrollable Body with Fixed Header */}
-            <CardBody 
+            <CardBody
               bg="transparent"
-              flex="1" 
-              display="flex" 
-              flexDirection="column" 
-              p={0} 
+              flex="1"
+              display="flex"
+              flexDirection="column"
+              p={0}
               overflow="hidden"
             >
               {tableLoading ? (
@@ -1323,49 +1365,51 @@ function UserManagement() {
                   {currentItems.length > 0 ? (
                     <>
                       {/* Fixed Table Container - Exact height for 5 rows */}
-                      <Box 
+                      <Box
                         flex="1"
                         display="flex"
                         flexDirection="column"
-                        height="400px" // Fixed height for exactly 5 rows
+                        height="auto"
+                        minH="0"
                         overflow="hidden"
                       >
                         {/* Scrollable Table Area */}
                         <Box
                           flex="1"
-                          overflowY="hidden"
-                          overflowX="hidden"
-                          _hover={{
-                            overflowY: "auto",
-                            overflowX: "auto",
-                          }}
+                          overflowY="auto"
+                          overflowX="auto"
                           css={{
                             '&::-webkit-scrollbar': {
-                              width: '8px',
-                              height: '8px',
+                              width: '4px',
+                              height: '4px',
                             },
                             '&::-webkit-scrollbar-track': {
                               background: 'transparent',
                             },
                             '&::-webkit-scrollbar-thumb': {
-                              background: 'transparent',
-                              borderRadius: '4px',
-                              transition: 'background 0.3s ease',
+                              background: 'rgba(0,0,0,0.1)',
+                              borderRadius: '10px',
+                            },
+                            '@media screen and (max-width: 768px)': {
+                              '&::-webkit-scrollbar': {
+                                width: '2px',
+                                height: '2px',
+                              },
+                              '&::-webkit-scrollbar-thumb': {
+                                background: 'rgba(0,0,0,0.2)',
+                              },
                             },
                             '&:hover::-webkit-scrollbar-thumb': {
-                              background: '#cbd5e1',
-                            },
-                            '&:hover::-webkit-scrollbar-thumb:hover': {
-                              background: '#94a3b8',
+                              background: 'rgba(0,0,0,0.2)',
                             },
                           }}
                         >
-                          <Table variant="simple" size="md" bg="transparent">
+                          <Table variant="simple" size={{ base: "sm", md: "md" }} bg="transparent" minW={{ base: "800px", lg: "100%" }}>
                             {/* Fixed Header */}
                             <Thead>
                               <Tr>
-                                <Th 
-                                  color="gray.100" 
+                                <Th
+                                  color="gray.100"
                                   borderColor={`${customColor}30`}
                                   position="sticky"
                                   top={0}
@@ -1377,10 +1421,10 @@ function UserManagement() {
                                   borderBottom="2px solid"
                                   borderBottomColor={`${customColor}50`}
                                 >
-                                  User 
+                                  User
                                 </Th>
-                                <Th 
-                                  color="gray.100" 
+                                <Th
+                                  color="gray.100"
                                   borderColor={`${customColor}30`}
                                   position="sticky"
                                   top={0}
@@ -1394,8 +1438,8 @@ function UserManagement() {
                                 >
                                   Contact
                                 </Th>
-                                <Th 
-                                  color="gray.100" 
+                                <Th
+                                  color="gray.100"
                                   borderColor={`${customColor}30`}
                                   position="sticky"
                                   top={0}
@@ -1407,10 +1451,10 @@ function UserManagement() {
                                   borderBottom="2px solid"
                                   borderBottomColor={`${customColor}50`}
                                 >
-                                  Role
+                                  {activeFilter === "successOrders" ? "Success Orders" : "Total Orders"}
                                 </Th>
-                                <Th 
-                                  color="gray.100" 
+                                <Th
+                                  color="gray.100"
                                   borderColor={`${customColor}30`}
                                   position="sticky"
                                   top={0}
@@ -1422,10 +1466,10 @@ function UserManagement() {
                                   borderBottom="2px solid"
                                   borderBottomColor={`${customColor}50`}
                                 >
-                                  Status
+                                  Total Payment
                                 </Th>
-                                <Th 
-                                  color="gray.100" 
+                                <Th
+                                  color="gray.100"
                                   borderColor={`${customColor}30`}
                                   position="sticky"
                                   top={0}
@@ -1448,7 +1492,7 @@ function UserManagement() {
                                 // Handle empty rows
                                 if (user.isEmpty) {
                                   return (
-                                    <Tr 
+                                    <Tr
                                       key={user._id}
                                       bg="transparent"
                                       height="60px"
@@ -1460,10 +1504,8 @@ function UserManagement() {
                                   );
                                 }
 
-                                const statusColors = getStatusColor(user.status);
-                                const verification = getVerificationBadge(user.isVerified);
                                 return (
-                                  <Tr 
+                                  <Tr
                                     key={user._id || index}
                                     bg="transparent"
                                     _hover={{ bg: `${customColor}10` }}
@@ -1473,55 +1515,46 @@ function UserManagement() {
                                   >
                                     <Td borderColor={`${customColor}20`}>
                                       <Flex align="center">
-                                        <Avatar
-                                          size="sm"
-                                          name={`${user.firstName} ${user.lastName}`}
-                                          src={user.profileImage}
-                                          mr={3}
-                                        />
-                                        <Box>
-                                          <Text fontWeight="medium">{`${user.firstName} ${user.lastName}`}</Text>
-                                          <Text fontSize="sm" color="gray.600">
-                                            {user.email}
-                                          </Text>
-                                        </Box>
+                                        {(() => {
+                                          const userName = (user.firstName || user.lastName) ?
+                                            `${user.firstName || ""} ${user.lastName || ""}`.trim() :
+                                            (user.name || "Unknown User");
+                                          return (
+                                            <>
+                                              <Avatar
+                                                size="sm"
+                                                name={userName}
+                                                src={user.profileImage}
+                                                mr={3}
+                                              />
+                                              <Box>
+                                                <Text fontWeight="medium">{userName}</Text>
+                                                <Text fontSize="sm" color="gray.600">
+                                                  {user.email}
+                                                </Text>
+                                              </Box>
+                                            </>
+                                          );
+                                        })()}
                                       </Flex>
                                     </Td>
                                     <Td borderColor={`${customColor}20`}>
                                       <Box>
-                                        <Text>{user.email}</Text>
+                                        {/* <Text>{user.email}</Text> */}
                                         <Text fontSize="sm" color="gray.600">
                                           {user.phone || "No phone"}
                                         </Text>
                                       </Box>
                                     </Td>
                                     <Td borderColor={`${customColor}20`}>
-                                      <Badge
-                                        colorScheme={
-                                          user.role === "super admin" ? "purple" :
-                                          user.role === "admin" ? "blue" : "gray"
-                                        }
-                                        px={3}
-                                        py={1}
-                                        borderRadius="full"
-                                        fontSize="sm"
-                                        fontWeight="bold"
-                                      >
-                                        {user.role || "user"}
-                                      </Badge>
+                                      <Text fontWeight="bold">
+                                        {activeFilter === "successOrders" ? (user.successOrderCount || 0) : (user.orderCount || 0)}
+                                      </Text>
                                     </Td>
                                     <Td borderColor={`${customColor}20`}>
-                                      <Badge
-                                        bg={statusColors.bg}
-                                        color={statusColors.color}
-                                        px={3}
-                                        py={1}
-                                        borderRadius="full"
-                                        fontSize="sm"
-                                        fontWeight="bold"
-                                      >
-                                        {user.status || "Active"}
-                                      </Badge>
+                                      <Text fontWeight="bold" color="green.500">
+                                        ₹{(user.totalPaid || 0).toLocaleString('en-IN')}
+                                      </Text>
                                     </Td>
                                     <Td borderColor={`${customColor}20`}>
                                       <Flex gap={2}>
@@ -1559,7 +1592,7 @@ function UserManagement() {
 
                       {/* Pagination Bar - Positioned at bottom right corner */}
                       {currentItems.length > 0 && (
-                        <Box 
+                        <Box
                           flexShrink={0}
                           p="16px"
                           borderTop="1px solid"
@@ -1588,8 +1621,8 @@ function UserManagement() {
                                 border="1px"
                                 borderColor={customColor}
                                 _hover={{ bg: customColor, color: "white" }}
-                                _disabled={{ 
-                                  opacity: 0.5, 
+                                _disabled={{
+                                  opacity: 0.5,
                                   cursor: "not-allowed",
                                   bg: "gray.100",
                                   color: "gray.400",
@@ -1600,8 +1633,8 @@ function UserManagement() {
                               </Button>
 
                               {/* Page Number Display */}
-                              <Flex 
-                                align="center" 
+                              <Flex
+                                align="center"
                                 gap={2}
                                 bg={`${customColor}10`}
                                 px={3}
@@ -1631,8 +1664,8 @@ function UserManagement() {
                                 border="1px"
                                 borderColor={customColor}
                                 _hover={{ bg: customColor, color: "white" }}
-                                _disabled={{ 
-                                  opacity: 0.5, 
+                                _disabled={{
+                                  opacity: 0.5,
                                   cursor: "not-allowed",
                                   bg: "gray.100",
                                   color: "gray.400",
@@ -1647,10 +1680,10 @@ function UserManagement() {
                       )}
                     </>
                   ) : (
-                    <Flex 
-                      height="200px" 
-                      justify="center" 
-                      align="center" 
+                    <Flex
+                      height="200px"
+                      justify="center"
+                      align="center"
                       border="1px dashed"
                       borderColor={`${customColor}30`}
                       borderRadius="md"
@@ -1662,8 +1695,8 @@ function UserManagement() {
                           ? userData.length === 0
                             ? "No users found."
                             : searchTerm
-                            ? "No users match your search."
-                            : "No users match the selected filter."
+                              ? "No users match your search."
+                              : "No users match the selected filter."
                           : "Loading users..."}
                       </Text>
                     </Flex>

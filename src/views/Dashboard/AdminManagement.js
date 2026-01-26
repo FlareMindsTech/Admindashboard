@@ -166,7 +166,7 @@ function AdminManagement() {
     setIsDeleting(true);
     try {
       const response = await inActiveAdmin(adminToDelete._id);
-      
+
       toast({
         title: "Admin Deleted",
         description: `${adminToDelete.name} has been deleted successfully.`,
@@ -237,7 +237,7 @@ function AdminManagement() {
   // Fetch current user from localStorage and check permissions
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
-    
+
     // Check if user exists and is super admin
     if (!storedUser || storedUser.role !== "super admin") {
       toast({
@@ -263,7 +263,7 @@ function AdminManagement() {
       try {
         const response = await getAllAdmins();
         console.log("Fetched admins response:", response);
-        
+
         // Handle different response formats
         const admins = response.data?.admins || response.data || response?.admins || response || [];
 
@@ -299,17 +299,16 @@ function AdminManagement() {
     }
   }, [currentUser, toast]);
 
-  // Apply filters and search
   useEffect(() => {
     if (!dataLoaded) return;
 
     setTableLoading(true);
-    setCurrentPage(1); // Reset to first page when filter changes
+    setCurrentPage(1);
 
     const timer = setTimeout(() => {
       let filtered = adminData;
 
-      // Apply role/status filter
+
       switch (activeFilter) {
         case "Active":
           filtered = adminData.filter((admin) => admin.status === "Active");
@@ -328,7 +327,7 @@ function AdminManagement() {
       if (searchTerm.trim() !== "") {
         filtered = filtered.filter(
           (admin) =>
-            `${admin.firstName} ${admin.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (admin.name || `${admin.firstName || ""} ${admin.lastName || ""}`).toLowerCase().includes(searchTerm.toLowerCase()) ||
             admin.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             admin.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (admin.role && admin.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -383,11 +382,11 @@ function AdminManagement() {
       lastName: lastName,
       phone: admin.phone || "",
       email: admin.email || "",
-      password: "", // Don't pre-fill password for security
+      password: "",
       confirmPassword: "",
       profileImage: admin.profileImage || "",
       role: admin.role || "admin",
-      status: admin.status || "Active" // Set current status
+      status: admin.status || "Active"
     });
     setEditingAdmin(admin);
     setCurrentView("edit");
@@ -403,13 +402,13 @@ function AdminManagement() {
     setEditingAdmin(null);
     setError("");
     setSuccess("");
-    setShowPassword(false); // Reset password visibility
-    setShowConfirmPassword(false); // Reset confirm password visibility
+    setShowPassword(false);
+    setShowConfirmPassword(false);
   };
 
   // Handle form submit for both add and edit
   const handleSubmit = async () => {
-    // Frontend validation
+
     if (!formData.firstName || !formData.lastName || !formData.email) {
       return toast({
         title: "Validation Error",
@@ -484,15 +483,15 @@ function AdminManagement() {
     setSuccess("");
 
     try {
-      // Prepare data for API - try different structures
+
       let adminDataToSend;
 
-      // Try structure 1: Combined name field (most common)
+
       adminDataToSend = {
         name: `${formData.firstName} ${formData.lastName}`.trim(),
         email: formData.email,
         role: formData.role,
-        status: formData.status, // Include status in API call
+        status: formData.status,
         phone: formData.phone || "",
         profileImage: formData.profileImage || "",
         ...(formData.password && { password: formData.password })
@@ -541,8 +540,8 @@ function AdminManagement() {
       await fetchAdmins();
 
       setSuccess(successMessage);
-      
-      // Reset form and go back to list
+
+
       setFormData({
         firstName: "",
         lastName: "",
@@ -560,9 +559,9 @@ function AdminManagement() {
     } catch (err) {
       console.error("API Error details:", err);
       console.error("Error response:", err.response);
-      
+
       let errorMessage = "API error. Try again.";
-      
+
       if (err.response?.data) {
         // Try to get detailed error message
         const errorData = err.response.data;
@@ -570,20 +569,20 @@ function AdminManagement() {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
+
       setError(errorMessage);
       toast({
         title: "Error",
         description: errorMessage,
         status: "error",
-        duration: 5000, // Longer duration to read the error
+        duration: 5000,
         isClosable: true,
       });
     }
     setLoading(false);
   };
 
-  // Auto-hide success/error messages after 3 seconds
+
   useEffect(() => {
     if (success || error) {
       const timer = setTimeout(() => {
@@ -594,37 +593,37 @@ function AdminManagement() {
     }
   }, [success, error]);
 
-  // Get status color with background and icon
+
   const getStatusConfig = (status) => {
     switch (status?.toLowerCase()) {
       case "active":
-        return { 
-          color: "white", 
+        return {
+          color: "white",
           bg: "#9d4edd",
           icon: IoCheckmarkDoneCircleSharp
         };
       case "inactive":
-        return { 
-          color: "white", 
+        return {
+          color: "white",
           bg: "red.500",
           icon: FaUserSlash
         };
       case "pending":
-        return { 
-          color: "white", 
+        return {
+          color: "white",
           bg: "yellow.500",
           icon: MdPerson
         };
       default:
-        return { 
-          color: "white", 
+        return {
+          color: "white",
           bg: "#9d4edd",
           icon: IoCheckmarkDoneCircleSharp
         };
     }
   };
 
-  // Get verification badge
+
   const getVerificationBadge = (isVerified) => {
     if (isVerified) {
       return { text: "Verified", color: "green" };
@@ -658,10 +657,10 @@ function AdminManagement() {
   // Render Form View (Add/Edit)
   if (currentView === "add" || currentView === "edit") {
     return (
-      <Flex 
-        flexDirection="column" 
-        pt={{ base: "120px", md: "75px" }} 
-        height="100vh" 
+      <Flex
+        flexDirection="column"
+        pt={{ base: "120px", md: "75px" }}
+        height="100vh"
         overflow="auto"
         css={{
           '&::-webkit-scrollbar': {
@@ -701,7 +700,7 @@ function AdminManagement() {
                 color={customColor}
                 _hover={{ bg: `${customColor}10` }}
               >
-                {/* Removed "Back to List" text, only icon */}
+
               </Button>
               <Heading size="md" color="gray.700">
                 {currentView === "add" ? "Add New Admin" : "Edit Admin"}
@@ -709,7 +708,7 @@ function AdminManagement() {
             </Flex>
           </CardHeader>
           <CardBody bg="white" flex="1" overflow="auto">
-            {/* Success/Error Message Display */}
+
             {error && (
               <Text
                 color="red.500"
@@ -736,7 +735,7 @@ function AdminManagement() {
                 {success}
               </Text>
             )}
-            
+
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
               <FormControl isRequired>
                 <FormLabel htmlFor="firstName" color="gray.700">First Name</FormLabel>
@@ -752,7 +751,7 @@ function AdminManagement() {
                   bg="white"
                 />
               </FormControl>
-              
+
               <FormControl isRequired>
                 <FormLabel htmlFor="lastName" color="gray.700">Last Name</FormLabel>
                 <Input
@@ -785,7 +784,7 @@ function AdminManagement() {
                   bg="white"
                 />
               </FormControl>
-              
+
               <FormControl>
                 <FormLabel htmlFor="phone" color="gray.700">Phone</FormLabel>
                 <Input
@@ -905,9 +904,9 @@ function AdminManagement() {
             </SimpleGrid>
 
             <Flex justify="flex-end" mt={6} flexShrink={0}>
-              <Button 
-                variant="outline" 
-                mr={3} 
+              <Button
+                variant="outline"
+                mr={3}
                 onClick={handleBackToList}
                 border="1px"
                 borderColor="gray.300"
@@ -932,11 +931,12 @@ function AdminManagement() {
 
   // Render List View with Fixed Layout
   return (
-    <Flex 
-      flexDirection="column" 
-      pt={{ base: "5px", md: "45px" }} 
-      height="100vh" 
-      overflow="auto"
+    <Flex
+      flexDirection="column"
+      pt={{ base: "140px", md: "75px" }}
+      height={{ base: "auto", lg: "100vh" }}
+      minHeight="100vh"
+      overflowY="auto"
       css={{
         '&::-webkit-scrollbar': {
           width: '8px',
@@ -1114,10 +1114,10 @@ function AdminManagement() {
                     </StatNumber>
                   </Flex>
                 </Stat>
-                <IconBox 
-                  as="box" 
-                  h={{ base: "35px", md: "45px" }} 
-                  w={{ base: "35px", md: "45px" }} 
+                <IconBox
+                  as="box"
+                  h={{ base: "35px", md: "45px" }}
+                  w={{ base: "35px", md: "45px" }}
                   bg={customColor}
                   transition="all 0.2s ease-in-out"
                   _groupHover={{
@@ -1186,10 +1186,10 @@ function AdminManagement() {
                     </StatNumber>
                   </Flex>
                 </Stat>
-                <IconBox 
-                  as="box" 
-                  h={{ base: "35px", md: "45px" }} 
-                  w={{ base: "35px", md: "45px" }} 
+                <IconBox
+                  as="box"
+                  h={{ base: "35px", md: "45px" }}
+                  w={{ base: "35px", md: "45px" }}
                   bg={customColor}
                   transition="all 0.2s ease-in-out"
                   _groupHover={{
@@ -1261,28 +1261,28 @@ function AdminManagement() {
       </Box>
 
       {/* Table Container - Removed background box */}
-      <Box 
-        mt={-8}
-        flex="1" 
-        display="flex" 
-        flexDirection="column" 
+      <Box
+        mt={{ base: "0px", md: "-32px" }}
+        flex="1"
+        display="flex"
+        flexDirection="column"
         p={2}
         pt={0}
         overflow="hidden"
       >
         {/* Table Card with transparent background */}
-        <Card 
-          shadow="xl" 
+        <Card
+          shadow="xl"
           bg="transparent"
-          display="flex" 
+          display="flex"
           flexDirection="column"
           height="100%"
           minH="0"
           border="none"
         >
           {/* Table Header */}
-          <CardHeader 
-            p="5px" 
+          <CardHeader
+            p="5px"
             pb="5px"
             bg="transparent"
             flexShrink={0}
@@ -1310,9 +1310,9 @@ function AdminManagement() {
                 />
                 <Icon as={FaSearch} color="gray.400" />
                 {searchTerm && (
-                  <Button 
-                    size="sm" 
-                    ml={2} 
+                  <Button
+                    size="sm"
+                    ml={2}
                     onClick={handleClearSearch}
                     bg="white"
                     color={customColor}
@@ -1339,14 +1339,14 @@ function AdminManagement() {
               </Button>
             </Flex>
           </CardHeader>
-          
+
           {/* Table Content Area - Scrollable Body with Fixed Header */}
-          <CardBody 
+          <CardBody
             bg="transparent"
-            flex="1" 
-            display="flex" 
-            flexDirection="column" 
-            p={0} 
+            flex="1"
+            display="flex"
+            flexDirection="column"
+            p={0}
             overflow="hidden"
           >
             {tableLoading ? (
@@ -1359,49 +1359,51 @@ function AdminManagement() {
                 {currentItems.length > 0 ? (
                   <>
                     {/* Fixed Table Container - Exact height for 5 rows */}
-                    <Box 
+                    <Box
                       flex="1"
                       display="flex"
                       flexDirection="column"
-                      height="400px" // Fixed height for exactly 5 rows
+                      height="auto"
+                      minH="0"
                       overflow="hidden"
                     >
                       {/* Scrollable Table Area */}
                       <Box
                         flex="1"
-                        overflowY="hidden"
-                        overflowX="hidden"
-                        _hover={{
-                          overflowY: "auto",
-                          overflowX: "auto",
-                        }}
+                        overflowY="auto"
+                        overflowX="auto"
                         css={{
                           '&::-webkit-scrollbar': {
-                            width: '8px',
-                            height: '8px',
+                            width: '4px',
+                            height: '4px',
                           },
                           '&::-webkit-scrollbar-track': {
                             background: 'transparent',
                           },
                           '&::-webkit-scrollbar-thumb': {
-                            background: 'transparent',
-                            borderRadius: '4px',
-                            transition: 'background 0.3s ease',
+                            background: 'rgba(0,0,0,0.1)',
+                            borderRadius: '10px',
+                          },
+                          '@media screen and (max-width: 768px)': {
+                            '&::-webkit-scrollbar': {
+                              width: '2px',
+                              height: '2px',
+                            },
+                            '&::-webkit-scrollbar-thumb': {
+                              background: 'rgba(0,0,0,0.2)',
+                            },
                           },
                           '&:hover::-webkit-scrollbar-thumb': {
-                            background: '#cbd5e1',
-                          },
-                          '&:hover::-webkit-scrollbar-thumb:hover': {
-                            background: '#94a3b8',
+                            background: 'rgba(0,0,0,0.2)',
                           },
                         }}
                       >
-                        <Table variant="simple" size="md" bg="transparent">
+                        <Table variant="simple" size={{ base: "sm", md: "md" }} bg="transparent" minW={{ base: "800px", lg: "100%" }}>
                           {/* Fixed Header */}
                           <Thead>
                             <Tr>
-                              <Th 
-                                color="gray.100" 
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -1415,8 +1417,8 @@ function AdminManagement() {
                               >
                                 Admin
                               </Th>
-                              <Th 
-                                color="gray.100" 
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -1428,10 +1430,10 @@ function AdminManagement() {
                                 borderBottom="2px solid"
                                 borderBottomColor={`${customColor}50`}
                               >
-                               Email
+                                Email
                               </Th>
-                              <Th 
-                                color="gray.100" 
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -1445,8 +1447,8 @@ function AdminManagement() {
                               >
                                 Role
                               </Th>
-                              <Th 
-                                color="gray.100" 
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -1460,8 +1462,8 @@ function AdminManagement() {
                               >
                                 Status
                               </Th>
-                              <Th 
-                                color="gray.100" 
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -1484,7 +1486,7 @@ function AdminManagement() {
                               // Handle empty rows
                               if (admin.isEmpty) {
                                 return (
-                                  <Tr 
+                                  <Tr
                                     key={admin._id}
                                     bg="transparent"
                                     height="60px"
@@ -1499,7 +1501,7 @@ function AdminManagement() {
                               const statusConfig = getStatusConfig(admin.status);
                               const verification = getVerificationBadge(admin.isVerified);
                               return (
-                                <Tr 
+                                <Tr
                                   key={admin._id || index}
                                   bg="transparent"
                                   _hover={{ bg: `${customColor}10` }}
@@ -1509,15 +1511,25 @@ function AdminManagement() {
                                 >
                                   <Td borderColor={`${customColor}20`}>
                                     <Flex align="center">
-                                      <Avatar
-                                        size="sm"
-                                        name={`${admin.name}`}
-                                        src={admin.profileImage}
-                                        mr={3}
-                                      />
-                                      <Box>
-                                        <Text fontWeight="medium">{`${admin.name}`}</Text>
-                                      </Box>
+                                      {(() => {
+                                        const adminName = admin.name ||
+                                          (admin.firstName || admin.lastName ?
+                                            `${admin.firstName || ""} ${admin.lastName || ""}`.trim() :
+                                            "Unknown Admin");
+                                        return (
+                                          <>
+                                            <Avatar
+                                              size="sm"
+                                              name={adminName}
+                                              src={admin.profileImage}
+                                              mr={3}
+                                            />
+                                            <Box>
+                                              <Text fontWeight="medium">{adminName}</Text>
+                                            </Box>
+                                          </>
+                                        );
+                                      })()}
                                     </Flex>
                                   </Td>
                                   <Td borderColor={`${customColor}20`}>
@@ -1529,7 +1541,7 @@ function AdminManagement() {
                                     <Badge
                                       colorScheme={
                                         admin.role === "super admin" ? "purple" :
-                                        admin.role === "admin" ? "blue" : "gray"
+                                          admin.role === "admin" ? "blue" : "gray"
                                       }
                                       px={3}
                                       py={1}
@@ -1599,7 +1611,7 @@ function AdminManagement() {
 
                     {/* Pagination Bar - Positioned at bottom right corner */}
                     {currentItems.length > 0 && (
-                      <Box 
+                      <Box
                         flexShrink={0}
                         p="16px"
                         borderTop="1px solid"
@@ -1628,8 +1640,8 @@ function AdminManagement() {
                               border="1px"
                               borderColor={customColor}
                               _hover={{ bg: customColor, color: "white" }}
-                              _disabled={{ 
-                                opacity: 0.5, 
+                              _disabled={{
+                                opacity: 0.5,
                                 cursor: "not-allowed",
                                 bg: "gray.100",
                                 color: "gray.400",
@@ -1640,8 +1652,8 @@ function AdminManagement() {
                             </Button>
 
                             {/* Page Number Display */}
-                            <Flex 
-                              align="center" 
+                            <Flex
+                              align="center"
                               gap={2}
                               bg={`${customColor}10`}
                               px={3}
@@ -1671,8 +1683,8 @@ function AdminManagement() {
                               border="1px"
                               borderColor={customColor}
                               _hover={{ bg: customColor, color: "white" }}
-                              _disabled={{ 
-                                opacity: 0.5, 
+                              _disabled={{
+                                opacity: 0.5,
                                 cursor: "not-allowed",
                                 bg: "gray.100",
                                 color: "gray.400",
@@ -1687,10 +1699,10 @@ function AdminManagement() {
                     )}
                   </>
                 ) : (
-                  <Flex 
-                    height="200px" 
-                    justify="center" 
-                    align="center" 
+                  <Flex
+                    height="200px"
+                    justify="center"
+                    align="center"
                     border="1px dashed"
                     borderColor={`${customColor}30`}
                     borderRadius="md"
@@ -1702,8 +1714,8 @@ function AdminManagement() {
                         ? adminData.length === 0
                           ? "No admins found."
                           : searchTerm
-                          ? "No admins match your search."
-                          : "No admins match the selected filter."
+                            ? "No admins match your search."
+                            : "No admins match the selected filter."
                         : "Loading admins..."}
                     </Text>
                   </Flex>
@@ -1733,12 +1745,12 @@ function AdminManagement() {
               </Text>
               ? This action cannot be undone.
             </Text>
-            
-            <Box 
-              bg="orange.50" 
-              p={3} 
-              borderRadius="md" 
-              border="1px" 
+
+            <Box
+              bg="orange.50"
+              p={3}
+              borderRadius="md"
+              border="1px"
               borderColor="orange.200"
             >
               <Flex align="center" gap={2} mb={2}>
@@ -1748,15 +1760,15 @@ function AdminManagement() {
                 </Text>
               </Flex>
               <Text fontSize="sm" color="orange.600">
-                This admin will be permanently deleted from the system. 
+                This admin will be permanently deleted from the system.
                 All associated data will be removed.
               </Text>
             </Box>
           </ModalBody>
           <ModalFooter>
-            <Button 
-              variant="outline" 
-              mr={3} 
+            <Button
+              variant="outline"
+              mr={3}
               onClick={closeDeleteModal}
               isDisabled={isDeleting}
               size="sm"

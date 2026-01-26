@@ -14,6 +14,10 @@ import {
   uploadProductImage,
   deleteProductImage,
   getAllOrders,
+  createOffer,
+  getAllOffers,
+  updateOffer,
+  deleteOffer,
 } from "../utils/axiosInstance";
 
 import {
@@ -53,6 +57,8 @@ import {
   Spinner,
   Center,
   SimpleGrid,
+  VStack,
+  HStack,
 } from "@chakra-ui/react";
 
 // Import ApexCharts
@@ -78,6 +84,7 @@ import {
   FaChartLine,
   FaPlus,
   FaTimes,
+  FaPercentage,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdCategory, MdInventory, MdWarning } from "react-icons/md";
@@ -95,17 +102,19 @@ export default function ProductManagement() {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [offers, setOffers] = useState([]);
   const [currentView, setCurrentView] = useState("categories");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewModalType, setViewModalType] = useState("");
-  
+
   // Loading states
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [isLoadingOffers, setIsLoadingOffers] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
   // Delete modal states
@@ -126,7 +135,7 @@ export default function ProductManagement() {
 
   // Category doesn't have status field
   const initialCategory = { name: "", description: "" };
-  
+
   // Product has status field
   const initialProduct = {
     name: "",
@@ -134,34 +143,52 @@ export default function ProductManagement() {
     images: [],
     status: "Available",
   };
-  
+
   const statusOptions = ["Available", "Out of Stock", "Discontinued"];
-  
+
   const [newCategory, setNewCategory] = useState(initialCategory);
   const [newProduct, setNewProduct] = useState(initialProduct);
-  
+
+  // Discount offer states
+  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
+  const [discountProduct, setDiscountProduct] = useState(null);
+  const [editingOffer, setEditingOffer] = useState(null);
+  const [viewOffer, setViewOffer] = useState(null);
+  const [isViewOfferModalOpen, setIsViewOfferModalOpen] = useState(false);
+
+  const [discountFormData, setDiscountFormData] = useState({
+    couponcode: "",
+    discount_type: "percent",
+    discount_value: "",
+    min_order_amount: "",
+    expiry_date: "",
+    usage_limit: "",
+    category: "",
+    product: ""
+  });
+
   // Color management states
   const [availableColors, setAvailableColors] = useState([
-    'Red', 'Blue', 'Green', 'Black', 'White', 
+    'Red', 'Blue', 'Green', 'Black', 'White',
     'Yellow', 'Pink', 'Gray', 'Maroon', 'Purple'
   ]);
   const [customColorInput, setCustomColorInput] = useState("");
 
   // Variants management
   const [variants, setVariants] = useState([
-    { 
-      color: '', 
-      size: '', 
-      price: '', 
-      stock: '', 
-      sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}` 
+    {
+      color: '',
+      size: '',
+      price: '',
+      stock: '',
+      sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`
     }
   ]);
 
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  
+
   // Filtered data
   const filteredCategories = categories.filter((cat) =>
     cat.name?.toLowerCase().includes(categorySearch.toLowerCase()) ||
@@ -171,16 +198,22 @@ export default function ProductManagement() {
   const filteredProducts = products.filter(
     (prod) =>
       prod.name?.toLowerCase().includes(productSearch.toLowerCase()) &&
-      (productCategoryFilter ? 
-        (prod.category?._id === productCategoryFilter || prod.category === productCategoryFilter) 
+      (productCategoryFilter ?
+        (prod.category?._id === productCategoryFilter || prod.category === productCategoryFilter)
         : true)
   );
 
   const currentCategories = filteredCategories.slice(indexOfFirstItem, indexOfLastItem);
   const currentProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
-  
+
+  const filteredOffers = offers.filter(off =>
+    off.couponcode?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  const currentOffers = filteredOffers.slice(indexOfFirstItem, indexOfLastItem);
+
   const totalCategoryPages = Math.ceil(filteredCategories.length / itemsPerPage);
   const totalProductPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const totalOfferPages = Math.ceil(filteredOffers.length / itemsPerPage);
 
   // Function to calculate available stock for a product
   const calculateAvailableStock = useCallback((product) => {
@@ -190,21 +223,21 @@ export default function ProductManagement() {
     }
 
     const totalOrderedQuantity = orders.reduce((total, order) => {
-      const validStatus = order.status && 
-        (order.status.toLowerCase() === 'confirmed' || 
-         order.status.toLowerCase() === 'completed' || 
-         order.status.toLowerCase() === 'delivered' ||
-         order.status.toLowerCase() === 'pending');
+      const validStatus = order.status &&
+        (order.status.toLowerCase() === 'confirmed' ||
+          order.status.toLowerCase() === 'completed' ||
+          order.status.toLowerCase() === 'delivered' ||
+          order.status.toLowerCase() === 'pending');
 
       if (!validStatus) return total;
 
       let orderedQty = 0;
       const items = order.items || order.orderItems || order.products || order.orderProducts || [];
-      
+
       items.forEach(item => {
         const itemProductId = item.productId?._id || item.productId || item.product?._id || item.product;
         const itemName = item.name || item.productId?.name || item.product?.name;
-        
+
         if (itemProductId === product._id || itemName === product.name) {
           orderedQty += item.quantity || item.qty || 0;
         }
@@ -255,20 +288,20 @@ export default function ProductManagement() {
     const stockProducts = [...products]
       .filter(product => {
         const availableStock = calculateAvailableStock(product);
-        return availableStock > 0; 
+        return availableStock > 0;
       })
       .sort((a, b) => {
         const stockA = calculateAvailableStock(a);
         const stockB = calculateAvailableStock(b);
         return stockB - stockA;
       })
-      .slice(0, 10); 
-    const categories = stockProducts.map(product => 
+      .slice(0, 10);
+    const categories = stockProducts.map(product =>
       product.name.length > 20 ? product.name.substring(0, 20) + '...' : product.name
     );
-    
+
     const availableStockData = stockProducts.map(product => calculateAvailableStock(product));
-    const totalStockData = stockProducts.map(product => 
+    const totalStockData = stockProducts.map(product =>
       product.variants?.reduce((sum, variant) => sum + (variant.stock || 0), 0) || 0
     );
 
@@ -354,12 +387,12 @@ export default function ProductManagement() {
     const alertProducts = [...getOutOfStockProducts(), ...getLowStockProducts()]
       .slice(0, 10);
 
-    const categories = alertProducts.map(product => 
+    const categories = alertProducts.map(product =>
       product.name.length > 20 ? product.name.substring(0, 20) + '...' : product.name
     );
-    
+
     const availableStockData = alertProducts.map(product => calculateAvailableStock(product));
-    const totalStockData = alertProducts.map(product => 
+    const totalStockData = alertProducts.map(product =>
       product.variants?.reduce((sum, variant) => sum + (variant.stock || 0), 0) || 0
     );
 
@@ -444,13 +477,13 @@ export default function ProductManagement() {
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-    
+
     if (currentView === "categories") {
       setCategorySearch(value);
     } else if (currentView === "products") {
       setProductSearch(value);
     }
-    
+
     setCurrentPage(1);
   };
 
@@ -468,12 +501,12 @@ export default function ProductManagement() {
 
     try {
       setIsSubmitting(true);
-      
+
       if (selectedProduct) {
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
           const result = await uploadProductImage(selectedProduct._id, file);
-          
+
           if (result.data && result.data.images) {
             setNewProduct(prev => ({
               ...prev,
@@ -494,7 +527,7 @@ export default function ProductManagement() {
           preview: URL.createObjectURL(file),
           isNew: true
         }));
-        
+
         setNewProduct(prev => ({
           ...prev,
           images: [...(prev.images || []), ...newImages]
@@ -519,12 +552,12 @@ export default function ProductManagement() {
     try {
       if (selectedProduct && typeof publicIdOrIndex === 'string') {
         await deleteProductImage(selectedProduct._id, publicIdOrIndex);
-        
+
         setNewProduct(prev => ({
           ...prev,
           images: prev.images.filter(img => img.public_id !== publicIdOrIndex)
         }));
-        
+
         toast({
           title: "Image Removed",
           description: "Image deleted successfully",
@@ -552,7 +585,7 @@ export default function ProductManagement() {
   // Color management functions
   const handleAddCustomColor = () => {
     const color = customColorInput.trim();
-    
+
     if (!color) {
       toast({
         title: "Empty Color",
@@ -563,7 +596,7 @@ export default function ProductManagement() {
       });
       return;
     }
-    
+
     if (availableColors.includes(color)) {
       toast({
         title: "Color Exists",
@@ -574,10 +607,10 @@ export default function ProductManagement() {
       });
       return;
     }
-    
+
     setAvailableColors(prev => [...prev, color]);
     setCustomColorInput("");
-    
+
     toast({
       title: "Color Added",
       description: `Color "${color}" added successfully`,
@@ -600,9 +633,9 @@ export default function ProductManagement() {
       });
       return;
     }
-    
+
     setAvailableColors(prev => prev.filter(color => color !== colorToRemove));
-    
+
     toast({
       title: "Color Removed",
       description: `Color "${colorToRemove}" removed from available colors`,
@@ -616,12 +649,12 @@ export default function ProductManagement() {
   const handleAddVariant = () => {
     setVariants([
       ...variants,
-      { 
-        color: '', 
-        size: '', 
-        price: '', 
-        stock: '', 
-        sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}` 
+      {
+        color: '',
+        size: '',
+        price: '',
+        stock: '',
+        sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`
       }
     ]);
   };
@@ -637,21 +670,21 @@ export default function ProductManagement() {
       });
       return;
     }
-    
+
     setVariants(variants.filter((_, i) => i !== index));
   };
 
   const handleVariantChange = (index, field, value) => {
     const updatedVariants = [...variants];
     updatedVariants[index][field] = value;
-    
+
     // Auto-generate SKU if color and size are set
     if ((field === 'color' || field === 'size') && updatedVariants[index].color && updatedVariants[index].size) {
       const colorCode = updatedVariants[index].color.substring(0, 3).toUpperCase();
       const sizeCode = updatedVariants[index].size.toUpperCase();
       updatedVariants[index].sku = `SKU-${colorCode}-${sizeCode}-${Date.now().toString().slice(-6)}`;
     }
-    
+
     setVariants(updatedVariants);
   };
 
@@ -660,6 +693,8 @@ export default function ProductManagement() {
     if (currentView === "categories" && currentPage < totalCategoryPages) {
       setCurrentPage(currentPage + 1);
     } else if (currentView === "products" && currentPage < totalProductPages) {
+      setCurrentPage(currentPage + 1);
+    } else if (currentView === "offers" && currentPage < totalOfferPages) {
       setCurrentPage(currentPage + 1);
     }
   };
@@ -719,15 +754,17 @@ export default function ProductManagement() {
       setIsLoadingProducts(true);
       setIsLoadingOrders(true);
 
-      const [categoryData, productData, ordersData] = await Promise.all([
+      const [categoryData, productData, ordersData, offerData] = await Promise.all([
         getAllCategories(),
         getAllProducts(),
-        getAllOrders()
+        getAllOrders(),
+        getAllOffers()
       ]);
 
       setCategories(categoryData.categories || categoryData.data || []);
       setProducts(productData.products || productData.data || []);
-      
+      setOffers(offerData.offers || offerData.data || offerData || []);
+
       let ordersArray = [];
       if (Array.isArray(ordersData)) {
         ordersArray = ordersData;
@@ -742,7 +779,7 @@ export default function ProductManagement() {
         }
       }
       setOrders(ordersArray);
-      
+
     } catch (err) {
       console.error("Fetch error:", err);
       toast({
@@ -757,6 +794,7 @@ export default function ProductManagement() {
       setIsLoadingCategories(false);
       setIsLoadingProducts(false);
       setIsLoadingOrders(false);
+      setIsLoadingOffers(false);
     }
   }, [toast]);
 
@@ -783,13 +821,155 @@ export default function ProductManagement() {
     setNewCategory(initialCategory);
     setNewProduct(initialProduct);
     setCustomColorInput("");
-    setVariants([{ 
-      color: '', 
-      size: '', 
-      price: '', 
-      stock: '', 
-      sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}` 
+    setVariants([{
+      color: '',
+      size: '',
+      price: '',
+      stock: '',
+      sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`
     }]);
+  };
+
+  // Discount Modal Handlers
+  const handleOpenDiscountModal = (product) => {
+    setEditingOffer(null);
+    setDiscountProduct(product);
+    setDiscountFormData({
+      couponcode: "",
+      discount_type: "percent",
+      discount_value: "",
+      min_order_amount: "",
+      expiry_date: "",
+      usage_limit: "",
+      category: product.category?._id || product.category || "",
+      product: product._id
+    });
+    setIsDiscountModalOpen(true);
+  };
+
+  const handleOpenCategoryDiscountModal = (category) => {
+    setEditingOffer(null);
+    setDiscountProduct(null);
+    setDiscountFormData({
+      couponcode: "",
+      discount_type: "percent",
+      discount_value: "",
+      min_order_amount: "",
+      expiry_date: "",
+      usage_limit: "",
+      category: category._id,
+      product: ""
+    });
+    setIsDiscountModalOpen(true);
+  };
+
+  const handleApplyDiscount = async () => {
+    if (!discountFormData.couponcode || !discountFormData.discount_value || !discountFormData.expiry_date) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in coupon code, discount value, and expiry date.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const dataToSubmit = {
+        ...discountFormData,
+        discount_value: Number(discountFormData.discount_value),
+        min_order_amount: Number(discountFormData.min_order_amount || 0),
+        usage_limit: Number(discountFormData.usage_limit || 0),
+      };
+
+      // Clean up empty strings for IDs to avoid BSON Cast errors
+      if (!dataToSubmit.product) delete dataToSubmit.product;
+      if (!dataToSubmit.category) delete dataToSubmit.category;
+
+      if (editingOffer) {
+        await updateOffer(editingOffer._id, dataToSubmit);
+        toast({
+          title: "Offer Updated",
+          description: `Offer "${discountFormData.couponcode}" updated successfully.`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        await createOffer(dataToSubmit);
+        toast({
+          title: "Offer Created",
+          description: `Offer "${discountFormData.couponcode}" applied successfully.`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+
+      setIsDiscountModalOpen(false);
+      setEditingOffer(null);
+      fetchData();
+    } catch (error) {
+      toast({
+        title: editingOffer ? "Error Updating Offer" : "Error Creating Offer",
+        description: error.response?.data?.message || error.message || "Operation failed.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditOffer = (offer) => {
+    setEditingOffer(offer);
+    setDiscountProduct(offer.product || null);
+
+    // Format date for input type="date" (YYYY-MM-DD)
+    let formattedDate = "";
+    if (offer.expiry_date) {
+      const date = new Date(offer.expiry_date);
+      formattedDate = date.toISOString().split('T')[0];
+    }
+
+    setDiscountFormData({
+      couponcode: offer.couponcode || "",
+      discount_type: offer.discount_type || "percent",
+      discount_value: offer.discount_value || "",
+      min_order_amount: offer.min_order_amount || "",
+      expiry_date: formattedDate,
+      usage_limit: offer.usage_limit || "",
+      category: offer.category?._id || offer.category || "",
+      product: offer.product?._id || offer.product || ""
+    });
+    setIsDiscountModalOpen(true);
+  };
+
+  const handleViewOffer = (offer) => {
+    // Enrich the offer's product/category if they are just IDs or missing details
+    let enrichedOffer = { ...offer };
+
+    if (offer.product) {
+      const productId = offer.product._id || offer.product;
+      const fullProduct = products.find(p => p._id === productId);
+      if (fullProduct) {
+        enrichedOffer.product = fullProduct;
+      }
+    }
+
+    if (offer.category) {
+      const categoryId = offer.category._id || offer.category;
+      const fullCategory = categories.find(c => c._id === categoryId);
+      if (fullCategory) {
+        enrichedOffer.category = fullCategory;
+      }
+    }
+
+    setViewOffer(enrichedOffer);
+    setIsViewOfferModalOpen(true);
   };
 
   // Reset form
@@ -797,12 +977,12 @@ export default function ProductManagement() {
   const handleResetProduct = () => {
     setNewProduct(initialProduct);
     setCustomColorInput("");
-    setVariants([{ 
-      color: '', 
-      size: '', 
-      price: '', 
-      stock: '', 
-      sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}` 
+    setVariants([{
+      color: '',
+      size: '',
+      price: '',
+      stock: '',
+      sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`
     }]);
   };
 
@@ -900,12 +1080,12 @@ export default function ProductManagement() {
 
     try {
       setIsDeleting(true);
-      
+
       if (deleteType === "category") {
         const productsInCategory = products.filter(
           p => p.category?._id === itemToDelete._id || p.category === itemToDelete._id
         );
-        
+
         if (productsInCategory.length > 0) {
           toast({
             title: "Cannot Delete Category",
@@ -970,7 +1150,7 @@ export default function ProductManagement() {
         isClosable: true,
       });
     }
-    
+
     if (!selectedCategory?._id) {
       return toast({
         title: "Category Error",
@@ -982,10 +1162,10 @@ export default function ProductManagement() {
     }
 
     // Validate all variants
-    const invalidVariants = variants.filter(variant => 
+    const invalidVariants = variants.filter(variant =>
       !variant.color || !variant.size || !variant.price || !variant.stock
     );
-    
+
     if (invalidVariants.length > 0) {
       return toast({
         title: "Validation Error",
@@ -999,7 +1179,7 @@ export default function ProductManagement() {
     // Check for duplicate variants
     const variantKeys = variants.map(v => `${v.color}-${v.size}`.toLowerCase());
     const hasDuplicates = new Set(variantKeys).size !== variantKeys.length;
-    
+
     if (hasDuplicates) {
       return toast({
         title: "Duplicate Variants",
@@ -1032,7 +1212,7 @@ export default function ProductManagement() {
       let response;
       if (selectedProduct) {
         response = await updateProducts(selectedProduct._id, productData);
-        
+
         // Handle image uploads for existing product
         if (newProduct.images && newProduct.images.some(img => img.isNew)) {
           for (const img of newProduct.images) {
@@ -1045,7 +1225,7 @@ export default function ProductManagement() {
             }
           }
         }
-        
+
         toast({
           title: "Product Updated",
           description: `"${productData.name}" updated successfully.`,
@@ -1055,11 +1235,11 @@ export default function ProductManagement() {
         });
       } else {
         response = await createProducts(productData);
-        
+
         // Handle image uploads for new product
         if (newProduct.images && newProduct.images.length > 0) {
           const createdProduct = response.data || response.product || response;
-          
+
           for (const img of newProduct.images) {
             if (img.file) {
               try {
@@ -1070,7 +1250,7 @@ export default function ProductManagement() {
             }
           }
         }
-        
+
         toast({
           title: "Product Created",
           description: `"${productData.name}" added successfully.`,
@@ -1084,10 +1264,10 @@ export default function ProductManagement() {
       handleBack();
     } catch (err) {
       console.error("Product submission error:", err);
-      
+
       let errorTitle = selectedProduct ? "Error Updating Product" : "Error Creating Product";
       let errorDescription = err.message;
-      
+
       if (err.message?.includes("500")) {
         errorDescription = "Server error. Please check backend connection.";
       } else if (err.message?.includes("401") || err.message?.includes("403")) {
@@ -1101,7 +1281,7 @@ export default function ProductManagement() {
       } else if (err.response?.data?.message) {
         errorDescription = err.response.data.message;
       }
-      
+
       toast({
         title: errorTitle,
         description: errorDescription,
@@ -1119,15 +1299,15 @@ export default function ProductManagement() {
   const handleEditProduct = (product) => {
     setSelectedProduct(product);
     setSelectedCategory(categories.find((c) => c._id === product.category?._id || c._id === product.category));
-    
+
     const productImages = product.images || [];
-    
+
     // Set variants from product data
     if (product.variants && product.variants.length > 0) {
       setVariants(product.variants.map(variant => {
         const color = Array.isArray(variant.color) ? variant.color[0] || '' : variant.color || '';
         const size = Array.isArray(variant.size) ? variant.size[0] || '' : variant.size || '';
-        
+
         return {
           color: color,
           size: size,
@@ -1138,16 +1318,16 @@ export default function ProductManagement() {
       }));
     } else {
       setVariants([
-        { 
-          color: '', 
-          size: '', 
-          price: '', 
-          stock: '', 
-          sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}` 
+        {
+          color: '',
+          size: '',
+          price: '',
+          stock: '',
+          sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`
         }
       ]);
     }
-    
+
     setNewProduct({
       name: product.name || '',
       description: product.description || '',
@@ -1160,9 +1340,9 @@ export default function ProductManagement() {
   // Edit Category handler - No status field
   const handleEditCategory = (category) => {
     setSelectedCategory(category);
-    setNewCategory({ 
-      name: category.name, 
-      description: category.description || "" 
+    setNewCategory({
+      name: category.name,
+      description: category.description || ""
     });
     setCurrentView("editCategory");
   };
@@ -1196,7 +1376,7 @@ export default function ProductManagement() {
   const StockStatusBadge = ({ product }) => {
     const availableStock = calculateAvailableStock(product);
     const totalStock = product.variants?.reduce((sum, variant) => sum + (variant.stock || 0), 0) || 0;
-    
+
     if (availableStock <= 0) {
       return (
         <Badge colorScheme="red" fontSize="xs" px={2} py={1}>
@@ -1227,22 +1407,27 @@ export default function ProductManagement() {
   // Global scrollbar styles for mobile
   const globalScrollbarStyles = {
     '&::-webkit-scrollbar': {
-      width: '6px',
-      height: '6px',
+      width: '4px',
+      height: '4px',
     },
     '&::-webkit-scrollbar-track': {
       background: 'transparent',
     },
     '&::-webkit-scrollbar-thumb': {
-      background: 'transparent',
-      borderRadius: '3px',
-      transition: 'background 0.3s ease',
+      background: 'rgba(0,0,0,0.1)',
+      borderRadius: '10px',
+    },
+    '@media screen and (max-width: 768px)': {
+      '&::-webkit-scrollbar': {
+        width: '2px',
+        height: '2px',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        background: 'rgba(0,0,0,0.2)',
+      },
     },
     '&:hover::-webkit-scrollbar-thumb': {
-      background: '#cbd5e1',
-    },
-    '&:hover::-webkit-scrollbar-thumb:hover': {
-      background: '#94a3b8',
+      background: 'rgba(0,0,0,0.2)',
     },
   };
 
@@ -1253,18 +1438,18 @@ export default function ProductManagement() {
   // Render Form Views (Add/Edit Category/Product)
   if (currentView === "addCategory" || currentView === "editCategory" || currentView === "addProduct") {
     return (
-      <Flex 
-        flexDirection="column" 
-        pt={{ base: "120px", md: "75px" }} 
-        height="100vh" 
+      <Flex
+        flexDirection="column"
+        pt={{ base: "120px", md: "75px" }}
+        height="100vh"
         overflow="hidden"
         css={globalScrollbarStyles}
       >
-        <Card 
-          bg="white" 
-          shadow="xl" 
-          height="100%" 
-          display="flex" 
+        <Card
+          bg="white"
+          shadow="xl"
+          height="100%"
+          display="flex"
           flexDirection="column"
           overflow="hidden"
         >
@@ -1288,9 +1473,9 @@ export default function ProductManagement() {
               </Heading>
             </Flex>
           </CardHeader>
-          <CardBody 
-            bg="white" 
-            flex="1" 
+          <CardBody
+            bg="white"
+            flex="1"
             overflow="auto"
             css={globalScrollbarStyles}
           >
@@ -1326,11 +1511,11 @@ export default function ProductManagement() {
                     size="sm"
                   />
                 </FormControl>
-                
+
                 <Flex justify="flex-end" mt={4} flexShrink={0}>
-                  <Button 
-                    variant="outline" 
-                    mr={3} 
+                  <Button
+                    variant="outline"
+                    mr={3}
                     onClick={handleResetCategory}
                     border="1px"
                     borderColor="gray.300"
@@ -1354,10 +1539,10 @@ export default function ProductManagement() {
 
             {/* Product Form - WITH STATUS FIELD */}
             {currentView === "addProduct" && (
-              <Box 
-                flex="1" 
-                display="flex" 
-                flexDirection="column" 
+              <Box
+                flex="1"
+                display="flex"
+                flexDirection="column"
                 overflow="hidden"
                 bg="transparent"
               >
@@ -1408,7 +1593,7 @@ export default function ProductManagement() {
                           size="sm"
                         />
                       </FormControl>
-                      
+
                       {/* Status Field for Product ONLY */}
                       <FormControl>
                         <FormLabel color="gray.700" fontSize="sm">Product Status</FormLabel>
@@ -1504,14 +1689,14 @@ export default function ProductManagement() {
                           Add Variant
                         </Button>
                       </Flex>
-                      
+
                       {variants.map((variant, index) => (
-                        <Box 
-                          key={index} 
-                          p={4} 
-                          border="1px" 
-                          borderColor="gray.200" 
-                          borderRadius="md" 
+                        <Box
+                          key={index}
+                          p={4}
+                          border="1px"
+                          borderColor="gray.200"
+                          borderRadius="md"
                           mb={3}
                           position="relative"
                         >
@@ -1529,7 +1714,7 @@ export default function ProductManagement() {
                               />
                             )}
                           </Flex>
-                          
+
                           <Grid templateColumns={["1fr", "1fr 1fr", "1fr 1fr 1fr 1fr"]} gap={4}>
                             {/* Color Selection */}
                             <FormControl isRequired>
@@ -1606,7 +1791,7 @@ export default function ProductManagement() {
                               />
                             </FormControl>
                           </Grid>
-                          
+
                           {/* SKU Display */}
                           {variant.sku && (
                             <Text fontSize="xs" color="gray.500" mt={2}>
@@ -1635,7 +1820,7 @@ export default function ProductManagement() {
                     {/* Image Upload Section */}
                     <FormControl mb="20px">
                       <FormLabel color="gray.700" fontSize="sm">Product Images</FormLabel>
-                      
+
                       <Input
                         type="file"
                         multiple
@@ -1659,12 +1844,12 @@ export default function ProductManagement() {
                           </Text>
                           <Flex wrap="wrap" gap={3}>
                             {newProduct.images.map((img, index) => (
-                              <Box 
-                                key={img.public_id || index} 
-                                position="relative" 
-                                border="1px" 
-                                borderColor="gray.200" 
-                                borderRadius="md" 
+                              <Box
+                                key={img.public_id || index}
+                                position="relative"
+                                border="1px"
+                                borderColor="gray.200"
+                                borderRadius="md"
                                 p={1}
                               >
                                 <Image
@@ -1694,17 +1879,17 @@ export default function ProductManagement() {
                 </Box>
 
                 {/* Fixed Footer with Buttons */}
-                <Box 
-                  flexShrink={0} 
-                  p={4} 
-                  borderTop="1px solid" 
+                <Box
+                  flexShrink={0}
+                  p={4}
+                  borderTop="1px solid"
                   borderColor={`${customColor}20`}
                   bg="transparent"
                 >
                   <Flex justify="flex-end">
-                    <Button 
-                      variant="outline" 
-                      mr={3} 
+                    <Button
+                      variant="outline"
+                      mr={3}
                       onClick={handleResetProduct}
                       border="1px"
                       borderColor="gray.300"
@@ -1735,28 +1920,30 @@ export default function ProductManagement() {
 
   // Main Dashboard View with Fixed Layout
   return (
-    <Flex 
-      flexDirection="column" 
-      pt={{ base: "120px", md: "45px" }} 
-      height="100vh" 
-      overflow="hidden"
+    <Flex
+      flexDirection="column"
+      pt={{ base: "140px", md: "75px" }}
+      height={{ base: "auto", lg: "100vh" }}
+      minHeight="100vh"
+      overflowX="hidden"
+      overflowY="auto"
       css={globalScrollbarStyles}
     >
       {/* Fixed Statistics Cards */}
       <Box
         flexShrink={0}
-        p={{ base: 1, md: 4 }} 
+        p={{ base: 1, md: 4 }}
         pb={0}
         mt={{ base: 0, md: 0 }}
       >
         <Grid
-          templateColumns={{ base: "1fr 1fr", md: "1fr 1fr 1fr 1fr" }}
-          gap={{ base: "10px", md: "15px" }} 
+          templateColumns={{ base: "1fr 1fr", md: "repeat(5, 1fr)" }}
+          gap={{ base: "10px", md: "15px" }}
           mb={{ base: "15px", md: "20px" }}
         >
           {/* All Categories Card */}
           <Card
-            minH={{ base: "65px", md: "75px" }} 
+            minH={{ base: "65px", md: "75px" }}
             cursor="pointer"
             onClick={() => setCurrentView("categories")}
             border={currentView === "categories" ? "2px solid" : "1px solid"}
@@ -1777,7 +1964,7 @@ export default function ProductManagement() {
               transition: "opacity 0.2s ease-in-out",
             }}
             _hover={{
-              transform: { base: "none", md: "translateY(-2px)" }, 
+              transform: { base: "none", md: "translateY(-2px)" },
               shadow: { base: "none", md: "lg" },
               _before: {
                 opacity: 1,
@@ -1789,7 +1976,7 @@ export default function ProductManagement() {
               <Flex flexDirection="row" align="center" justify="center" w="100%">
                 <Stat me="auto">
                   <StatLabel
-                    fontSize={{ base: "2xs", md: "xs" }} 
+                    fontSize={{ base: "2xs", md: "xs" }}
                     color="gray.600"
                     fontWeight="bold"
                     pb="1px"
@@ -1802,17 +1989,17 @@ export default function ProductManagement() {
                     </StatNumber>
                   </Flex>
                 </Stat>
-                <IconBox 
-                  as="box" 
-                  h={{ base: "30px", md: "35px" }} 
-                  w={{ base: "30px", md: "35px" }} 
+                <IconBox
+                  as="box"
+                  h={{ base: "30px", md: "35px" }}
+                  w={{ base: "30px", md: "35px" }}
                   bg={customColor}
                   transition="all 0.2s ease-in-out"
                 >
                   <Icon
                     as={MdCategory}
                     h={{ base: "14px", md: "18px" }}
-                    w={{ base: "14px", md: "18px" }} 
+                    w={{ base: "14px", md: "18px" }}
                     color="white"
                   />
                 </IconBox>
@@ -1843,7 +2030,7 @@ export default function ProductManagement() {
               transition: "opacity 0.2s ease-in-out",
             }}
             _hover={{
-              transform: { base: "none", md: "translateY(-2px)" }, 
+              transform: { base: "none", md: "translateY(-2px)" },
               shadow: { base: "none", md: "lg" },
               _before: {
                 opacity: 1,
@@ -1851,11 +2038,11 @@ export default function ProductManagement() {
               borderColor: customColor,
             }}
           >
-            <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}> 
+            <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}>
               <Flex flexDirection="row" align="center" justify="center" w="100%">
                 <Stat me="auto">
                   <StatLabel
-                    fontSize={{ base: "2xs", md: "xs" }} 
+                    fontSize={{ base: "2xs", md: "xs" }}
                     color="gray.600"
                     fontWeight="bold"
                     pb="1px"
@@ -1863,14 +2050,14 @@ export default function ProductManagement() {
                     All Products
                   </StatLabel>
                   <Flex>
-                    <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
+                    <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}>
                       {isLoadingProducts ? <Spinner size="xs" /> : products.length}
                     </StatNumber>
                   </Flex>
                 </Stat>
-                <IconBox 
-                  as="box" 
-                  h={{ base: "30px", md: "35px" }} 
+                <IconBox
+                  as="box"
+                  h={{ base: "30px", md: "35px" }}
                   w={{ base: "30px", md: "35px" }}
                   bg={customColor}
                   transition="all 0.2s ease-in-out"
@@ -1909,7 +2096,7 @@ export default function ProductManagement() {
               transition: "opacity 0.2s ease-in-out",
             }}
             _hover={{
-              transform: { base: "none", md: "translateY(-2px)" }, 
+              transform: { base: "none", md: "translateY(-2px)" },
               shadow: { base: "none", md: "lg" },
               _before: {
                 opacity: 1,
@@ -1921,7 +2108,7 @@ export default function ProductManagement() {
               <Flex flexDirection="row" align="center" justify="center" w="100%">
                 <Stat me="auto">
                   <StatLabel
-                    fontSize={{ base: "2xs", md: "xs" }} 
+                    fontSize={{ base: "2xs", md: "xs" }}
                     color="gray.600"
                     fontWeight="bold"
                     pb="1px"
@@ -1929,27 +2116,27 @@ export default function ProductManagement() {
                     Available Stock
                   </StatLabel>
                   <Flex>
-                    <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
-                      {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
+                    <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}>
+                      {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> :
                         calculateTotalAvailableStock().toLocaleString()
                       }
                     </StatNumber>
                   </Flex>
-                  <Text fontSize={{ base: "2xs", md: "xs" }} color="gray.500" mt={{ base: 0.5, md: 1 }}> 
+                  <Text fontSize={{ base: "2xs", md: "xs" }} color="gray.500" mt={{ base: 0.5, md: 1 }}>
                     {getLowStockProducts().length} low stock
                   </Text>
                 </Stat>
-                <IconBox 
-                  as="box" 
-                  h={{ base: "30px", md: "35px" }} 
-                  w={{ base: "30px", md: "35px" }} 
+                <IconBox
+                  as="box"
+                  h={{ base: "30px", md: "35px" }}
+                  w={{ base: "30px", md: "35px" }}
                   bg={customColor}
                   transition="all 0.2s ease-in-out"
                 >
                   <Icon
                     as={FaChartLine}
-                    h={{ base: "14px", md: "18px" }} 
-                    w={{ base: "14px", md: "18px" }} 
+                    h={{ base: "14px", md: "18px" }}
+                    w={{ base: "14px", md: "18px" }}
                     color="white"
                   />
                 </IconBox>
@@ -1980,7 +2167,7 @@ export default function ProductManagement() {
               transition: "opacity 0.2s ease-in-out",
             }}
             _hover={{
-              transform: { base: "none", md: "translateY(-2px)" }, 
+              transform: { base: "none", md: "translateY(-2px)" },
               shadow: { base: "none", md: "lg" },
               _before: {
                 opacity: 1,
@@ -1988,11 +2175,11 @@ export default function ProductManagement() {
               borderColor: customColor,
             }}
           >
-            <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}> 
+            <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}>
               <Flex flexDirection="row" align="center" justify="center" w="100%">
                 <Stat me="auto">
                   <StatLabel
-                    fontSize={{ base: "2xs", md: "xs" }} 
+                    fontSize={{ base: "2xs", md: "xs" }}
                     color="gray.600"
                     fontWeight="bold"
                     pb="1px"
@@ -2000,27 +2187,93 @@ export default function ProductManagement() {
                     Stock Alerts
                   </StatLabel>
                   <Flex>
-                    <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}> 
-                      {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> : 
+                    <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}>
+                      {isLoadingProducts || isLoadingOrders ? <Spinner size="xs" /> :
                         getOutOfStockProducts().length
                       }
                     </StatNumber>
                   </Flex>
-                  <Text fontSize={{ base: "2xs", md: "xs" }} color="red.500" mt={{ base: 0.5, md: 1 }}> 
+                  <Text fontSize={{ base: "2xs", md: "xs" }} color="red.500" mt={{ base: 0.5, md: 1 }}>
                     {getOutOfStockProducts().length} out of stock
                   </Text>
                 </Stat>
-                <IconBox 
-                  as="box" 
-                  h={{ base: "30px", md: "35px" }} 
-                  w={{ base: "30px", md: "35px" }} 
+                <IconBox
+                  as="box"
+                  h={{ base: "30px", md: "35px" }}
+                  w={{ base: "30px", md: "35px" }}
                   bg="red.500"
                   transition="all 0.2s ease-in-out"
                 >
                   <Icon
                     as={FaExclamationTriangle}
-                    h={{ base: "12px", md: "14px" }} 
-                    w={{ base: "12px", md: "14px" }} 
+                    h={{ base: "12px", md: "14px" }}
+                    w={{ base: "12px", md: "14px" }}
+                    color="white"
+                  />
+                </IconBox>
+              </Flex>
+            </CardBody>
+          </Card>
+
+          {/* Active Offers Card */}
+          <Card
+            minH={{ base: "65px", md: "75px" }}
+            cursor="pointer"
+            onClick={() => setCurrentView("offers")}
+            border={currentView === "offers" ? "2px solid" : "1px solid"}
+            borderColor={currentView === "offers" ? customColor : `${customColor}30`}
+            transition="all 0.2s ease-in-out"
+            bg="white"
+            position="relative"
+            overflow="hidden"
+            _before={{
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(135deg, ${customColor}15, transparent)`,
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+            _hover={{
+              transform: { base: "none", md: "translateY(-2px)" },
+              shadow: { base: "none", md: "lg" },
+              _before: {
+                opacity: 1,
+              },
+              borderColor: customColor,
+            }}
+          >
+            <CardBody position="relative" zIndex={1} p={{ base: 2, md: 4 }}>
+              <Flex flexDirection="row" align="center" justify="center" w="100%">
+                <Stat me="auto">
+                  <StatLabel
+                    fontSize={{ base: "2xs", md: "xs" }}
+                    color="gray.600"
+                    fontWeight="bold"
+                    pb="1px"
+                  >
+                    Active Offers
+                  </StatLabel>
+                  <Flex>
+                    <StatNumber fontSize={{ base: "sm", md: "md" }} color={textColor}>
+                      {isLoadingOffers ? <Spinner size="xs" /> : offers.length}
+                    </StatNumber>
+                  </Flex>
+                </Stat>
+                <IconBox
+                  as="box"
+                  h={{ base: "30px", md: "35px" }}
+                  w={{ base: "30px", md: "35px" }}
+                  bg="green.500"
+                  transition="all 0.2s ease-in-out"
+                >
+                  <Icon
+                    as={FaPercentage}
+                    h={{ base: "12px", md: "14px" }}
+                    w={{ base: "12px", md: "14px" }}
                     color="white"
                   />
                 </IconBox>
@@ -2031,28 +2284,29 @@ export default function ProductManagement() {
       </Box>
 
       {/* Scrollable Table Container */}
-      <Box 
-        flex="1" 
-        display="flex" 
-        flexDirection="column" 
-        p={4}
+      <Box
+        flex="1"
+        display="flex"
+        flexDirection="column"
+        p={{ base: 2, md: 4 }}
         pt={0}
-        overflow="hidden"
+        overflow={{ base: "visible", lg: "hidden" }}
+        minH={{ base: "500px", lg: "auto" }}
       >
-        <Card 
-          shadow="lg" 
-          bg="white" 
-          display="flex" 
+        <Card
+          shadow="lg"
+          bg="white"
+          display="flex"
           flexDirection="column"
           height="100%"
-          minH="0"
+          minH={{ base: "400px", lg: "0" }}
           overflow="hidden"
         >
           {/* Fixed Table Header */}
-          <CardHeader 
-            p="16px" 
+          <CardHeader
+            p="16px"
             pb="12px"
-            bg="white" 
+            bg="white"
             flexShrink={0}
             borderBottom="1px solid"
             borderColor={`${customColor}20`}
@@ -2062,18 +2316,21 @@ export default function ProductManagement() {
               <Heading size="sm" flexShrink={0} color="gray.700">
                 {currentView === "categories" && "🏷️ Categories"}
                 {currentView === "products" && "🛒 Products"}
+                {currentView === "offers" && "🎟️ Offers/Coupons"}
                 {currentView === "stockAnalysis" && "📊 Stock Analysis"}
                 {currentView === "stockAlerts" && "⚠️ Stock Alerts"}
               </Heading>
 
-              {/* Search Bar - Only show for categories and products */}
-              {(currentView === "categories" || currentView === "products") && (
+              {/* Search Bar - Only show for categories, products, and offers */}
+              {(currentView === "categories" || currentView === "products" || currentView === "offers") && (
                 <Flex align="center" flex="1" maxW="350px" minW="200px">
                   <Input
                     placeholder={
-                      currentView === "categories" 
-                        ? "Search categories..." 
-                        : "Search products..."
+                      currentView === "categories"
+                        ? "Search categories..."
+                        : currentView === "products"
+                          ? "Search products..."
+                          : "Search coupons..."
                     }
                     value={searchTerm}
                     onChange={handleSearchChange}
@@ -2087,9 +2344,9 @@ export default function ProductManagement() {
                   />
                   <Icon as={FaSearch} color="gray.400" boxSize={3} />
                   {searchTerm && (
-                    <Button 
-                      size="sm" 
-                      ml={2} 
+                    <Button
+                      size="sm"
+                      ml={2}
                       onClick={handleClearSearch}
                       bg="white"
                       color={customColor}
@@ -2118,12 +2375,12 @@ export default function ProductManagement() {
                       setSelectedCategory(null);
                       setSelectedProduct(null);
                       setNewProduct(initialProduct);
-                      setVariants([{ 
-                        color: '', 
-                        size: '', 
-                        price: '', 
-                        stock: '', 
-                        sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}` 
+                      setVariants([{
+                        color: '',
+                        size: '',
+                        price: '',
+                        stock: '',
+                        sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`
                       }]);
                       setCurrentView("addProduct");
                     }
@@ -2140,17 +2397,18 @@ export default function ProductManagement() {
               )}
             </Flex>
           </CardHeader>
-          
+
           {/* Scrollable Table Content Area */}
-          <CardBody 
-            bg="white" 
-            flex="1" 
-            display="flex" 
-            flexDirection="column" 
-            p={0} 
+          <CardBody
+            bg="white"
+            flex="1"
+            display="flex"
+            flexDirection="column"
+            p={0}
             overflow="hidden"
+            minH={{ base: "300px", md: "auto" }}
           >
-            {isLoadingData ? (
+            {isLoadingData || isLoadingOffers ? (
               <Flex justify="center" align="center" py={6} flex="1">
                 <Spinner size="lg" color={customColor} />
                 <Text ml={3} fontSize="sm">Loading data...</Text>
@@ -2161,7 +2419,7 @@ export default function ProductManagement() {
                 {currentView === "categories" && (
                   <>
                     {/* Table Container */}
-                    <Box 
+                    <Box
                       flex="1"
                       display="flex"
                       flexDirection="column"
@@ -2173,12 +2431,12 @@ export default function ProductManagement() {
                         overflow="auto"
                         css={globalScrollbarStyles}
                       >
-                        <Table variant="simple" size="md" bg="transparent">
+                        <Table variant="simple" size={{ base: "sm", md: "md" }} bg="transparent" minW={{ base: "800px", lg: "100%" }}>
                           {/* Fixed Header */}
                           <Thead>
                             <Tr>
-                              <Th 
-                                color="gray.100" 
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -2192,8 +2450,8 @@ export default function ProductManagement() {
                               >
                                 #
                               </Th>
-                              <Th 
-                                color="gray.100" 
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -2207,8 +2465,8 @@ export default function ProductManagement() {
                               >
                                 Name
                               </Th>
-                              <Th 
-                                color="gray.100" 
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -2222,8 +2480,8 @@ export default function ProductManagement() {
                               >
                                 Description
                               </Th>
-                              <Th 
-                                color="gray.100" 
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -2237,9 +2495,9 @@ export default function ProductManagement() {
                               >
                                 Status
                               </Th>
-                              
-                              <Th 
-                                color="gray.100" 
+
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -2260,7 +2518,7 @@ export default function ProductManagement() {
                           <Tbody bg="transparent">
                             {currentCategories.length > 0 ? (
                               currentCategories.map((cat, idx) => (
-                                <Tr 
+                                <Tr
                                   key={cat._id || idx}
                                   bg="transparent"
                                   _hover={{ bg: `${customColor}10` }}
@@ -2292,7 +2550,7 @@ export default function ProductManagement() {
                                       {cat.status || "Active"}
                                     </Badge>
                                   </Td>
-                                 
+
                                   <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
                                     <Flex gap={2}>
                                       <IconButton
@@ -2328,6 +2586,17 @@ export default function ProductManagement() {
                                         size="sm"
                                         onClick={() => handleDeleteCategory(cat)}
                                       />
+                                      <IconButton
+                                        aria-label="Apply discount"
+                                        icon={<FaPercentage />}
+                                        bg="white"
+                                        color="green.500"
+                                        border="1px"
+                                        borderColor="green.500"
+                                        _hover={{ bg: "green.500", color: "white" }}
+                                        size="sm"
+                                        onClick={() => handleOpenCategoryDiscountModal(cat)}
+                                      />
                                     </Flex>
                                   </Td>
                                 </Tr>
@@ -2339,8 +2608,8 @@ export default function ProductManagement() {
                                     {categories.length === 0
                                       ? "No categories found. Click 'Add Category' to create one."
                                       : categorySearch
-                                      ? "No categories match your search."
-                                      : "No categories available."}
+                                        ? "No categories match your search."
+                                        : "No categories available."}
                                   </Text>
                                 </Td>
                               </Tr>
@@ -2352,7 +2621,7 @@ export default function ProductManagement() {
 
                     {/* Pagination Controls */}
                     {filteredCategories.length > 0 && (
-                      <Box 
+                      <Box
                         flexShrink={0}
                         p="16px"
                         borderTop="1px solid"
@@ -2381,8 +2650,8 @@ export default function ProductManagement() {
                               border="1px"
                               borderColor={customColor}
                               _hover={{ bg: customColor, color: "white" }}
-                              _disabled={{ 
-                                opacity: 0.5, 
+                              _disabled={{
+                                opacity: 0.5,
                                 cursor: "not-allowed",
                                 bg: "gray.100",
                                 color: "gray.400",
@@ -2393,8 +2662,8 @@ export default function ProductManagement() {
                             </Button>
 
                             {/* Page Number Display */}
-                            <Flex 
-                              align="center" 
+                            <Flex
+                              align="center"
                               gap={2}
                               bg={`${customColor}10`}
                               px={3}
@@ -2424,8 +2693,195 @@ export default function ProductManagement() {
                               border="1px"
                               borderColor={customColor}
                               _hover={{ bg: customColor, color: "white" }}
-                              _disabled={{ 
-                                opacity: 0.5, 
+                              _disabled={{
+                                opacity: 0.5,
+                                cursor: "not-allowed",
+                                bg: "gray.100",
+                                color: "gray.400",
+                                borderColor: "gray.300"
+                              }}
+                            >
+                              <Text display={{ base: "none", sm: "block" }}>Next</Text>
+                            </Button>
+                          </Flex>
+                        </Flex>
+                      </Box>
+                    )}
+                  </>
+                )}
+
+                {/* Offers Table */}
+                {currentView === "offers" && (
+                  <>
+                    <Box flex="1" display="flex" flexDirection="column" overflow="hidden">
+                      <Box flex="1" overflow="auto" css={globalScrollbarStyles}>
+                        <Table variant="simple" size={{ base: "sm", md: "md" }} bg="transparent" minW="1000px">
+                          <Thead>
+                            <Tr>
+                              <Th color="gray.100" bg={customColor} position="sticky" top={0} zIndex={10}>Code</Th>
+                              <Th color="gray.100" bg={customColor} position="sticky" top={0} zIndex={10}>Discount</Th>
+                              <Th color="gray.100" bg={customColor} position="sticky" top={0} zIndex={10}>Min Order</Th>
+                              <Th color="gray.100" bg={customColor} position="sticky" top={0} zIndex={10}>Type/Scoped</Th>
+                              <Th color="gray.100" bg={customColor} position="sticky" top={0} zIndex={10}>Usage / Limit</Th>
+                              <Th color="gray.100" bg={customColor} position="sticky" top={0} zIndex={10}>Expiry</Th>
+                              <Th color="gray.100" bg={customColor} position="sticky" top={0} zIndex={10}>Actions</Th>
+                            </Tr>
+                          </Thead>
+                          <Tbody>
+                            {currentOffers.length > 0 ? (
+                              currentOffers.map((off, idx) => (
+                                <Tr key={off._id || idx} _hover={{ bg: `${customColor}10` }}>
+                                  <Td fontWeight="bold" color={customColor}>{off.couponcode}</Td>
+                                  <Td>
+                                    <Badge colorScheme="green">
+                                      {off.discount_type === "percent" ? `${off.discount_value}%` : `₹${off.discount_value}`}
+                                    </Badge>
+                                  </Td>
+                                  <Td>₹{off.min_order_amount || 0}</Td>
+                                  <Td>
+                                    <VStack align="start" spacing={0}>
+                                      <Text fontSize="xs" color="gray.500">{off.product ? "Product" : off.category ? "Category" : "Global"}</Text>
+                                      <Text fontSize="sm" isTruncated maxW="150px">
+                                        {off.product?.name || (typeof off.product === 'string' ? off.product : '') ||
+                                          off.category?.name || (typeof off.category === 'string' ? off.category : '') ||
+                                          "All Products"}
+                                      </Text>
+                                    </VStack>
+                                  </Td>
+                                  <Td>{off.used_count || 0} / {off.usage_limit || "∞"}</Td>
+                                  <Td>
+                                    <Text color={new Date(off.expiry_date) < new Date() ? "red.500" : "inherit"}>
+                                      {new Date(off.expiry_date).toLocaleDateString()}
+                                    </Text>
+                                  </Td>
+                                  <Td>
+                                    <Flex gap={2}>
+                                      <IconButton
+                                        aria-label="Edit offer"
+                                        icon={<FaEdit />}
+                                        bg="white"
+                                        color={customColor}
+                                        border="1px"
+                                        borderColor={customColor}
+                                        _hover={{ bg: customColor, color: "white" }}
+                                        size="sm"
+                                        onClick={() => handleEditOffer(off)}
+                                      />
+                                      <IconButton
+                                        aria-label="View offer"
+                                        icon={<FaEye />}
+                                        bg="white"
+                                        color="blue.500"
+                                        border="1px"
+                                        borderColor="blue.500"
+                                        _hover={{ bg: "blue.500", color: "white" }}
+                                        size="sm"
+                                        onClick={() => handleViewOffer(off)}
+                                      />
+                                      <IconButton
+                                        aria-label="Delete offer"
+                                        icon={<FaTrash />}
+                                        bg="white"
+                                        color="red.500"
+                                        border="1px"
+                                        borderColor="red.500"
+                                        _hover={{ bg: "red.500", color: "white" }}
+                                        size="sm"
+                                        onClick={async () => {
+                                          if (window.confirm("Delete this offer?")) {
+                                            try {
+                                              await deleteOffer(off._id);
+                                              fetchData();
+                                              toast({ title: "Deleted", status: "success" });
+                                            } catch (e) {
+                                              toast({ title: "Error", description: e.message, status: "error" });
+                                            }
+                                          }
+                                        }}
+                                      />
+                                    </Flex>
+                                  </Td>
+                                </Tr>
+                              ))
+                            ) : (
+                              <Tr><Td colSpan={7} textAlign="center">No offers found.</Td></Tr>
+                            )}
+                          </Tbody>
+                        </Table>
+                      </Box>
+                    </Box>
+
+                    {/* Offer Pagination Controls */}
+                    {filteredOffers.length > 0 && (
+                      <Box
+                        flexShrink={0}
+                        p="16px"
+                        borderTop="1px solid"
+                        borderColor={`${customColor}20`}
+                        bg="transparent"
+                      >
+                        <Flex
+                          justify="flex-end"
+                          align="center"
+                          gap={3}
+                        >
+                          <Text fontSize="sm" color="gray.600" display={{ base: "none", sm: "block" }}>
+                            Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredOffers.length)} of {filteredOffers.length} offers
+                          </Text>
+
+                          <Flex align="center" gap={2}>
+                            <Button
+                              size="sm"
+                              onClick={handlePrevPage}
+                              isDisabled={currentPage === 1}
+                              leftIcon={<FaChevronLeft />}
+                              bg="white"
+                              color={customColor}
+                              border="1px"
+                              borderColor={customColor}
+                              _hover={{ bg: customColor, color: "white" }}
+                              _disabled={{
+                                opacity: 0.5,
+                                cursor: "not-allowed",
+                                bg: "gray.100",
+                                color: "gray.400",
+                                borderColor: "gray.300"
+                              }}
+                            >
+                              <Text display={{ base: "none", sm: "block" }}>Previous</Text>
+                            </Button>
+
+                            <Flex
+                              align="center"
+                              gap={2}
+                              bg={`${customColor}10`}
+                              px={3}
+                              py={1}
+                              borderRadius="6px"
+                              minW="80px"
+                              justify="center"
+                            >
+                              <Text fontSize="sm" fontWeight="bold" color={customColor}>
+                                {currentPage}
+                              </Text>
+                              <Text fontSize="sm" color="gray.500"> / </Text>
+                              <Text fontSize="sm" color="gray.600" fontWeight="medium">
+                                {totalOfferPages}
+                              </Text>
+                            </Flex>
+
+                            <Button
+                              size="sm"
+                              onClick={handleNextPage}
+                              isDisabled={currentPage === totalOfferPages}
+                              rightIcon={<FaChevronRight />}
+                              bg="white"
+                              color={customColor}
+                              border="1px"
+                              borderColor={customColor}
+                              _hover={{ bg: customColor, color: "white" }}
+                              _disabled={{
+                                opacity: 0.5,
                                 cursor: "not-allowed",
                                 bg: "gray.100",
                                 color: "gray.400",
@@ -2445,7 +2901,7 @@ export default function ProductManagement() {
                 {currentView === "products" && (
                   <>
                     {/* Table Container */}
-                    <Box 
+                    <Box
                       flex="1"
                       display="flex"
                       flexDirection="column"
@@ -2457,12 +2913,12 @@ export default function ProductManagement() {
                         overflow="auto"
                         css={globalScrollbarStyles}
                       >
-                        <Table variant="simple" size="md" bg="transparent">
+                        <Table variant="simple" size={{ base: "sm", md: "md" }} bg="transparent" minW={{ base: "1000px", lg: "100%" }}>
                           {/* Fixed Header */}
                           <Thead>
                             <Tr>
-                              <Th 
-                                color="gray.100" 
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -2476,8 +2932,8 @@ export default function ProductManagement() {
                               >
                                 #
                               </Th>
-                              <Th 
-                                color="gray.100" 
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -2491,8 +2947,8 @@ export default function ProductManagement() {
                               >
                                 Name
                               </Th>
-                              <Th 
-                                color="gray.100" 
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -2506,8 +2962,8 @@ export default function ProductManagement() {
                               >
                                 Category
                               </Th>
-                              <Th 
-                                color="gray.100" 
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -2521,23 +2977,9 @@ export default function ProductManagement() {
                               >
                                 Price Range
                               </Th>
-                              <Th 
-                                color="gray.100" 
-                                borderColor={`${customColor}30`}
-                                position="sticky"
-                                top={0}
-                                bg={`${customColor}`}
-                                zIndex={10}
-                                fontWeight="bold"
-                                fontSize="sm"
-                                py={3}
-                                borderBottom="2px solid"
-                                borderBottomColor={`${customColor}50`}
-                              >
-                                Stock Status
-                              </Th>
-                              <Th 
-                                color="gray.100" 
+
+                              <Th
+                                color="gray.100"
                                 borderColor={`${customColor}30`}
                                 position="sticky"
                                 top={0}
@@ -2563,12 +3005,12 @@ export default function ProductManagement() {
                                 const prices = prod.variants?.map(v => v.price || 0) || [];
                                 const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
                                 const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
-                                const priceRange = minPrice === maxPrice ? 
-                                  `₹${minPrice}` : 
+                                const priceRange = minPrice === maxPrice ?
+                                  `₹${minPrice}` :
                                   `₹${minPrice} - ₹${maxPrice}`;
-                                
+
                                 return (
-                                  <Tr 
+                                  <Tr
                                     key={prod._id || idx}
                                     bg="transparent"
                                     _hover={{ bg: `${customColor}10` }}
@@ -2586,34 +3028,15 @@ export default function ProductManagement() {
                                     </Td>
                                     <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
                                       <Text noOfLines={1} maxW="120px">
-                                        {prod.category?.name || 
-                                        categories.find(c => c._id === prod.category)?.name || 
-                                        "N/A"}
+                                        {prod.category?.name ||
+                                          categories.find(c => c._id === prod.category)?.name ||
+                                          "N/A"}
                                       </Text>
                                     </Td>
                                     <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
                                       {priceRange}
                                     </Td>
-                                    <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
-                                      <Flex direction="column" gap={1}>
-                                        <StockStatusBadge product={prod} />
-                                        <Badge
-                                          colorScheme={
-                                            prod.status === "Available" ? "green" : 
-                                            prod.status === "Out of Stock" ? "orange" : "red"
-                                          }
-                                          fontSize="xs"
-                                          px={2}
-                                          py={1}
-                                          borderRadius="full"
-                                        >
-                                          {prod.status || "Available"}
-                                        </Badge>
-                                        <Text fontSize="xs" color="gray.500">
-                                          Total: {totalStock} | Available: {availableStock}
-                                        </Text>
-                                      </Flex>
-                                    </Td>
+
                                     <Td borderColor={`${customColor}20`} fontSize="sm" py={3}>
                                       <Flex gap={2}>
                                         <IconButton
@@ -2649,6 +3072,17 @@ export default function ProductManagement() {
                                           size="sm"
                                           onClick={() => handleDeleteProduct(prod)}
                                         />
+                                        <IconButton
+                                          aria-label="Apply discount"
+                                          icon={<FaPercentage />}
+                                          bg="white"
+                                          color="green.500"
+                                          border="1px"
+                                          borderColor="green.500"
+                                          _hover={{ bg: "green.500", color: "white" }}
+                                          size="sm"
+                                          onClick={() => handleOpenDiscountModal(prod)}
+                                        />
                                       </Flex>
                                     </Td>
                                   </Tr>
@@ -2661,8 +3095,8 @@ export default function ProductManagement() {
                                     {products.length === 0
                                       ? "No products found. Click 'Add Product' to create one."
                                       : productSearch
-                                      ? "No products match your search."
-                                      : "No products available."}
+                                        ? "No products match your search."
+                                        : "No products available."}
                                   </Text>
                                 </Td>
                               </Tr>
@@ -2674,7 +3108,7 @@ export default function ProductManagement() {
 
                     {/* Pagination Controls */}
                     {filteredProducts.length > 0 && (
-                      <Box 
+                      <Box
                         flexShrink={0}
                         p="16px"
                         borderTop="1px solid"
@@ -2703,8 +3137,8 @@ export default function ProductManagement() {
                               border="1px"
                               borderColor={customColor}
                               _hover={{ bg: customColor, color: "white" }}
-                              _disabled={{ 
-                                opacity: 0.5, 
+                              _disabled={{
+                                opacity: 0.5,
                                 cursor: "not-allowed",
                                 bg: "gray.100",
                                 color: "gray.400",
@@ -2715,8 +3149,8 @@ export default function ProductManagement() {
                             </Button>
 
                             {/* Page Number Display */}
-                            <Flex 
-                              align="center" 
+                            <Flex
+                              align="center"
                               gap={2}
                               bg={`${customColor}10`}
                               px={3}
@@ -2746,8 +3180,8 @@ export default function ProductManagement() {
                               border="1px"
                               borderColor={customColor}
                               _hover={{ bg: customColor, color: "white" }}
-                              _disabled={{ 
-                                opacity: 0.5, 
+                              _disabled={{
+                                opacity: 0.5,
                                 cursor: "not-allowed",
                                 bg: "gray.100",
                                 color: "gray.400",
@@ -2765,10 +3199,10 @@ export default function ProductManagement() {
 
                 {/* Stock Analysis View */}
                 {currentView === "stockAnalysis" && (
-                  <Box 
-                    flex="1" 
-                    display="flex" 
-                    flexDirection="column" 
+                  <Box
+                    flex="1"
+                    display="flex"
+                    flexDirection="column"
                     overflow="auto"
                     css={globalScrollbarStyles}
                     p={4}
@@ -2800,10 +3234,10 @@ export default function ProductManagement() {
 
                 {/* Stock Alerts View */}
                 {currentView === "stockAlerts" && (
-                  <Box 
-                    flex="1" 
-                    display="flex" 
-                    flexDirection="column" 
+                  <Box
+                    flex="1"
+                    display="flex"
+                    flexDirection="column"
                     overflow="auto"
                     css={globalScrollbarStyles}
                     p={4}
@@ -2905,7 +3339,7 @@ export default function ProductManagement() {
                     <Text fontSize="lg" fontWeight="bold" mb={1} noOfLines={2}>
                       {selectedProduct.name}
                     </Text>
-                    
+
                     <SimpleGrid columns={2} spacing={2} mt={2}>
                       <Box>
                         <Text fontSize="xs" color="gray.500">Category</Text>
@@ -2913,13 +3347,13 @@ export default function ProductManagement() {
                           {selectedProduct.category?.name || "N/A"}
                         </Text>
                       </Box>
-                      
+
                       <Box>
                         <Text fontSize="xs" color="gray.500">Status</Text>
                         <Badge
                           colorScheme={
-                            selectedProduct.status === "Available" ? "green" : 
-                            selectedProduct.status === "Out of Stock" ? "orange" : "red"
+                            selectedProduct.status === "Available" ? "green" :
+                              selectedProduct.status === "Out of Stock" ? "orange" : "red"
                           }
                           fontSize="xs"
                           px={2}
@@ -2938,7 +3372,7 @@ export default function ProductManagement() {
                   {selectedProduct.variants && selectedProduct.variants.length > 0 ? (
                     <SimpleGrid columns={1} spacing={2}>
                       {selectedProduct.variants.map((variant, index) => (
-                        <Box 
+                        <Box
                           key={index}
                           p={2}
                           border="1px"
@@ -2990,22 +3424,22 @@ export default function ProductManagement() {
                         {selectedProduct.variants?.reduce((sum, variant) => sum + (variant.stock || 0), 0) || 0}
                       </Text>
                     </Box>
-                    
+
                     <Box textAlign="center" bg={useColorModeValue("gray.50", "gray.700")} p={2} borderRadius="md">
                       <Text fontSize="xs" color="gray.500">Available</Text>
                       <Text fontSize="lg" fontWeight="bold" color="green.600">
                         {calculateAvailableStock(selectedProduct)}
                       </Text>
                     </Box>
-                    
+
                     <Box textAlign="center" bg={useColorModeValue("gray.50", "gray.700")} p={2} borderRadius="md" colSpan={2}>
                       <Text fontSize="xs" color="gray.500">Status</Text>
                       <Box mt={1}>
                         <StockStatusBadge product={selectedProduct} />
                         <Badge
                           colorScheme={
-                            selectedProduct.status === "Available" ? "green" : 
-                            selectedProduct.status === "Out of Stock" ? "orange" : "red"
+                            selectedProduct.status === "Available" ? "green" :
+                              selectedProduct.status === "Out of Stock" ? "orange" : "red"
                           }
                           fontSize="xs"
                           px={2}
@@ -3056,8 +3490,8 @@ export default function ProductManagement() {
             )}
           </ModalBody>
           <ModalFooter>
-            <Button 
-              colorScheme="blue" 
+            <Button
+              colorScheme="blue"
               onClick={closeModal}
               size="sm"
             >
@@ -3086,13 +3520,13 @@ export default function ProductManagement() {
               </Text>
               ? This action cannot be undone.
             </Text>
-            
+
             {deleteType === "category" && (
-              <Box 
-                bg="orange.50" 
-                p={3} 
-                borderRadius="md" 
-                border="1px" 
+              <Box
+                bg="orange.50"
+                p={3}
+                borderRadius="md"
+                border="1px"
                 borderColor="orange.200"
               >
                 <Flex align="center" gap={2} mb={2}>
@@ -3102,15 +3536,15 @@ export default function ProductManagement() {
                   </Text>
                 </Flex>
                 <Text fontSize="sm" color="orange.600">
-                  This category must be empty (no products) before it can be deleted. 
+                  This category must be empty (no products) before it can be deleted.
                 </Text>
               </Box>
             )}
           </ModalBody>
           <ModalFooter>
-            <Button 
-              variant="outline" 
-              mr={3} 
+            <Button
+              variant="outline"
+              mr={3}
               onClick={closeDeleteModal}
               isDisabled={isDeleting}
               size="sm"
@@ -3131,6 +3565,318 @@ export default function ProductManagement() {
           </ModalFooter>
         </ModalContent>
       </Modal>
-    </Flex>
+
+      {/* Discount/Offer Creation Modal */}
+      <Modal isOpen={isDiscountModalOpen} onClose={() => { setIsDiscountModalOpen(false); setEditingOffer(null); }} size="md">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader color="gray.700">
+            <Flex align="center" gap={2}>
+              <Icon as={FaPercentage} color="green.500" />
+              {editingOffer ? "Update Offer" : (discountProduct ? "Apply Discount to Product" : "Apply Discount to Category")}
+            </Flex>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Box mb={4} p={3} bg="green.50" borderRadius="md" border="1px" borderColor="green.200">
+              <Text fontSize="sm" fontWeight="bold" color="green.700">
+                {discountProduct ? `Product: ${discountProduct.name}` :
+                  discountFormData.category ? `Category: ${categories.find(c => c._id === discountFormData.category)?.name}` :
+                    "Offer Details"}
+              </Text>
+            </Box>
+
+            <SimpleGrid columns={2} spacing={4}>
+              <FormControl isRequired>
+                <FormLabel fontSize="sm">Coupon Code</FormLabel>
+                <Input
+                  size="sm"
+                  placeholder="e.g. SALE50"
+                  value={discountFormData.couponcode}
+                  onChange={(e) => setDiscountFormData({ ...discountFormData, couponcode: e.target.value.toUpperCase() })}
+                />
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel fontSize="sm">Discount Type</FormLabel>
+                <Select
+                  size="sm"
+                  value={discountFormData.discount_type}
+                  onChange={(e) => setDiscountFormData({ ...discountFormData, discount_type: e.target.value })}
+                >
+                  <option value="percent">Percentage (%)</option>
+                  <option value="fixed">Fixed Amount (₹)</option>
+                </Select>
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel fontSize="sm">Discount Value</FormLabel>
+                <Input
+                  type="number"
+                  size="sm"
+                  placeholder="20"
+                  value={discountFormData.discount_value}
+                  onChange={(e) => setDiscountFormData({ ...discountFormData, discount_value: e.target.value })}
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel fontSize="sm">Min Order Amount</FormLabel>
+                <Input
+                  type="number"
+                  size="sm"
+                  placeholder="1000"
+                  value={discountFormData.min_order_amount}
+                  onChange={(e) => setDiscountFormData({ ...discountFormData, min_order_amount: e.target.value })}
+                />
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel fontSize="sm">Expiry Date</FormLabel>
+                <Input
+                  type="date"
+                  size="sm"
+                  value={discountFormData.expiry_date}
+                  onChange={(e) => setDiscountFormData({ ...discountFormData, expiry_date: e.target.value })}
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel fontSize="sm">Usage Limit</FormLabel>
+                <Input
+                  type="number"
+                  size="sm"
+                  placeholder="5"
+                  value={discountFormData.usage_limit}
+                  onChange={(e) => setDiscountFormData({ ...discountFormData, usage_limit: e.target.value })}
+                />
+              </FormControl>
+            </SimpleGrid>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="outline"
+              mr={3}
+              onClick={() => setIsDiscountModalOpen(false)}
+              size="sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              bg="green.500"
+              _hover={{ bg: "green.600" }}
+              color="white"
+              onClick={handleApplyDiscount}
+              isLoading={isSubmitting}
+              loadingText={editingOffer ? "Updating..." : "Applying..."}
+              size="sm"
+            >
+              {editingOffer ? "Update Offer" : "Apply Offer"}
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* View Offer Modal */}
+      <Modal isOpen={isViewOfferModalOpen} onClose={() => setIsViewOfferModalOpen(false)} size="lg">
+        <ModalOverlay />
+        <ModalContent borderRadius="xl" overflow="hidden">
+          <ModalHeader bg={customColor} color="white">
+            <Flex align="center" gap={2}>
+              <Icon as={FaPercentage} />
+              <Text>Offer Details: {viewOffer?.couponcode}</Text>
+            </Flex>
+          </ModalHeader>
+          <ModalCloseButton color="white" />
+          <ModalBody p={6}>
+            {viewOffer && (
+              <VStack align="stretch" spacing={6}>
+                {/* Scope Information */}
+                <Box p={4} borderRadius="lg" bg="purple.50" border="1px" borderColor="purple.100">
+                  <SimpleGrid columns={2} spacing={4}>
+                    <Box>
+                      <Text fontWeight="bold" color="purple.700" fontSize="xs" textTransform="uppercase">Offer Code</Text>
+                      <Text fontSize="xl" fontWeight="black" color={customColor}>{viewOffer.couponcode}</Text>
+                    </Box>
+                    <Box textAlign="right">
+                      <Text fontWeight="bold" color="purple.700" fontSize="xs" textTransform="uppercase">Status</Text>
+                      <Badge
+                        colorScheme={new Date(viewOffer.expiry_date) < new Date() ? "red" : "green"}
+                        fontSize="sm"
+                      >
+                        {new Date(viewOffer.expiry_date) < new Date() ? "EXPIRED" : "ACTIVE"}
+                      </Badge>
+                    </Box>
+                  </SimpleGrid>
+                </Box>
+
+                {/* Scope Selection */}
+                <Box>
+                  <Text fontWeight="bold" color="gray.600" fontSize="sm" mb={2}>Scope of Offer</Text>
+                  <Flex gap={3} align="center">
+                    <Badge colorScheme="blue" p={2} borderRadius="md" variant="subtle">
+                      {viewOffer.product ? "SPECIFIC PRODUCT" : viewOffer.category ? "CATEGORY WIDE" : "STORE WIDE"}
+                    </Badge>
+                    <Text fontWeight="medium" isTruncated>
+                      {viewOffer.product?.name || viewOffer.category?.name || "All Projects"}
+                    </Text>
+                  </Flex>
+                </Box>
+
+                {/* Price Comparisons */}
+                {viewOffer.product && (
+                  <Box>
+                    <Text fontWeight="bold" color="gray.600" fontSize="sm" mb={3}>Price Comparison & Discount Calculations</Text>
+                    <VStack align="stretch" spacing={3}>
+                      {viewOffer.product.variants && viewOffer.product.variants.length > 0 ? (
+                        viewOffer.product.variants.map((variant, vIdx) => {
+                          const originalPrice = variant.price || 0;
+                          let discountAmount = 0;
+                          if (viewOffer.discount_type === "percent") {
+                            discountAmount = (originalPrice * viewOffer.discount_value) / 100;
+                          } else {
+                            discountAmount = viewOffer.discount_value;
+                          }
+                          const discountedPrice = Math.max(0, originalPrice - discountAmount);
+
+                          return (
+                            <Box
+                              key={vIdx}
+                              p={4}
+                              borderRadius="lg"
+                              border="1px"
+                              borderColor="gray.100"
+                              bg="gray.50"
+                              _hover={{ shadow: "sm", bg: "white", borderColor: customColor }}
+                              transition="all 0.2s"
+                            >
+                              <Flex justify="space-between" align="center" mb={2}>
+                                <HStack>
+                                  <Badge colorScheme="purple" variant="solid">{variant.color || "Default"}</Badge>
+                                  <Badge colorScheme="gray">{variant.size || "Standard"}</Badge>
+                                </HStack>
+                                <Text fontSize="xs" color="gray.400">SKU: {variant.sku || "N/A"}</Text>
+                              </Flex>
+
+                              <SimpleGrid columns={3} spacing={4}>
+                                <VStack align="start" spacing={0}>
+                                  <Text fontSize="xs" color="gray.500">Original Price</Text>
+                                  <Text fontWeight="bold" color="gray.700" textDecoration="line-through">₹{originalPrice.toLocaleString()}</Text>
+                                </VStack>
+
+                                <VStack align="center" spacing={0}>
+                                  <Text fontSize="xs" color="gray.500">Discount ({viewOffer.discount_type === 'percent' ? `${viewOffer.discount_value}%` : `₹${viewOffer.discount_value}`})</Text>
+                                  <Text fontWeight="bold" color="red.500">-{discountAmount.toLocaleString()}</Text>
+                                </VStack>
+
+                                <VStack align="end" spacing={0} bg="green.50" p={2} borderRadius="md" border="1px dashed" borderColor="green.200">
+                                  <Text fontSize="xs" color="green.600" fontWeight="bold">Offer Price</Text>
+                                  <Text fontWeight="black" color="green.700" fontSize="lg">₹{discountedPrice.toLocaleString()}</Text>
+                                </VStack>
+                              </SimpleGrid>
+                            </Box>
+                          );
+                        })
+                      ) : (
+                        <Text color="gray.400" fontStyle="italic">No variants found for this product.</Text>
+                      )}
+                    </VStack>
+                  </Box>
+                )}
+
+                {/* Category Products */}
+                {viewOffer.category && (
+                  <Box>
+                    <Text fontWeight="bold" color="gray.600" fontSize="sm" mb={3}>Category Products & Discount Calculations</Text>
+                    <VStack align="stretch" spacing={4} maxH="350px" overflowY="auto" pr={2} css={{
+                      '&::-webkit-scrollbar': { width: '4px' },
+                      '&::-webkit-scrollbar-track': { background: '#f1f1f1' },
+                      '&::-webkit-scrollbar-thumb': { background: '#7b2cbf', borderRadius: '10px' },
+                    }}>
+                      {products
+                        .filter(p => p.category?._id === (viewOffer.category?._id || viewOffer.category) || p.category === (viewOffer.category?._id || viewOffer.category))
+                        .map((product, pIdx) => (
+                          <Box key={pIdx} p={4} borderRadius="lg" border="1px" borderColor="gray.100" bg="gray.50" _hover={{ shadow: "sm", bg: "white", borderColor: '#7b2cbf' }} transition="all 0.2s">
+                            <Flex align="center" gap={3} mb={3}>
+                              <Image
+                                src={product.images?.[0]?.url || product.images?.[0] || "/placeholder.png"}
+                                w="40px"
+                                h="40px"
+                                borderRadius="md"
+                                objectFit="cover"
+                              />
+                              <Text fontWeight="bold" fontSize="sm">{product.name}</Text>
+                            </Flex>
+                            <VStack align="stretch" spacing={2}>
+                              {product.variants && product.variants.length > 0 ? (
+                                product.variants.map((variant, vIdx) => {
+                                  const originalPrice = variant.price || 0;
+                                  let discountAmount = 0;
+                                  if (viewOffer.discount_type === "percent") {
+                                    discountAmount = (originalPrice * viewOffer.discount_value) / 100;
+                                  } else {
+                                    discountAmount = viewOffer.discount_value;
+                                  }
+                                  const discountedPrice = Math.max(0, originalPrice - discountAmount);
+                                  return (
+                                    <SimpleGrid key={vIdx} columns={3} spacing={2} p={2} bg="white" borderRadius="md" border="1px" borderColor="gray.100">
+                                      <VStack align="start" spacing={0}>
+                                        <Text fontSize="10px" color="gray.500">{variant.color} / {variant.size}</Text>
+                                        <Text fontWeight="bold" fontSize="xs" textDecoration="line-through">₹{originalPrice.toLocaleString()}</Text>
+                                      </VStack>
+                                      <VStack align="center" spacing={0}>
+                                        <Text fontSize="10px" color="gray.500">Disc.</Text>
+                                        <Text fontWeight="bold" fontSize="xs" color="red.500">-{discountAmount.toLocaleString()}</Text>
+                                      </VStack>
+                                      <VStack align="end" spacing={0}>
+                                        <Text fontSize="10px" color="green.600" fontWeight="bold">Offer</Text>
+                                        <Text fontWeight="black" color="green.700" fontSize="sm">₹{discountedPrice.toLocaleString()}</Text>
+                                      </VStack>
+                                    </SimpleGrid>
+                                  );
+                                })
+                              ) : (
+                                <Text fontSize="xs" color="gray.400" fontStyle="italic" textAlign="center">No variants found</Text>
+                              )}
+                            </VStack>
+                          </Box>
+                        ))
+                      }
+                      {products.filter(p => p.category?._id === (viewOffer.category?._id || viewOffer.category) || p.category === (viewOffer.category?._id || viewOffer.category)).length === 0 && (
+                        <Text color="gray.400" fontStyle="italic" textAlign="center" py={4}>No products found in this category.</Text>
+                      )}
+                    </VStack>
+                  </Box>
+                )}
+                {/* General Offer Terms */}
+                <SimpleGrid columns={2} spacing={6}>
+                  <Box>
+                    <Text fontWeight="bold" color="gray.600" fontSize="xs" textTransform="uppercase">Minimum Purchase</Text>
+                    <Text fontWeight="bold" fontSize="md">₹{viewOffer.min_order_amount?.toLocaleString() || "0"}</Text>
+                  </Box>
+                  <Box textAlign="right">
+                    <Text fontWeight="bold" color="gray.600" fontSize="xs" textTransform="uppercase">Expiry Date</Text>
+                    <Text fontWeight="bold" fontSize="md">{new Date(viewOffer.expiry_date).toLocaleDateString()}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontWeight="bold" color="gray.600" fontSize="xs" textTransform="uppercase">Usage Count</Text>
+                    <Text fontWeight="bold" fontSize="md">{viewOffer.used_count || 0} times used</Text>
+                  </Box>
+                  <Box textAlign="right">
+                    <Text fontWeight="bold" color="gray.600" fontSize="xs" textTransform="uppercase">Limit</Text>
+                    <Text fontWeight="bold" fontSize="md">{viewOffer.usage_limit || "Unlimited"}</Text>
+                  </Box>
+                </SimpleGrid>
+              </VStack>
+            )}
+          </ModalBody>
+          <ModalFooter bg="gray.50">
+            <Button colorScheme="purple" onClick={() => setIsViewOfferModalOpen(false)}>
+              Close Details
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal >
+    </Flex >
   );
 }

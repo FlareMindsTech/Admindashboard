@@ -20,7 +20,18 @@ import {
 import { MdAdminPanelSettings } from "react-icons/md";
 import axios from "axios";
 
+import { useNavigate } from "react-router-dom";
+
 function AdminLogin() {
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/admin/dashboard");
+    }
+  }, [navigate]);
+
   const bgForm = useColorModeValue("white", "gray.800");
   const titleColor = useColorModeValue("purple.600", "purple.300");
   const toast = useToast();
@@ -96,7 +107,7 @@ function AdminLogin() {
       const { token, name, role } = res.data;
 
       // ✅ Store token and user info in localStorage     
-      sessionStorage.setItem("token", token);
+      localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify({ name, email, role }));
 
       toast({
@@ -154,17 +165,17 @@ function AdminLogin() {
         position="absolute"
         top="15%"
         left="5%"
-        w={{ 
+        w={{
           base: "30px",      // 320px-480px
           sm: "40px",        // 481px-767px  
           md: "50px",        // 768px-1024px
           lg: "60px",        // 1025px-1280px
           xl: "70px"         // 1281px+
         }}
-        h={{ 
+        h={{
           base: "30px",
           sm: "40px",
-          md: "50px", 
+          md: "50px",
           lg: "60px",
           xl: "70px"
         }}
@@ -173,21 +184,21 @@ function AdminLogin() {
         animation={`${floatAnimation} 4s ease-in-out infinite`}
         zIndex="1"
       />
-      
+
       <Box
         position="absolute"
         bottom="25%"
         right="8%"
-        w={{ 
+        w={{
           base: "25px",
           sm: "35px",
           md: "45px",
           lg: "55px",
           xl: "65px"
         }}
-        h={{ 
+        h={{
           base: "25px",
-          sm: "35px", 
+          sm: "35px",
           md: "45px",
           lg: "55px",
           xl: "65px"
@@ -202,16 +213,16 @@ function AdminLogin() {
         position="absolute"
         top="60%"
         left="85%"
-        w={{ 
+        w={{
           base: "20px",
           sm: "30px",
           md: "40px",
           lg: "50px",
           xl: "60px"
         }}
-        h={{ 
+        h={{
           base: "20px",
-          sm: "30px", 
+          sm: "30px",
           md: "40px",
           lg: "50px",
           xl: "60px"
@@ -225,7 +236,7 @@ function AdminLogin() {
       {/* Main Login Container */}
       <Flex
         direction="column"
-        w={{ 
+        w={{
           base: "90%",        // 320px-480px
           sm: "85%",          // 481px-767px
           md: "75%",          // 768px-1024px
@@ -233,9 +244,9 @@ function AdminLogin() {
           xl: "55%"           // 1281px+
         }}
         h={{
-          xl:"90%"
+          xl: "90%"
         }}
-        maxW={{ 
+        maxW={{
           base: "400px",      // 320px-480px
           sm: "450px",        // 481px-767px
           md: "500px",        // 768px-1024px
@@ -243,7 +254,7 @@ function AdminLogin() {
           xl: "500px"         // 1281px+
         }}
         bg={bgForm}
-        borderRadius={{ 
+        borderRadius={{
           base: "20px",       // 320px-480px
           sm: "25px",         // 481px-767px
           md: "30px",         // 768px-1024px
@@ -259,7 +270,7 @@ function AdminLogin() {
         <Flex
           bg="linear-gradient(135deg, #805ad5 0%, #6b46c1 100%)"
           color="white"
-          p={{ 
+          p={{
             base: "25px",     // 320px-480px
             sm: "30px",       // 481px-767px
             md: "35px",       // 768px-1024px
@@ -284,17 +295,17 @@ function AdminLogin() {
           }}
         >
           <Box
-            w={{ 
+            w={{
               base: "60px",   // 320px-480px
               sm: "70px",     // 481px-767px
               md: "80px",     // 768px-1024px
               lg: "90px",     // 1025px-1280px
               xl: "15%"     // 1281px+
             }}
-            h={{ 
+            h={{
               base: "60px",
               sm: "70px",
-              md: "80px", 
+              md: "80px",
               lg: "90px",
               xl: "100%"
             }}
@@ -307,9 +318,9 @@ function AdminLogin() {
           >
             <Icon as={MdAdminPanelSettings} h="60px" w="60px" color="white" />
           </Box>
-          
+
           <Text
-            fontSize={{ 
+            fontSize={{
               base: "22px",   // 320px-480px
               sm: "24px",     // 481px-767px
               md: "26px",     // 768px-1024px
@@ -328,7 +339,7 @@ function AdminLogin() {
         <Flex
           direction="column"
           justify="center"
-          p={{ 
+          p={{
             base: "25px",     // 320px-480px
             sm: "30px",       // 481px-767px
             md: "35px",       // 768px-1024px  
@@ -336,7 +347,7 @@ function AdminLogin() {
             xl: "45px"        // 1281px+
           }}
         >
-          <VStack spacing={{ 
+          <VStack spacing={{
             base: "20px",     // 320px-480px
             sm: "22px",       // 481px-767px
             md: "25px",       // 768px-1024px
@@ -344,8 +355,8 @@ function AdminLogin() {
             xl: "30px"        // 1281px+
           }} align="stretch">
             <FormControl>
-              <FormLabel 
-                fontSize={{ 
+              <FormLabel
+                fontSize={{
                   base: "14px",  // 320px-480px
                   sm: "15px",    // 481px-767px
                   md: "16px",    // 768px-1024px
@@ -376,14 +387,14 @@ function AdminLogin() {
                 placeholder="admin@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                size={{ 
+                size={{
                   base: "md",    // 320px-480px
                   sm: "lg",      // 481px-767px
                   md: "lg",      // 768px-1024px
                   lg: "lg",      // 1025px-1280px
                   xl: "lg"       // 1281px+
                 }}
-                h={{ 
+                h={{
                   base: "45px",  // 320px-480px
                   sm: "48px",    // 481px-767px
                   md: "50px",    // 768px-1024px
@@ -396,8 +407,8 @@ function AdminLogin() {
                 borderColor="gray.200"
                 bg="white"
                 _hover={{ borderColor: "purple.300" }}
-                _focus={{ 
-                  borderColor: "purple.500", 
+                _focus={{
+                  borderColor: "purple.500",
                   boxShadow: "0 0 0 3px rgba(128, 90, 213, 0.15)",
                   bg: "white"
                 }}
@@ -406,10 +417,10 @@ function AdminLogin() {
             </FormControl>
 
             <FormControl>
-              <FormLabel 
-                fontSize={{ 
+              <FormLabel
+                fontSize={{
                   base: "14px",
-                  sm: "15px", 
+                  sm: "15px",
                   md: "16px",
                   lg: "16px",
                   xl: "17px"
@@ -433,10 +444,10 @@ function AdminLogin() {
                 </Box>
                 Password
               </FormLabel>
-              <InputGroup size={{ 
+              <InputGroup size={{
                 base: "md",
                 sm: "lg",
-                md: "lg", 
+                md: "lg",
                 lg: "lg",
                 xl: "lg"
               }}>
@@ -445,7 +456,7 @@ function AdminLogin() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  h={{ 
+                  h={{
                     base: "45px",
                     sm: "48px",
                     md: "50px",
@@ -458,22 +469,22 @@ function AdminLogin() {
                   borderColor="gray.200"
                   bg="white"
                   _hover={{ borderColor: "purple.300" }}
-                  _focus={{ 
-                    borderColor: "purple.500", 
+                  _focus={{
+                    borderColor: "purple.500",
                     boxShadow: "0 0 0 3px rgba(128, 90, 213, 0.15)",
                     bg: "white"
                   }}
                   transition="all 0.3s ease"
                 />
-                <InputRightElement 
-                  h={{ 
+                <InputRightElement
+                  h={{
                     base: "45px",
-                    sm: "48px", 
+                    sm: "48px",
                     md: "50px",
                     lg: "52px",
                     xl: "55px"
                   }}
-                  w={{ 
+                  w={{
                     base: "55px",
                     sm: "60px",
                     md: "60px",
@@ -482,14 +493,14 @@ function AdminLogin() {
                   }}
                 >
                   <Button
-                    h={{ 
+                    h={{
                       base: "32px",
                       sm: "34px",
-                      md: "36px", 
+                      md: "36px",
                       lg: "38px",
                       xl: "40px"
                     }}
-                    w={{ 
+                    w={{
                       base: "32px",
                       sm: "34px",
                       md: "36px",
@@ -510,7 +521,7 @@ function AdminLogin() {
 
             <Button
               w="100%"
-              h={{ 
+              h={{
                 base: "48px",   // 320px-480px
                 sm: "50px",     // 481px-767px
                 md: "52px",     // 768px-1024px
@@ -523,7 +534,7 @@ function AdminLogin() {
               onClick={handleLogin}
               isLoading={loading}
               loadingText="Authenticating..."
-              fontSize={{ 
+              fontSize={{
                 base: "16px",   // 320px-480px
                 sm: "17px",     // 481px-767px
                 md: "18px",     // 768px-1024px
@@ -531,12 +542,12 @@ function AdminLogin() {
                 xl: "19px"      // 1281px+
               }}
               fontWeight="bold"
-              _hover={{ 
+              _hover={{
                 bg: "linear-gradient(135deg, #6b46c1 0%, #805ad5 100%)",
                 transform: "translateY(-2px)",
                 boxShadow: "0 12px 30px rgba(128, 90, 213, 0.4)"
               }}
-              _active={{ 
+              _active={{
                 transform: "translateY(0)",
                 boxShadow: "0 6px 20px rgba(128, 90, 213, 0.3)"
               }}
@@ -552,10 +563,10 @@ function AdminLogin() {
             </Button>
 
             {/* Security Footer */}
-            <HStack 
-              justify="center" 
+            <HStack
+              justify="center"
               spacing="8px"
-              mt={{ 
+              mt={{
                 base: "10px",   // 320px-480px
                 sm: "12px",     // 481px-767px
                 md: "15px",     // 768px-1024px
@@ -570,8 +581,8 @@ function AdminLogin() {
                 borderRadius="50%"
                 animation={`${floatAnimation} 2s ease-in-out infinite`}
               />
-              <Text 
-                fontSize={{ 
+              <Text
+                fontSize={{
                   base: "12px",   // 320px-480px
                   sm: "13px",     // 481px-767px
                   md: "14px",     // 768px-1024px

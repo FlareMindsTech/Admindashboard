@@ -9,13 +9,13 @@ import {
 import { FaUsers, FaBoxOpen, FaEdit, FaSignOutAlt, FaSave, FaTimes, FaChartPie } from "react-icons/fa";
 import Card from "components/Card/Card";
 import { useNavigate } from "react-router-dom";
-import { getAllAdmins, getAllProducts, getAllUsers,getAllOrders } from "../utils/axiosInstance";
+import { getAllAdmins, getAllProducts, getAllUsers, getAllOrders } from "../utils/axiosInstance";
 import ReactApexChart from 'react-apexcharts';
 
 const getInitialAdminData = () => {
   const userString = localStorage.getItem("user");
   let userData = {};
-  try { userData = JSON.parse(userString) || {}; } catch {}
+  try { userData = JSON.parse(userString) || {}; } catch { }
 
   return {
     adminId: userData._id || userData.id,
@@ -100,7 +100,7 @@ const getStatusColor = (status) => {
 const StockAnalysisComponent = ({ products, refreshProducts }) => {
   const cardBg = useColorModeValue("white", "navy.800");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   // Refresh products data
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -135,7 +135,7 @@ const StockAnalysisComponent = ({ products, refreshProducts }) => {
   // Prepare data for Incoming Products Chart
   const incomingSeries = [
     incomingProducts.reduce((sum, product) => sum + (product.stock || 0), 0),
-    remainingProducts.reduce((sum, product) => sum + (product.stock || 0), 0) + 
+    remainingProducts.reduce((sum, product) => sum + (product.stock || 0), 0) +
     outgoingProducts.reduce((sum, product) => sum + (product.stock || 0), 0)
   ];
 
@@ -147,7 +147,7 @@ const StockAnalysisComponent = ({ products, refreshProducts }) => {
   // Prepare data for Outgoing Products Chart
   const outgoingSeries = [
     outgoingProducts.reduce((sum, product) => sum + (product.stock || 0), 0),
-    remainingProducts.reduce((sum, product) => sum + (product.stock || 0), 0) + 
+    remainingProducts.reduce((sum, product) => sum + (product.stock || 0), 0) +
     incomingProducts.reduce((sum, product) => sum + (product.stock || 0), 0)
   ];
 
@@ -192,12 +192,12 @@ const StockAnalysisComponent = ({ products, refreshProducts }) => {
       }
     },
     tooltip: {
-      custom: function({ series, seriesIndex, dataPointIndex, w }) {
+      custom: function ({ series, seriesIndex, dataPointIndex, w }) {
         const productCount = dataPointIndex === 0 ? incomingProducts.length : (remainingProducts.length + outgoingProducts.length);
         const productList = dataPointIndex === 0 ? incomingProducts : [...remainingProducts, ...outgoingProducts];
         const productNames = productList.slice(0, 5).map(p => p.name).join(', ');
         const moreText = productList.length > 5 ? ` and ${productList.length - 5} more...` : '';
-        
+
         return `
           <div class="apexcharts-tooltip-title">${w.config.labels[seriesIndex]}</div>
           <div class="apexcharts-tooltip-series-group">
@@ -264,12 +264,12 @@ const StockAnalysisComponent = ({ products, refreshProducts }) => {
       }
     },
     tooltip: {
-      custom: function({ series, seriesIndex, dataPointIndex, w }) {
+      custom: function ({ series, seriesIndex, dataPointIndex, w }) {
         const productCount = dataPointIndex === 0 ? outgoingProducts.length : (remainingProducts.length + incomingProducts.length);
         const productList = dataPointIndex === 0 ? outgoingProducts : [...remainingProducts, ...incomingProducts];
         const productNames = productList.slice(0, 5).map(p => p.name).join(', ');
         const moreText = productList.length > 5 ? ` and ${productList.length - 5} more...` : '';
-        
+
         return `
           <div class="apexcharts-tooltip-title">${w.config.labels[seriesIndex]}</div>
           <div class="apexcharts-tooltip-series-group">
@@ -304,9 +304,9 @@ const StockAnalysisComponent = ({ products, refreshProducts }) => {
     <Card p={6} bg={cardBg}>
       <Flex justify="space-between" align="center" mb={6}>
         <Text fontSize="lg" fontWeight="bold">Product Stock Analysis</Text>
-        <Button 
-          size="sm" 
-          colorScheme="blue" 
+        <Button
+          size="sm"
+          colorScheme="blue"
           onClick={handleRefresh}
           isLoading={isRefreshing}
           leftIcon={<FaBoxOpen />}
@@ -314,25 +314,25 @@ const StockAnalysisComponent = ({ products, refreshProducts }) => {
           Refresh Data
         </Button>
       </Flex>
-      
+
       {/* Charts Section */}
       <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={8} mb={8}>
         {/* Incoming Products Chart */}
         <Box>
-          <ReactApexChart 
-            options={incomingChartOptions} 
-            series={incomingSeries} 
-            type="pie" 
+          <ReactApexChart
+            options={incomingChartOptions}
+            series={incomingSeries}
+            type="pie"
             height={350}
           />
         </Box>
-        
+
         {/* Outgoing Products Chart */}
         <Box>
-          <ReactApexChart 
-            options={outgoingChartOptions} 
-            series={outgoingSeries} 
-            type="pie" 
+          <ReactApexChart
+            options={outgoingChartOptions}
+            series={outgoingSeries}
+            type="pie"
             height={350}
           />
         </Box>
@@ -344,7 +344,7 @@ const StockAnalysisComponent = ({ products, refreshProducts }) => {
           <Text fontSize="sm" color="gray.600" mb={2}>Total Products</Text>
           <Text fontSize="2xl" fontWeight="bold" color="#5a189a">{products?.length || 0}</Text>
         </Card>
-        
+
         <Card p={4} bg={useColorModeValue("gray.50", "gray.700")}>
           <Text fontSize="sm" color="gray.600" mb={2}>Incoming Products</Text>
           <Text fontSize="2xl" fontWeight="bold" color="#5a189a">
@@ -354,7 +354,7 @@ const StockAnalysisComponent = ({ products, refreshProducts }) => {
             {incomingProducts.reduce((sum, product) => sum + (product.stock || 0), 0)} units
           </Text>
         </Card>
-        
+
         <Card p={4} bg={useColorModeValue("gray.50", "gray.700")}>
           <Text fontSize="sm" color="gray.600" mb={2}>Outgoing Products</Text>
           <Text fontSize="2xl" fontWeight="bold" color="#ff6b6b">
@@ -408,28 +408,28 @@ const EditAdminModal = ({ isOpen, onClose, admin, onSave }) => {
           <VStack spacing={4}>
             <FormControl isRequired>
               <FormLabel>Name</FormLabel>
-              <Input 
-                name="name" 
-                value={getSafeString(editData.name, '')} 
+              <Input
+                name="name"
+                value={getSafeString(editData.name, '')}
                 onChange={handleChange}
                 placeholder="Enter admin name"
               />
             </FormControl>
             <FormControl isRequired>
               <FormLabel>Email</FormLabel>
-              <Input 
-                name="email" 
+              <Input
+                name="email"
                 type="email"
-                value={getSafeString(editData.email, '')} 
+                value={getSafeString(editData.email, '')}
                 onChange={handleChange}
                 placeholder="Enter admin email"
               />
             </FormControl>
             <FormControl>
               <FormLabel>Role</FormLabel>
-              <Input 
-                name="role" 
-                value={getSafeString(editData.role, '')} 
+              <Input
+                name="role"
+                value={getSafeString(editData.role, '')}
                 onChange={handleChange}
                 placeholder="Enter admin role"
               />
@@ -459,8 +459,8 @@ export default function AdminProfile() {
   const [dataLoading, setDataLoading] = useState(false);
   const [currentView, setCurrentView] = useState("users");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  
- 
+
+
 
   const [currentPage, setCurrentPage] = useState(1);
   const adminsPerPage = 5;
@@ -478,7 +478,7 @@ export default function AdminProfile() {
     try {
       const allAdmins = await getAllAdmins();
       const adminsArray = Array.isArray(allAdmins) ? allAdmins : (allAdmins.admins || []);
-      
+
       const safeAdmins = adminsArray.map(admin => ({
         ...admin,
         name: getSafeString(admin.name),
@@ -487,7 +487,7 @@ export default function AdminProfile() {
         avatar: getSafeImage(admin.avatar || admin.profileImage || admin.image),
         createdAt: admin.createdAt || admin.created_date || new Date()
       }));
-      
+
       setAdminData(prev => ({ ...prev, createdAdmins: safeAdmins }));
     } catch (err) {
       console.error("Error fetching admins:", err);
@@ -502,7 +502,7 @@ export default function AdminProfile() {
     try {
       const allUsers = await getAllUsers();
       const usersArray = Array.isArray(allUsers) ? allUsers : (allUsers.users || allUsers.data || []);
-      
+
       const safeUsers = usersArray.map(user => ({
         ...user,
         name: getSafeString(user.name || user.username),
@@ -512,7 +512,7 @@ export default function AdminProfile() {
         status: getSafeString(user.status) || 'active',
         createdAt: user.createdAt || user.created_date || user.registeredAt || new Date()
       }));
-      
+
       setAdminData(prev => ({ ...prev, allUsers: safeUsers }));
     } catch (err) {
       console.error("Error fetching users:", err);
@@ -527,7 +527,7 @@ export default function AdminProfile() {
     try {
       const response = await getAllProducts();
       console.log("🔄 Fetching products... Raw response:", response);
-      
+
       let products = [];
       if (Array.isArray(response)) {
         products = response;
@@ -543,11 +543,11 @@ export default function AdminProfile() {
       }
 
       console.log("📊 Processed products count:", products.length);
-      
+
       const processedProducts = products.map(product => {
         const stock = product.variants?.[0]?.stock || product.stock || product.quantity || 0;
         console.log(`Product: ${product.name}, Stock: ${stock}`);
-        
+
         return {
           id: product._id || product.id,
           name: getSafeString(product.name || product.title),
@@ -562,21 +562,21 @@ export default function AdminProfile() {
       });
 
       console.log("✅ Final processed products:", processedProducts);
-      
+
       setAdminData(prev => ({ ...prev, adminProducts: processedProducts }));
-      
-      toast({ 
-        title: "Data Updated", 
-        description: `Loaded ${processedProducts.length} products`, 
-        status: "success", 
-        duration: 2000 
+
+      toast({
+        title: "Data Updated",
+        description: `Loaded ${processedProducts.length} products`,
+        status: "success",
+        duration: 2000
       });
     } catch (err) {
       console.error("❌ Error fetching products:", err);
-      toast({ 
-        title: "Error", 
-        description: "Failed to fetch products", 
-        status: "error" 
+      toast({
+        title: "Error",
+        description: "Failed to fetch products",
+        status: "error"
       });
     } finally {
       setDataLoading(false);
@@ -647,17 +647,17 @@ export default function AdminProfile() {
   };
 
   const handleSaveAdmin = (updatedAdmin) => {
-    const updatedAdmins = adminData.createdAdmins.map(admin => 
+    const updatedAdmins = adminData.createdAdmins.map(admin =>
       admin._id === updatedAdmin._id ? { ...admin, ...updatedAdmin } : admin
     );
-    
+
     setAdminData(prev => ({ ...prev, createdAdmins: updatedAdmins }));
-    
-    toast({ 
-      title: "Admin Updated", 
-      description: `${updatedAdmin.name} has been updated successfully`, 
-      status: "success", 
-      duration: 3000 
+
+    toast({
+      title: "Admin Updated",
+      description: `${updatedAdmin.name} has been updated successfully`,
+      status: "success",
+      duration: 3000
     });
   };
 
@@ -691,8 +691,8 @@ export default function AdminProfile() {
         alignSelf="flex-start"
       >
         <Flex direction="column" align="center">
-          <Avatar 
-            size="xl" 
+          <Avatar
+            size="xl"
             mb={3}
             name={adminData.name}
             bg="#5a189a"
@@ -708,7 +708,7 @@ export default function AdminProfile() {
               {adminData.role}
             </Badge>
             <Text fontSize="sm" mb={2}>{adminData.email}</Text>
-            
+
             <Divider my={3} />
 
             <VStack spacing={2} align="start" w="100%" mb={4}>
@@ -720,15 +720,15 @@ export default function AdminProfile() {
                   justifyContent="start"
                   leftIcon={
                     action.icon === "users" ? <FaUsers /> :
-                    action.icon === "box" ? <FaBoxOpen /> :
-                    <FaChartPie />
+                      action.icon === "box" ? <FaBoxOpen /> :
+                        <FaChartPie />
                   }
                   onClick={() => handleActionClick(action)}
                   colorScheme={
-                    currentView === "users" && action.label === "Manage Users" ? "#5a189a" : 
-                    currentView === "products" && action.label === "Manage Products" ? "#5a189a" : 
-                    currentView === "analytics" && action.label === "Product Stock Overview" ? "#5a189a" : 
-                    "gray"
+                    currentView === "users" && action.label === "Manage Users" ? "#5a189a" :
+                      currentView === "products" && action.label === "Manage Products" ? "#5a189a" :
+                        currentView === "analytics" && action.label === "Product Stock Overview" ? "#5a189a" :
+                          "gray"
                   }
                 >
                   {action.label}
@@ -736,7 +736,7 @@ export default function AdminProfile() {
               ))}
             </VStack>
 
-       
+
           </VStack>
         </Flex>
       </Card>
@@ -763,381 +763,385 @@ export default function AdminProfile() {
             )}
 
             {currentView === "users" && (
-  <Card 
-    p={{ base: 3, md: 5 }} 
-    bg={cardBg} 
-    w="100%" 
-    overflowX="auto"
-  >
-    <Text 
-      fontSize={{ base: "md", md: "lg" }} 
-      fontWeight="bold" 
-      mb={4}
-    >
-      {isSuperAdmin ? "All Admins" : "All Users"}
-    </Text>
-
-    {dataLoading ? (
-      <Flex justify="center" py={8}>
-        <Spinner size="lg" />
-      </Flex>
-    ) : (
-      <>
-        <Table 
-          variant="simple" 
-          size="sm" 
-          className="responsive-table"
-        >
-          <Thead display={{ base: "none", md: "table-header-group" }}>
-            <Tr>
-              <Th>Avatar</Th>
-              <Th>Name</Th>
-              <Th>Email</Th>
-              <Th>Role</Th>
-              <Th>Status</Th>
-              <Th>Created</Th>
-            </Tr>
-          </Thead>
-
-          <Tbody>
-  {(isSuperAdmin ? currentAdmins : currentUsers).length > 0 ? (
-    (isSuperAdmin ? currentAdmins : currentUsers).map((person, i) => {
-      const displayName = getSafeString(person?.name || "N/A");
-
-      return (
-        <Tr
-          key={person._id || i}
-          fontSize={{ base: "sm", md: "md" }}
-          display={{ base: "block", md: "table-row" }}
-          borderBottom={{ base: "1px solid #eee", md: "none" }}
-          p={{ base: 2, md: 0 }}
-        >
-          {/* Avatar + Mobile View */}
-          <Td
-            display="flex"
-            alignItems="center"
-            gap={3}
-            py={2}
-            border="none"
-          >
-            <Avatar
-              size="sm"
-              name={displayName}
-            
-              bg="#5a189a"
-              color="white"
-            />
-
-            <Box display={{ base: "block", md: "none" }}>
-              <Text fontWeight="bold">{displayName}</Text>
-              <Text fontSize="xs" color="gray.500">
-                {getSafeString(person.email)}
-              </Text>
-            </Box>
-          </Td>
-
-          {/* Name (Desktop only) */}
-          <Td display={{ base: "none", md: "table-cell" }}>
-            {displayName}
-          </Td>
-
-          {/* Email */}
-          <Td display={{ base: "none", md: "table-cell" }}>
-            {getSafeString(person.email)}
-          </Td>
-
-          {/* Role */}
-          <Td>
-            <Badge
-              colorScheme={getRoleColor(getSafeString(person.role))}
-              px={2}
-              py={1}
-              borderRadius="md"
-              fontSize="0.75rem"
-            >
-              {getSafeString(person.role)}
-            </Badge>
-          </Td>
-
-          {/* Status */}
-          <Td>
-            <Badge
-              colorScheme={getStatusColor(person.status)}
-              px={2}
-              py={1}
-              borderRadius="md"
-              fontSize="0.75rem"
-            >
-              {getSafeString(person.status) || "Active"}
-            </Badge>
-          </Td>
-
-          {/* Created Date */}
-          <Td>
-            {person.createdAt
-              ? new Date(person.createdAt).toLocaleDateString()
-              : "N/A"}
-          </Td>
-        </Tr>
-      );
-    })
-  ) : (
-    <Tr>
-      <Td colSpan={6} textAlign="center" py={8}>
-        <Text color="gray.500">
-          No {isSuperAdmin ? "admins" : "users"} found
-        </Text>
-      </Td>
-    </Tr>
-  )}
-</Tbody>
-
-        </Table>
-
-        {/* Pagination */}
-        {(isSuperAdmin ? adminData.createdAdmins.length : adminData.allUsers.length) >
-          (isSuperAdmin ? adminsPerPage : usersPerPage) && (
-          <Flex 
-            justifyContent="space-between" 
-            mt={4} 
-            px={2}
-            fontSize={{ base: "sm", md: "md" }}
-          >
-            <Button
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-              isDisabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-
-            <Text>
-              Page {currentPage} of{" "}
-              {isSuperAdmin ? totalAdminPages : totalUserPages}
-            </Text>
-
-            <Button
-              size="sm"
-              onClick={() =>
-                setCurrentPage(p =>
-                  Math.min(
-                    p + 1,
-                    isSuperAdmin ? totalAdminPages : totalUserPages
-                  )
-                )
-              }
-              isDisabled={
-                currentPage ===
-                (isSuperAdmin ? totalAdminPages : totalUserPages)
-              }
-            >
-              Next
-            </Button>
-          </Flex>
-        )}
-      </>
-    )}
-  </Card>
-)}
-
-
-  {currentView === "products" && (
-  <Card
-    p={{ base: 3, md: 5 }}
-    bg={cardBg}
-    w="100%"
-    overflowX="auto"
-    fontFamily="'Poppins', sans-serif"
-  >
-    {/* Header */}
-    <Flex
-      justify="space-between"
-      align="center"
-      mb={4}
-      flexDirection={{ base: "column", sm: "row" }}
-      gap={2}
-    >
-      <Text
-        fontSize={{ base: "md", md: "lg" }}
-        fontWeight="bold"
-      >
-        Your Products
-      </Text>
-
-      <Badge
-        colorScheme="green"
-        fontSize={{ base: "xs", sm: "sm" }}
-        px={3}
-        py={1}
-      >
-        Total: {adminData.adminProducts.length}
-      </Badge>
-    </Flex>
-
-    {/* Loader */}
-    {dataLoading ? (
-      <Flex justify="center" py={8}>
-        <Spinner size="lg" />
-      </Flex>
-    ) : (
-      <>
-        {/* Responsive Table (same pattern as Users) */}
-        <Table 
-          variant="simple" 
-          size="sm"
-        >
-          {/* Desktop Headers */}
-          <Thead display={{ base: "none", md: "table-header-group" }}>
-            <Tr>
-              <Th>Name</Th>
-              <Th>Category</Th>
-              <Th>Price</Th>
-              <Th>Stock</Th>
-              <Th>Status</Th>
-              <Th>Created</Th>
-            </Tr>
-          </Thead>
-
-          <Tbody>
-            {currentProducts.length > 0 ? (
-              currentProducts.map((product, i) => (
-                <Tr
-                  key={i}
-                  fontSize={{ base: "sm", md: "md" }}
-                  display={{ base: "block", md: "table-row" }}
-                  borderBottom={{ base: "1px solid #eee", md: "none" }}
-                  p={{ base: 2, md: 0 }}
+              <Card
+                p={{ base: 3, md: 5 }}
+                bg={cardBg}
+                w="100%"
+                overflowX="auto"
+              >
+                <Text
+                  fontSize={{ base: "md", md: "lg" }}
+                  fontWeight="bold"
+                  mb={4}
                 >
-                  {/* MOBILE TOP SECTION */}
-                  <Td
-                    display={{ base: "flex", md: "table-cell" }}
-                    flexDirection="column"
-                    gap={1}
-                    py={2}
-                    border="none"
-                  >
-                    {/* NAME — always visible on mobile */}
-                    <Text fontWeight="bold" display={{ md: "none" }}>
-                      {getSafeString(product.name)}
-                    </Text>
+                  {isSuperAdmin ? "All Admins" : "All Users"}
+                </Text>
 
-                    {/* PRICE — small screen highlight */}
-                    <Text
-                      fontSize="xs"
-                      color="gray.500"
-                      display={{ md: "none" }}
+                {dataLoading ? (
+                  <Flex justify="center" py={8}>
+                    <Spinner size="lg" />
+                  </Flex>
+                ) : (
+                  <>
+                    <Table
+                      variant="simple"
+                      size="sm"
+                      className="responsive-table"
                     >
-                      ₹{product.price ?? "-"}
-                    </Text>
+                      <Thead display={{ base: "none", md: "table-header-group" }}>
+                        <Tr>
+                          <Th>Avatar</Th>
+                          <Th>Name</Th>
+                          <Th>Email</Th>
+                          <Th>Role</Th>
+                          <Th>Status</Th>
+                          <Th>Created</Th>
+                        </Tr>
+                      </Thead>
 
-                    {/* DESKTOP NAME */}
-                    <Box display={{ base: "none", md: "block" }}>
-                      {getSafeString(product.name)}
-                    </Box>
-                  </Td>
+                      <Tbody>
+                        {(isSuperAdmin ? currentAdmins : currentUsers).length > 0 ? (
+                          (isSuperAdmin ? currentAdmins : currentUsers).map((person, i) => {
+                            const displayName = person?.name ?
+                              getSafeString(person.name) :
+                              (person?.firstName || person?.lastName) ?
+                                getSafeString((person.firstName || "") + " " + (person.lastName || "")).trim() :
+                                "N/A";
 
-                  {/* CATEGORY */}
-                  <Td display={{ base: "none", md: "table-cell" }}>
-                    <Badge colorScheme="purple" variant="subtle">
-                      {getSafeString(product.category)}
-                    </Badge>
-                  </Td>
+                            return (
+                              <Tr
+                                key={person._id || i}
+                                fontSize={{ base: "sm", md: "md" }}
+                                display={{ base: "block", md: "table-row" }}
+                                borderBottom={{ base: "1px solid #eee", md: "none" }}
+                                p={{ base: 2, md: 0 }}
+                              >
+                                {/* Avatar + Mobile View */}
+                                <Td
+                                  display="flex"
+                                  alignItems="center"
+                                  gap={3}
+                                  py={2}
+                                  border="none"
+                                >
+                                  <Avatar
+                                    size="sm"
+                                    name={displayName}
 
-                  {/* PRICE */}
-                  <Td display={{ base: "none", md: "table-cell" }}>
-                    ₹{product.price ?? "-"}
-                  </Td>
+                                    bg="#5a189a"
+                                    color="white"
+                                  />
 
-                  {/* STOCK */}
-                  <Td>
-                    <Badge
-                      colorScheme={product.stock > 0 ? "green" : "red"}
-                      px={2}
-                      py={1}
-                      borderRadius="md"
-                      fontSize="0.75rem"
-                    >
-                      {product.stock ?? 0} in stock
-                    </Badge>
-                  </Td>
+                                  <Box display={{ base: "block", md: "none" }}>
+                                    <Text fontWeight="bold">{displayName}</Text>
+                                    <Text fontSize="xs" color="gray.500">
+                                      {getSafeString(person.email)}
+                                    </Text>
+                                  </Box>
+                                </Td>
 
-                  {/* STATUS */}
-                  <Td>
-                    <Badge
-                      colorScheme={getStatusColor(product.status)}
-                      px={2}
-                      py={1}
-                      borderRadius="md"
-                      fontSize="0.75rem"
-                    >
-                      {getSafeString(product.status)}
-                    </Badge>
-                  </Td>
+                                {/* Name (Desktop only) */}
+                                <Td display={{ base: "none", md: "table-cell" }}>
+                                  {displayName}
+                                </Td>
 
-                  {/* CREATED DATE */}
-                  <Td>
-                    {product.createdAt
-                      ? new Date(product.createdAt).toLocaleDateString()
-                      : "N/A"}
-                  </Td>
-                </Tr>
-              ))
-            ) : (
-              <Tr>
-                <Td colSpan={6} textAlign="center" py={8}>
-                  <Text color="gray.500">No products added yet</Text>
-                </Td>
-              </Tr>
+                                {/* Email */}
+                                <Td display={{ base: "none", md: "table-cell" }}>
+                                  {getSafeString(person.email)}
+                                </Td>
+
+                                {/* Role */}
+                                <Td>
+                                  <Badge
+                                    colorScheme={getRoleColor(getSafeString(person.role))}
+                                    px={2}
+                                    py={1}
+                                    borderRadius="md"
+                                    fontSize="0.75rem"
+                                  >
+                                    {getSafeString(person.role)}
+                                  </Badge>
+                                </Td>
+
+                                {/* Status */}
+                                <Td>
+                                  <Badge
+                                    colorScheme={getStatusColor(person.status)}
+                                    px={2}
+                                    py={1}
+                                    borderRadius="md"
+                                    fontSize="0.75rem"
+                                  >
+                                    {getSafeString(person.status) || "Active"}
+                                  </Badge>
+                                </Td>
+
+                                {/* Created Date */}
+                                <Td>
+                                  {person.createdAt
+                                    ? new Date(person.createdAt).toLocaleDateString()
+                                    : "N/A"}
+                                </Td>
+                              </Tr>
+                            );
+                          })
+                        ) : (
+                          <Tr>
+                            <Td colSpan={6} textAlign="center" py={8}>
+                              <Text color="gray.500">
+                                No {isSuperAdmin ? "admins" : "users"} found
+                              </Text>
+                            </Td>
+                          </Tr>
+                        )}
+                      </Tbody>
+
+                    </Table>
+
+                    {/* Pagination */}
+                    {(isSuperAdmin ? adminData.createdAdmins.length : adminData.allUsers.length) >
+                      (isSuperAdmin ? adminsPerPage : usersPerPage) && (
+                        <Flex
+                          justifyContent="space-between"
+                          mt={4}
+                          px={2}
+                          fontSize={{ base: "sm", md: "md" }}
+                        >
+                          <Button
+                            size="sm"
+                            onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                            isDisabled={currentPage === 1}
+                          >
+                            Previous
+                          </Button>
+
+                          <Text>
+                            Page {currentPage} of{" "}
+                            {isSuperAdmin ? totalAdminPages : totalUserPages}
+                          </Text>
+
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              setCurrentPage(p =>
+                                Math.min(
+                                  p + 1,
+                                  isSuperAdmin ? totalAdminPages : totalUserPages
+                                )
+                              )
+                            }
+                            isDisabled={
+                              currentPage ===
+                              (isSuperAdmin ? totalAdminPages : totalUserPages)
+                            }
+                          >
+                            Next
+                          </Button>
+                        </Flex>
+                      )}
+                  </>
+                )}
+              </Card>
             )}
-          </Tbody>
-        </Table>
 
-        {/* Pagination */}
-        {adminData.adminProducts.length > productsPerPage && (
-          <Flex
-            justifyContent="space-between"
-            mt={4}
-            px={2}
-            fontSize={{ base: "sm", md: "md" }}
-            flexDirection={{ base: "column", sm: "row" }}
-            gap={{ base: 3, sm: 0 }}
-            textAlign="center"
-          >
-            <Button
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-              isDisabled={currentPage === 1}
-            >
-              Previous
-            </Button>
 
-            <Text>
-              Page {currentPage} of {totalProductPages}
-            </Text>
+            {currentView === "products" && (
+              <Card
+                p={{ base: 3, md: 5 }}
+                bg={cardBg}
+                w="100%"
+                overflowX="auto"
+                fontFamily="'Poppins', sans-serif"
+              >
+                {/* Header */}
+                <Flex
+                  justify="space-between"
+                  align="center"
+                  mb={4}
+                  flexDirection={{ base: "column", sm: "row" }}
+                  gap={2}
+                >
+                  <Text
+                    fontSize={{ base: "md", md: "lg" }}
+                    fontWeight="bold"
+                  >
+                    Your Products
+                  </Text>
 
-            <Button
-              size="sm"
-              onClick={() =>
-                setCurrentPage(p => Math.min(p + 1, totalProductPages))
-              }
-              isDisabled={currentPage === totalProductPages}
-            >
-              Next
-            </Button>
-          </Flex>
-        )}
-      </>
-    )}
-  </Card>
-)}
+                  <Badge
+                    colorScheme="green"
+                    fontSize={{ base: "xs", sm: "sm" }}
+                    px={3}
+                    py={1}
+                  >
+                    Total: {adminData.adminProducts.length}
+                  </Badge>
+                </Flex>
+
+                {/* Loader */}
+                {dataLoading ? (
+                  <Flex justify="center" py={8}>
+                    <Spinner size="lg" />
+                  </Flex>
+                ) : (
+                  <>
+                    {/* Responsive Table (same pattern as Users) */}
+                    <Table
+                      variant="simple"
+                      size="sm"
+                    >
+                      {/* Desktop Headers */}
+                      <Thead display={{ base: "none", md: "table-header-group" }}>
+                        <Tr>
+                          <Th>Name</Th>
+                          <Th>Category</Th>
+                          <Th>Price</Th>
+                          <Th>Stock</Th>
+                          <Th>Status</Th>
+                          <Th>Created</Th>
+                        </Tr>
+                      </Thead>
+
+                      <Tbody>
+                        {currentProducts.length > 0 ? (
+                          currentProducts.map((product, i) => (
+                            <Tr
+                              key={i}
+                              fontSize={{ base: "sm", md: "md" }}
+                              display={{ base: "block", md: "table-row" }}
+                              borderBottom={{ base: "1px solid #eee", md: "none" }}
+                              p={{ base: 2, md: 0 }}
+                            >
+                              {/* MOBILE TOP SECTION */}
+                              <Td
+                                display={{ base: "flex", md: "table-cell" }}
+                                flexDirection="column"
+                                gap={1}
+                                py={2}
+                                border="none"
+                              >
+                                {/* NAME — always visible on mobile */}
+                                <Text fontWeight="bold" display={{ md: "none" }}>
+                                  {getSafeString(product.name)}
+                                </Text>
+
+                                {/* PRICE — small screen highlight */}
+                                <Text
+                                  fontSize="xs"
+                                  color="gray.500"
+                                  display={{ md: "none" }}
+                                >
+                                  ₹{product.price ?? "-"}
+                                </Text>
+
+                                {/* DESKTOP NAME */}
+                                <Box display={{ base: "none", md: "block" }}>
+                                  {getSafeString(product.name)}
+                                </Box>
+                              </Td>
+
+                              {/* CATEGORY */}
+                              <Td display={{ base: "none", md: "table-cell" }}>
+                                <Badge colorScheme="purple" variant="subtle">
+                                  {getSafeString(product.category)}
+                                </Badge>
+                              </Td>
+
+                              {/* PRICE */}
+                              <Td display={{ base: "none", md: "table-cell" }}>
+                                ₹{product.price ?? "-"}
+                              </Td>
+
+                              {/* STOCK */}
+                              <Td>
+                                <Badge
+                                  colorScheme={product.stock > 0 ? "green" : "red"}
+                                  px={2}
+                                  py={1}
+                                  borderRadius="md"
+                                  fontSize="0.75rem"
+                                >
+                                  {product.stock ?? 0} in stock
+                                </Badge>
+                              </Td>
+
+                              {/* STATUS */}
+                              <Td>
+                                <Badge
+                                  colorScheme={getStatusColor(product.status)}
+                                  px={2}
+                                  py={1}
+                                  borderRadius="md"
+                                  fontSize="0.75rem"
+                                >
+                                  {getSafeString(product.status)}
+                                </Badge>
+                              </Td>
+
+                              {/* CREATED DATE */}
+                              <Td>
+                                {product.createdAt
+                                  ? new Date(product.createdAt).toLocaleDateString()
+                                  : "N/A"}
+                              </Td>
+                            </Tr>
+                          ))
+                        ) : (
+                          <Tr>
+                            <Td colSpan={6} textAlign="center" py={8}>
+                              <Text color="gray.500">No products added yet</Text>
+                            </Td>
+                          </Tr>
+                        )}
+                      </Tbody>
+                    </Table>
+
+                    {/* Pagination */}
+                    {adminData.adminProducts.length > productsPerPage && (
+                      <Flex
+                        justifyContent="space-between"
+                        mt={4}
+                        px={2}
+                        fontSize={{ base: "sm", md: "md" }}
+                        flexDirection={{ base: "column", sm: "row" }}
+                        gap={{ base: 3, sm: 0 }}
+                        textAlign="center"
+                      >
+                        <Button
+                          size="sm"
+                          onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                          isDisabled={currentPage === 1}
+                        >
+                          Previous
+                        </Button>
+
+                        <Text>
+                          Page {currentPage} of {totalProductPages}
+                        </Text>
+
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            setCurrentPage(p => Math.min(p + 1, totalProductPages))
+                          }
+                          isDisabled={currentPage === totalProductPages}
+                        >
+                          Next
+                        </Button>
+                      </Flex>
+                    )}
+                  </>
+                )}
+              </Card>
+            )}
 
 
 
 
 
             {currentView === "analytics" && (
-              <StockAnalysisComponent 
-                products={adminData.adminProducts} 
+              <StockAnalysisComponent
+                products={adminData.adminProducts}
                 refreshProducts={refreshProductsData}
               />
             )}
@@ -1145,7 +1149,7 @@ export default function AdminProfile() {
         )}
       </Grid>
 
-    
+
     </Flex>
   );
 }

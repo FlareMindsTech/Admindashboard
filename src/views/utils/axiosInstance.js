@@ -225,7 +225,7 @@ export const deleteCategory = async (categoryId) => {
 
     if (!response.ok) throw new Error(`Error: ${response.status}`);
 
-    return await response.json(); 
+    return await response.json();
   } catch (error) {
     console.error("Error deleting category:", error);
     throw error;
@@ -254,19 +254,19 @@ export const createProducts = async (productData) => {
     const token = getToken();
     const response = await fetch(`${BASE_URL}/products/create`, {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json", 
-        "token": token 
+      headers: {
+        "Content-Type": "application/json",
+        "token": token
       },
       body: JSON.stringify(productData),
     });
-    
+
     console.log("Response status:", response.status);
-    
+
     if (!response.ok) {
-  
+
       let errorMessage = `Error: ${response.status}`;
-      
+
       try {
         const errorData = await response.json();
 
@@ -274,18 +274,18 @@ export const createProducts = async (productData) => {
       } catch (e) {
 
         const text = await response.text();
-   
+
         errorMessage = text || errorMessage;
       }
-      
+
       throw new Error(errorMessage);
     }
-    
+
     const data = await response.json();
-  
+
     return data;
   } catch (error) {
-    throw error; 
+    throw error;
   }
 };
 
@@ -458,11 +458,18 @@ export const updateOrders = async (orderId, updatedData) => {
         "Content-Type": "application/json",
         token,
       },
-      body: JSON.stringify(updatedData), // use passed data dynamically
+      body: JSON.stringify(updatedData),
     });
 
     if (!response.ok) {
-      throw new Error(`Error updating order: ${response.status}`);
+      let errorMessage = `Error updating order: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch (e) {
+        // Fallback if not JSON
+      }
+      throw new Error(errorMessage);
     }
 
     return await response.json();
@@ -487,7 +494,7 @@ export const uploadProductImage = async (productId, file) => {
 
     const res = await fetch(`${BASE_URL}/products/upload`, {
       method: "POST",
-      headers: { 
+      headers: {
         token: `${token}`,
         // Don't set Content-Type for FormData, let browser set it
       },
@@ -499,7 +506,7 @@ export const uploadProductImage = async (productId, file) => {
       console.error("Upload failed response:", errorText);
       throw new Error(`Image upload failed: ${res.status} ${res.statusText}`);
     }
-    
+
     return await res.json();
   } catch (error) {
     console.error("Error uploading image:", error);
@@ -524,6 +531,102 @@ export const deleteProductImage = async (productId, public_id) => {
     return await response.json();
   } catch (error) {
     console.error("Error deleting image:", error);
+    throw error;
+  }
+};
+
+
+// offer details api 
+
+export const createOffer = async (offerData) => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/offers/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        token,
+      },
+      body: JSON.stringify(offerData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error creating offer:", error);
+    throw error;
+  }
+};
+
+export const getAllOffers = async () => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/offers/all`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        token,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching offers:", error);
+    throw error;
+  }
+};
+export const updateOffer = async (offerId, offerData) => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/offers/update/${offerId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        token,
+      },
+      body: JSON.stringify(offerData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating offer:", error);
+    throw error;
+  }
+};
+
+export const deleteOffer = async (offerId) => {
+  try {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/offes/delete/${offerId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        token,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error deleting offer:", error);
     throw error;
   }
 };

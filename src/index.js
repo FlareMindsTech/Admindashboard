@@ -15,15 +15,23 @@ ReactDOM.render(
       <Routes>
         {/* Auth routes */}
         <Route path="/auth/*" element={<AuthLayout />} />
-        <Route path="/auth/signup" element={<AuthLayout />} />  {/* ✅ Added */}
+        <Route path="/auth/signup" element={<AuthLayout />} /> 
 
         {/* Admin routes */}
         <Route path="/admin/*" element={<AdminLayout />} />
 
-        {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+        {/* Default redirect logic */}
+        <Route
+          path="/"
+          element={
+            localStorage.getItem("token") ? (
+              <Navigate to="/admin/dashboard" replace />
+            ) : (
+              <Navigate to="/auth/signin" replace />
+            )
+          }
+        />
 
-        {/* Catch-all 404 */}
         <Route path="*" element={<Navigate to="/auth/signin" replace />} />
       </Routes>
     </HashRouter>
