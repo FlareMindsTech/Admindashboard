@@ -1139,9 +1139,9 @@ function AdminManagement() {
           <Card
             minH="83px"
             cursor="pointer"
-            onClick={() => handleCardClick("Deleted")}
-            border={activeFilter === "Deleted" ? "2px solid" : "1px solid"}
-            borderColor={activeFilter === "Deleted" ? customColor : `${customColor}30`}
+            onClick={() => handleCardClick("Inactive")}
+            border={activeFilter === "Inactive" ? "2px solid" : "1px solid"}
+            borderColor={activeFilter === "Inactive" ? customColor : `${customColor}30`}
             transition="all 0.2s ease-in-out"
             bg="white"
             position="relative"
@@ -1182,7 +1182,7 @@ function AdminManagement() {
                   </StatLabel>
                   <Flex>
                     <StatNumber fontSize={{ base: "lg", md: "xl" }} color={textColor}>
-                      {adminData.filter((a) => a.status === "Deleted").length}
+                      {adminData.filter((a) => a.status === "Inactive").length}
                     </StatNumber>
                   </Flex>
                 </Stat>
