@@ -7,13 +7,13 @@ import {
   useColorMode,
 } from "@chakra-ui/react";
 import { Image } from "@chakra-ui/react";
-import FlareLogo from "assets/img/Aadvi-logo.png";
+import FlareLogo from "assets/img/Aadvi-logo.391cb09fed9e3ccf27bb.png";
 
 // Layout components
 import Sidebar, { SidebarResponsive } from "components/Sidebar/Sidebar.js";
 import AdminNavbar from "components/Navbars/AdminNavbar.js";
 import React, { useState, useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import routes from "routes.js";
 // Custom Chakra theme
 import FixedPlugin from "components/FixedPlugin/FixedPlugin";
@@ -23,11 +23,20 @@ import PanelContainer from "components/Layout/PanelContainer";
 import PanelContent from "components/Layout/PanelContent";
 
 export default function Dashboard(props) {
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/auth/signin");
+    }
+  }, [navigate]);
+
   const { ...rest } = props;
   const [fixed, setFixed] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const { colorMode } = useColorMode();
-  
+
   // Separate drawer states to prevent conflicts
   const { isOpen: isSidebarOpen, onOpen: onSidebarOpen, onClose: onSidebarClose } = useDisclosure();
   const { isOpen: isPluginOpen, onOpen: onPluginOpen, onClose: onPluginClose } = useDisclosure();
@@ -69,7 +78,7 @@ export default function Dashboard(props) {
       ];
 
       // Check if current route is restricted to super admin only
-      const isSuperAdminOnly = superAdminOnlyRoutes.some(restrictedRoute => 
+      const isSuperAdminOnly = superAdminOnlyRoutes.some(restrictedRoute =>
         route.name?.toLowerCase().includes(restrictedRoute.toLowerCase()) ||
         route.path?.toLowerCase().includes(restrictedRoute.toLowerCase())
       );
@@ -154,39 +163,39 @@ export default function Dashboard(props) {
           xl: "15vh",       // 1281px +
           "2xl": "15vh"     // Extra large
         }}
-        
+
         w="100%"
         position="fixed"
         bgSize="cover"
         top="0"
       />
-      
+
       {/* Mobile Sidebar - Show on smaller screens */}
       <SidebarResponsive
         logo={
           <Stack direction="row" spacing="12px" align="center" justify="center">
-            <Image 
-              src={FlareLogo} 
-              alt="Flare Logo" 
+            <Image
+              src={FlareLogo}
+              alt="Flare Logo"
               w={{
                 base: "80px",   // 320px - 480px
                 sm: "90px",     // 481px - 767px
                 md: "100px",    // 768px - 1024px
-              }} 
-              h="auto" 
+              }}
+              h="auto"
             />
             <Box w="1px" h="20px" />
           </Stack>
         }
         routes={filteredRoutes.filter(
-          (r) => !(r.layout === "/auth" && r.path === "/signin")
+          (r) => !(r.layout === "/auth" && r.path === "/signin") && r.name !== "Profile"
         )}
         hamburgerColor="white"
         isOpen={isSidebarOpen}
         onOpen={onSidebarOpen}
         onClose={onSidebarClose}
       />
-      
+
       {/* Desktop Sidebar - Show on larger screens */}
       <Sidebar
         routes={filteredRoutes.filter(
@@ -194,26 +203,26 @@ export default function Dashboard(props) {
         )}
         logo={
           <Stack direction="row" spacing="12px" align="center" justify="center">
-            <Image 
-              src={FlareLogo} 
-              alt="Flare Logo" 
+            <Image
+              src={FlareLogo}
+              alt="Flare Logo"
               w={{
                 base: "80px",   // 320px - 480px
                 sm: "90px",     // 481px - 767px  
                 md: "100px",    // 768px - 1024px
                 lg: "100px",    // 1025px - 1280px
                 xl: "100px",    // 1281px +
-              }} 
-              h="auto" 
+              }}
+              h="auto"
             />
             <Box w="1px" h="20px" />
           </Stack>
         }
         {...rest}
       />
-      
+
       <MainPanel
-      maxH={{
+        maxH={{
           base: "auto",     // 320px - 480px
           sm: "auto",       // 481px - 767px
           md: "98vh",       // 768px - 1024px
@@ -221,7 +230,7 @@ export default function Dashboard(props) {
           xl: "98vh", // 1281px +
           "2xl": "98vh" // Extra large
         }}
-        
+
         overflow={{
           sm: "auto",
           md: "hidden"
@@ -235,7 +244,7 @@ export default function Dashboard(props) {
           xl: "calc(100% - 275px)", // 1281px +
           "2xl": "calc(100% - 275px)" // Extra large
         }}
-        
+
         transition="all 0.33s cubic-bezier(0.685, 0.0473, 0.346, 1)"
       >
         <Portal>
