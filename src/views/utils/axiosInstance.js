@@ -611,7 +611,7 @@ export const updateOffer = async (offerId, offerData) => {
 export const deleteOffer = async (offerId) => {
   try {
     const token = getToken();
-    const response = await fetch(`${BASE_URL}/offes/delete/${offerId}`, {
+    const response = await fetch(`${BASE_URL}/offers/delete/${offerId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

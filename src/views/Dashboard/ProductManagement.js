@@ -1074,6 +1074,13 @@ export default function ProductManagement() {
     setIsDeleteModalOpen(true);
   };
 
+  // Delete Offer Handler
+  const handleDeleteOffer = async (offer) => {
+    setItemToDelete({ ...offer, name: offer.couponcode });
+    setDeleteType("offer");
+    setIsDeleteModalOpen(true);
+  };
+
   // Confirm Delete Handler
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
@@ -1114,13 +1121,22 @@ export default function ProductManagement() {
           duration: 3000,
           isClosable: true,
         });
+      } else if (deleteType === "offer") {
+        await deleteOffer(itemToDelete._id);
+        toast({
+          title: "Offer Deleted",
+          description: `"${itemToDelete.name}" has been deleted successfully.`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
       }
 
       await fetchData();
       closeDeleteModal();
     } catch (err) {
       toast({
-        title: `Error Deleting ${deleteType === "category" ? "Category" : "Product"}`,
+        title: `Error Deleting ${deleteType === "category" ? "Category" : deleteType === "product" ? "Product" : "Offer"}`,
         description: err.message || `Failed to delete ${deleteType}`,
         status: "error",
         duration: 3000,
@@ -2787,17 +2803,7 @@ export default function ProductManagement() {
                                         borderColor="red.500"
                                         _hover={{ bg: "red.500", color: "white" }}
                                         size="sm"
-                                        onClick={async () => {
-                                          if (window.confirm("Delete this offer?")) {
-                                            try {
-                                              await deleteOffer(off._id);
-                                              fetchData();
-                                              toast({ title: "Deleted", status: "success" });
-                                            } catch (e) {
-                                              toast({ title: "Error", description: e.message, status: "error" });
-                                            }
-                                          }
-                                        }}
+                                        onClick={() => handleDeleteOffer(off)}
                                       />
                                     </Flex>
                                   </Td>
@@ -3560,7 +3566,7 @@ export default function ProductManagement() {
               loadingText="Deleting..."
               size="sm"
             >
-              Delete {deleteType === "category" ? "Category" : "Product"}
+              Delete {deleteType === "category" ? "Category" : deleteType === "product" ? "Product" : "Offer"}
             </Button>
           </ModalFooter>
         </ModalContent>

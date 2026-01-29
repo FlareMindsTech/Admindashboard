@@ -163,9 +163,9 @@ const STATUS_COLORS = {
   default: { bg: "#64748B", color: "white" },
 };
 
-const ORDER_STATUS_OPTIONS = ["all", "pending", "packed", "shipped", "out-for-delivery", "delivered"];
-const PAYMENT_METHOD_OPTIONS = ["all", "card", "upi", "netbanking", "cod", "wallet", "bank_transfer"];
-const PAYMENT_STATUS_OPTIONS = ["all", "success", "failed", "refunded", "pending"];
+const ORDER_STATUS_OPTIONS = ["all", "pending", "confirmed", "packed", "shipped", "out-for-delivery", "delivered", "cancelled", "returned", "refunded"];
+const SHIPMENT_STATUS_OPTIONS = ["pending", "packed", "shipped", "out-for-delivery", "delivered"];
+const MAIN_ORDER_STATUS_OPTIONS = ["pending", "confirmed", "shipped", "delivered", "cancelled", "returned", "refunded"];
 
 /** Main component **/
 export default function CleanedBilling() {
@@ -214,6 +214,7 @@ export default function CleanedBilling() {
   const [paymentDatePreset, setPaymentDatePreset] = useState("all");
   const [shipmentDate, setShipmentDate] = useState("");
   const [orderStatus, setOrderStatus] = useState("");
+  const [shipmentStatusState, setShipmentStatusState] = useState("");
   const [courierName, setCourierName] = useState("");
   const [trackingId, setTrackingId] = useState("");
   const [expectedDelivery, setExpectedDelivery] = useState("");
@@ -296,7 +297,9 @@ export default function CleanedBilling() {
       }
 
       const status = (safeGet(o, "status", "") || "").toString().toLowerCase();
-      if (orderStatusFilter !== "all" && status !== orderStatusFilter) return false;
+      const shipmentStatus = (safeGet(o, "shipmentStatus", "") || "").toString().toLowerCase();
+
+      if (orderStatusFilter !== "all" && status !== orderStatusFilter && shipmentStatus !== orderStatusFilter) return false;
 
       if (orderStart != null) {
         const created = new Date(safeGet(o, "createdAt", Date.now())).getTime();
@@ -385,6 +388,7 @@ export default function CleanedBilling() {
   const openModalForOrder = (order) => {
     setSelectedOrder(order);
     setOrderStatus(safeGet(order, "status", "pending"));
+    setShipmentStatusState(safeGet(order, "shipmentStatus", "pending"));
     setShipmentDate(safeGet(order, "ShipingDate", ""));
     setCourierName(safeGet(order, "courierName", ""));
     setTrackingId(safeGet(order, "trackingId", ""));
@@ -454,6 +458,7 @@ export default function CleanedBilling() {
 
       const updateData = {
         status: orderStatus,
+        shipmentStatus: shipmentStatusState,
       };
 
       if (shipmentDate) updateData.ShipingDate = shipmentDate;
@@ -465,7 +470,7 @@ export default function CleanedBilling() {
 
       toast({
         title: "Order Updated",
-        description: `Order ${orderId} status set to ${orderStatus}.`,
+        description: `Order ${orderId} updated successfully.`,
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -1084,11 +1089,11 @@ export default function CleanedBilling() {
     const customerEmail = safeGet(selectedOrder, "user.email", "—");
     const items = safeGet(selectedOrder, "orderItems", []);
     const total = formatINR(safeGet(selectedOrder, "total_amount", 0));
-    
+
     const address = safeGet(selectedOrder, "address", {});
     const customerName = safeGet(selectedOrder, "user.name", "Customer");
     const customerPhone = safeGet(selectedOrder, "user.phone", "");
-    
+
     // Mini bill CSS for thermal printers (approx 80mm / 300px width)
     const styles = `
       <style>
@@ -1164,7 +1169,7 @@ export default function CleanedBilling() {
 
     printWindow.document.write(htmlContent);
     printWindow.document.close();
-    
+
     // Print after a short delay to ensure rendering
     setTimeout(() => {
       printWindow.print();
@@ -1208,8 +1213,22 @@ export default function CleanedBilling() {
         </Td>
 
         <Td px={isMobile ? 3 : 6} py={isMobile ? 2 : 3}>
-          <Badge bg={getStatusColor(status).bg} color={getStatusColor(status).color} px={3} py={1} borderRadius="full" fontSize={isMobile ? "xs" : "sm"} fontWeight="bold">
+          <Badge
+            bg={getStatusColor(status).bg}
+            color={getStatusColor(status).color}
+            px={3} py={1} borderRadius="full" fontSize={isMobile ? "2xs" : "xs"} fontWeight="bold"
+          >
             {String(status).toUpperCase()}
+          </Badge>
+        </Td>
+
+        <Td px={isMobile ? 3 : 6} py={isMobile ? 2 : 3}>
+          <Badge
+            bg={getStatusColor(safeGet(order, "shipmentStatus", "pending")).bg}
+            color={getStatusColor(safeGet(order, "shipmentStatus", "pending")).color}
+            px={3} py={1} borderRadius="full" fontSize={isMobile ? "2xs" : "xs"} fontWeight="medium"
+          >
+            {String(safeGet(order, "shipmentStatus", "pending")).toUpperCase()}
           </Badge>
         </Td>
 
@@ -1699,7 +1718,7 @@ export default function CleanedBilling() {
                     bg={customColor}
                     color="white"
                     _hover={{ bg: customHoverColor }}
-                    leftIcon={<FaEye />}
+                    leftIcon={<FiDownload />}
                     onClick={handleDatePDFExport}
                     width={{ base: "100%", sm: "auto" }}
                     fontWeight="bold"
@@ -1876,7 +1895,20 @@ export default function CleanedBilling() {
                               py={3}
                               borderBottom="2px solid"
                               borderBottomColor={`${customColor}50`}
-                            >Status</Th>
+                            >Order Status</Th>
+                            <Th
+                              color="gray.100"
+                              borderColor={`${customColor}30`}
+                              position="sticky"
+                              top={0}
+                              bg={`${customColor}`}
+                              zIndex={10}
+                              fontWeight="bold"
+                              fontSize="sm"
+                              py={3}
+                              borderBottom="2px solid"
+                              borderBottomColor={`${customColor}50`}
+                            >Shipment Status</Th>
                             <Th
                               color="gray.100"
                               borderColor={`${customColor}30`}
@@ -1897,7 +1929,7 @@ export default function CleanedBilling() {
                             <Tr
                               bg="transparent"
                               height="60px">
-                              <Td borderColor={`${customColor}20`} colSpan={currentView === "orders" ? 4 : 6}>
+                              <Td borderColor={`${customColor}20`} colSpan={currentView === "orders" ? 6 : 5}>
                                 <Box height="60px" />
                               </Td>
                             </Tr>
@@ -2135,14 +2167,24 @@ export default function CleanedBilling() {
                     </Flex>
                   </VStack>
 
-                  <Badge
-                    bg={getStatusColor(safeGet(selectedOrder, "status", "")).bg}
-                    color={getStatusColor(safeGet(selectedOrder, "status", "")).color}
-                    px={4} py={2} borderRadius="full" fontSize={{ base: "xs", md: "md" }} fontWeight="bold"
-                    alignSelf={{ base: "flex-start", md: "center" }}
-                  >
-                    {String(safeGet(selectedOrder, "status", "UNKNOWN")).toUpperCase()}
-                  </Badge>
+                  <VStack align="end" spacing={1}>
+                    <Badge
+                      bg={getStatusColor(safeGet(selectedOrder, "status", "")).bg}
+                      color={getStatusColor(safeGet(selectedOrder, "status", "")).color}
+                      px={4} py={2} borderRadius="full" fontSize={{ base: "xs", md: "sm" }} fontWeight="bold"
+                    >
+                      ORDER STATUS : {String(safeGet(selectedOrder, "status", "UNKNOWN")).toUpperCase()}
+                    </Badge>
+                    {safeGet(selectedOrder, "shipmentStatus") && (
+                      <Badge
+                        bg={getStatusColor(safeGet(selectedOrder, "shipmentStatus", "")).bg}
+                        color={getStatusColor(safeGet(selectedOrder, "shipmentStatus", "")).color}
+                        px={4} py={1} borderRadius="full" fontSize={{ base: "xs", md: "xs" }}
+                      >
+                        SHIPMENT STATUS : {String(safeGet(selectedOrder, "shipmentStatus", "UNKNOWN")).toUpperCase()}
+                      </Badge>
+                    )}
+                  </VStack>
                 </Flex>
 
                 <Divider />
@@ -2219,14 +2261,30 @@ export default function CleanedBilling() {
                     spacing={4}
                   >
                     <VStack align="start" spacing={1}>
-                      <Text fontWeight="bold" fontSize="xs" color="gray.500">Update Status:</Text>
+                      <Text fontWeight="bold" fontSize="xs" color="gray.500">Order Status:</Text>
                       <Select
                         value={orderStatus}
                         onChange={(e) => setOrderStatus(e.target.value)}
                         bg="white"
                         size="md"
                       >
-                        {ORDER_STATUS_OPTIONS.filter(o => o !== "all").map(opt => (
+                        {MAIN_ORDER_STATUS_OPTIONS.map(opt => (
+                          <option key={opt} value={opt}>
+                            {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                          </option>
+                        ))}
+                      </Select>
+                    </VStack>
+
+                    <VStack align="start" spacing={1}>
+                      <Text fontWeight="bold" fontSize="xs" color="gray.500">Shipment Status:</Text>
+                      <Select
+                        value={shipmentStatusState}
+                        onChange={(e) => setShipmentStatusState(e.target.value)}
+                        bg="white"
+                        size="md"
+                      >
+                        {SHIPMENT_STATUS_OPTIONS.map(opt => (
                           <option key={opt} value={opt}>
                             {opt.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                           </option>
@@ -2307,6 +2365,7 @@ export default function CleanedBilling() {
                       flex={{ base: "1", sm: "none" }}
                       onClick={() => {
                         setOrderStatus("delivered");
+                        setShipmentStatusState("delivered");
                         setTimeout(() => handleUpdateStatusAndDate(), 0);
                       }}
                       isLoading={isLoading}
