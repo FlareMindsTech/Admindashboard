@@ -1,9 +1,10 @@
 //axiosInstance.js
 import axios from "axios";
+import { BASE_URL as CONFIG_BASE_URL } from "../../config";
 
 // --- Configuration ---
-const API_BASE_URL = "https://server-e-fx6s.onrender.com/";
-const BASE_URL = "https://server-e-fx6s.onrender.com/api";
+const API_BASE_URL = `${CONFIG_BASE_URL}/api`; // Base URL for axios instance
+const BASE_URL = `${CONFIG_BASE_URL}/api`; // Base URL for fetch calls (includes /api)
 const TIMEOUT_MS = 10000;
 
 // =========================================================

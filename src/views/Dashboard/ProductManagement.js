@@ -86,8 +86,8 @@ export default function ProductManagement() {
   const navigate = useNavigate();
 
   // Custom color theme
-  const customColor = "#7b2cbf";
-  const customHoverColor = "#5a189a";
+  const customColor = "#0EA5E9"; // ElectroMart Blue
+  const customHoverColor = "#0284C7"; // Darker Blue for hover
 
   const [currentUser, setCurrentUser] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -127,8 +127,9 @@ export default function ProductManagement() {
   name: "",
   price: "",
   stock: "",
-  colors: [], 
-  sizes: [],  
+  color: "Black", 
+  ram: "8",
+  storage: "128",
   description: "",
   images: [],
 };
@@ -830,10 +831,10 @@ const handleSubmitProduct = async () => {
     });
   }
 
-  if (!newProduct.colors?.length || !newProduct.sizes?.length) {
+  if (!newProduct.color) {
     return toast({
       title: "Validation Error",
-      description: "Please select at least one color and one size.",
+      description: "Please select a color.",
       status: "error",
       duration: 3000,
       isClosable: true,
@@ -851,13 +852,15 @@ const handleSubmitProduct = async () => {
       stock: Number(newProduct.stock),
       variants: [
         {
-          color: newProduct.colors, 
-          size: newProduct.sizes,   
+          color: newProduct.color,
+          ram: Number(newProduct.ram),
+          storage: Number(newProduct.storage),
           price: Number(newProduct.price),
           stock: Number(newProduct.stock),
           sku: selectedProduct
             ? selectedProduct.variants?.[0]?.sku
             : `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          emiEligible: false
         },
       ],
     };
@@ -930,19 +933,36 @@ const handleEditProduct = (product) => {
     name: product.name,
     price: variant.price || "",
     stock: variant.stock || "",
-    colors: variant.color || [], 
-    sizes: variant.size || [],   
+    color: variant.color || "Black", // Handle Single String
+    ram: String(variant.ram || "8"),
+    storage: String(variant.storage || "128"),
     description: product.description || "",
     images: productImages,
   });
   setCurrentView("addProduct");
 };
 
+// ...
+
+// (The button is far below, so I might need a separate chunk or just let the button be handled.
+// Wait, I can try to grab the button in this same file if I start at line 922 and end at 1416? No, that's too big (500 lines).
+// I will just update the Edit Logic here.)
+
   const handleEditCategory = (category) => {
     setSelectedCategory(category);
     setNewCategory({ name: category.name, description: category.description || "" });
     setCurrentView("editCategory");
   };
+
+  // ... (Loader and other components)
+
+  // ...
+
+  // (This is lower down in the file, around line 1414 - need to target the Button specifically or the block)
+  // Since I can't reach line 1414 in this single replace_file_content easily without context, I will do it in a separate call or try to match a larger block if it's close.
+  // Actually, handleEditProduct is at line 922. The Button is at 1414.
+  // I will only update handleEditProduct here.
+  // I will make a separate call for the Button and the UI fields.
 
   // Loading component for tables
   const TableLoader = ({ columns = 6 }) => (
@@ -1219,95 +1239,59 @@ const handleEditProduct = (product) => {
           </FormControl>
         </Grid>
 
-        {/* Multiple Colors Selection */}
-        <FormControl mb="20px">
-  <FormLabel color="gray.700" fontSize="sm">Colors *</FormLabel>
-  <Flex flexWrap="wrap" gap={2} mb={2}>
-    {['Red', 'Blue', 'Green', 'Black', 'White', 'Yellow', 'Pink', 'Gray', 'Maroon', 'Purple'].map((color) => {
-      const isSelected = newProduct.colors?.includes(color);
-      return (
-        <Button
-          key={color}
-          size="xs"
-          variant={isSelected ? "solid" : "outline"}
-          colorScheme={isSelected ? "purple" : "gray"}
-          fontWeight={isSelected ? "bold" : "normal"} // Bold for selected
-          fontSize={isSelected ? "sm" : "xs"} // Larger font for selected
-          transform={isSelected ? "scale(1.05)" : "scale(1)"} // Slightly larger for selected
-          transition="all 0.2s ease-in-out"
-          _hover={{
-            transform: "scale(1.05)",
-            shadow: "md"
-          }}
-          onClick={() => {
-            const currentColors = newProduct.colors || [];
-            if (currentColors.includes(color)) {
-              setNewProduct({
-                ...newProduct,
-                colors: currentColors.filter(c => c !== color)
-              });
-            } else {
-              setNewProduct({
-                ...newProduct,
-                colors: [...currentColors, color]
-              });
-            }
-          }}
-        >
-          {color}
-        </Button>
-      );
-    })}
-  </Flex>
-  <Text fontSize="xs" color="gray.500">
-    Selected: <Text as="span" fontWeight="bold" color="purple.600">{newProduct.colors?.join(', ') || 'No colors selected'}</Text>
-  </Text>
-</FormControl>
+        {/* Color Selection */}
+        <FormControl mb="20px" isRequired>
+          <FormLabel color="gray.700" fontSize="sm">Color *</FormLabel>
+          <Select
+            value={newProduct.color}
+            onChange={(e) => setNewProduct({ ...newProduct, color: e.target.value })}
+            borderColor={`${customColor}50`}
+            _hover={{ borderColor: customColor }}
+            _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+            bg="white"
+            size="sm"
+          >
+             {['Red', 'Blue', 'Green', 'Black', 'White', 'Yellow', 'Pink', 'Gray', 'Maroon', 'Purple'].map((c) => (
+                <option key={c} value={c}>{c}</option>
+             ))}
+          </Select>
+        </FormControl>
 
-{/* Multiple Sizes Selection */}
-<FormControl mb="20px">
-  <FormLabel color="gray.700" fontSize="sm">Sizes *</FormLabel>
-  <Flex flexWrap="wrap" gap={2} mb={2}>
-    {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map((size) => {
-      const isSelected = newProduct.sizes?.includes(size);
-      return (
-        <Button
-          key={size}
-          size="xs"
-          variant={isSelected ? "solid" : "outline"}
-          colorScheme={isSelected ? "purple" : "gray"}
-          fontWeight={isSelected ? "bold" : "normal"} // Bold for selected
-          fontSize={isSelected ? "sm" : "xs"} // Larger font for selected
-          transform={isSelected ? "scale(1.05)" : "scale(1)"} // Slightly larger for selected
-          transition="all 0.2s ease-in-out"
-          _hover={{
-            transform: "scale(1.05)",
-            shadow: "md"
-          }}
-          onClick={() => {
-            const currentSizes = newProduct.sizes || [];
-            if (currentSizes.includes(size)) {
-              setNewProduct({
-                ...newProduct,
-                sizes: currentSizes.filter(s => s !== size)
-              });
-            } else {
-              setNewProduct({
-                ...newProduct,
-                sizes: [...currentSizes, size]
-              });
-            }
-          }}
-        >
-          {size}
-        </Button>
-      );
-    })}
-  </Flex>
-  <Text fontSize="xs" color="gray.500">
-    Selected: <Text as="span" fontWeight="bold" color="purple.600">{newProduct.sizes?.join(', ') || 'No sizes selected'}</Text>
-  </Text>
-</FormControl>
+        {/* RAM Selection */}
+        <FormControl mb="20px" isRequired>
+          <FormLabel color="gray.700" fontSize="sm">RAM (GB) *</FormLabel>
+          <Select
+            value={newProduct.ram}
+            onChange={(e) => setNewProduct({ ...newProduct, ram: e.target.value })}
+            borderColor={`${customColor}50`}
+            _hover={{ borderColor: customColor }}
+            _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+            bg="white"
+            size="sm"
+          >
+             {[4, 6, 8, 12, 16, 24, 32, 64].map((r) => (
+                <option key={r} value={r}>{r} GB</option>
+             ))}
+          </Select>
+        </FormControl>
+
+        {/* Storage Selection */}
+        <FormControl mb="20px" isRequired>
+          <FormLabel color="gray.700" fontSize="sm">Storage (GB) *</FormLabel>
+          <Select
+            value={newProduct.storage}
+            onChange={(e) => setNewProduct({ ...newProduct, storage: e.target.value })}
+            borderColor={`${customColor}50`}
+            _hover={{ borderColor: customColor }}
+            _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+            bg="white"
+            size="sm"
+          >
+             {[64, 128, 256, 512, 1024, 2048].map((s) => (
+                <option key={s} value={s}>{s} GB</option>
+             ))}
+          </Select>
+        </FormControl>
         <FormControl mb="20px">
           <FormLabel color="gray.700" fontSize="sm">Description</FormLabel>
           <Textarea
@@ -1411,7 +1395,7 @@ const handleEditProduct = (product) => {
           color="white"
           onClick={handleSubmitProduct}
           isLoading={isSubmitting}
-          isDisabled={!selectedCategory || !newProduct.colors?.length || !newProduct.sizes?.length}
+          isDisabled={!selectedCategory || !newProduct.color}
           size="sm"
         >
           {selectedProduct ? "Update Product" : "Create Product"}

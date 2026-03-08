@@ -146,7 +146,7 @@ const exportToCSV = (filename, rows) => {
 };
 
 /** Constants **/
-const DEFAULT_CUSTOM_COLOR = "#7b2cbf";
+const DEFAULT_CUSTOM_COLOR = " #0EA5E9";
 const DEFAULT_CUSTOM_HOVER = "#5a189a";
 
 const STATUS_COLORS = {

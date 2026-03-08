@@ -71,7 +71,7 @@ function UserManagement() {
   const tableHeaderBg = useColorModeValue("gray.100", "gray.700");
 
   // Custom color theme
-  const customColor = "#7b2cbf";
+  const customColor = " #0EA5E9";
   const customHoverColor = "#5a189a";
 
   const toast = useToast();

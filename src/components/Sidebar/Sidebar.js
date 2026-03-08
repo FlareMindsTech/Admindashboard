@@ -37,23 +37,24 @@ import { SidebarHelp } from "components/Sidebar/SidebarHelp";
 import React, { useRef, useState } from "react";
 import { Scrollbars } from "react-custom-scrollbars";
 import { NavLink } from "react-router-dom";
-import FlareMindslogo from "assets/img/fm logo.png"; 
+// import FlareMindslogo from "assets/img/fm logo.png"; // REMOVED
 
 function Sidebar(props) {
   const { sidebarVariant, logo, routes } = props;
   const mainPanel = React.useRef();
   const variantChange = "0.2s linear";
 
-  const activeBg = useColorModeValue("#7b2cbf", "#7b2cbf"); // Purple background when active
+  // ... (keeping existing color variables)
+  const activeBg = useColorModeValue("#0ea5e9", "#0ea5e9"); // ElectroMart Blue
   const inactiveBg = useColorModeValue("white", "navy.700");
-  const activeColor = useColorModeValue("white", "white"); // White text when active
+  const activeColor = useColorModeValue("white", "white"); 
   const inactiveColor = useColorModeValue("gray.400", "gray.400");
   const sidebarActiveShadow = "0px 7px 11px rgba(0, 0, 0, 0.04)";
   const sidebarBg = useColorModeValue("white", "navy.800");
   const sidebarRadius = "20px";
   const sidebarMargins = "0px";
 
-  // Desktop logout / signin dialog state
+  // ... (keeping existing state and handlers)
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
   const [isSigninPromptOpen, setIsSigninPromptOpen] = useState(false);
   const logoutCancelRef = useRef();
@@ -107,33 +108,33 @@ function Sidebar(props) {
               color={activeColor}
               fontWeight="bold"
               mb={{ 
-                base: "4px",    // 320px - 480px
-                sm: "5px",      // 481px - 767px
-                md: "6px",      // 768px - 1024px
-                lg: "6px",      // 1025px - 1280px
-                xl: "6px"       // 1281px +
+                base: "4px",
+                sm: "5px",
+                md: "6px",
+                lg: "6px",
+                xl: "6px"
               }}
               mx="auto"
               ps={{ 
-                base: "8px",    // 320px - 480px
-                sm: "9px",      // 481px - 767px
-                md: "10px",     // 768px - 1024px
-                lg: "12px",     // 1025px - 1280px
-                xl: "16px"      // 1281px +
+                base: "8px",
+                sm: "9px",
+                md: "10px",
+                lg: "12px",
+                xl: "16px"
               }}
               py={{
-                base: "8px",    // 320px - 480px
-                sm: "10px",     // 481px - 767px
-                md: "12px",     // 768px - 1024px
-                lg: "12px",     // 1025px - 1280px
-                xl: "12px"      // 1281px +
+                base: "8px",
+                sm: "10px",
+                md: "12px",
+                lg: "12px",
+                xl: "12px"
               }}
               fontSize={{
-                base: "xs",     // 320px - 480px
-                sm: "sm",       // 481px - 767px
-                md: "sm",       // 768px - 1024px
-                lg: "sm",       // 1025px - 1280px
-                xl: "sm"        // 1281px +
+                base: "xs",
+                sm: "sm",
+                md: "sm",
+                lg: "sm",
+                xl: "sm"
               }}
             >
               {document.documentElement.dir === "rtl" ? prop.rtlName : prop.name}
@@ -168,7 +169,6 @@ function Sidebar(props) {
             onClick={() => {
               const user = localStorage.getItem("user") || sessionStorage.getItem("user");
               if (!user) {
-                // If not logged in, prompt to go to sign-in
                 openSigninPrompt();
                 return;
               }
@@ -202,32 +202,32 @@ function Sidebar(props) {
               justifyContent="flex-start"
               alignItems="center"
               mb={{ 
-                base: "4px",    // 320px - 480px
-                sm: "5px",      // 481px - 767px
-                md: "6px",      // 768px - 1024px
-                lg: "6px",      // 1025px - 1280px
-                xl: "6px"       // 1281px +
+                base: "4px",
+                sm: "5px",
+                md: "6px",
+                lg: "6px",
+                xl: "6px"
               }}
               mx={{ 
-                base: "auto",   // 320px - 480px
-                sm: "auto",     // 481px - 767px
-                md: "auto",     // 768px - 1024px
-                lg: "auto",     // 1025px - 1280px
-                xl: "auto"      // 1281px +
+                base: "auto",
+                sm: "auto",
+                md: "auto",
+                lg: "auto",
+                xl: "auto"
               }}
               ps={{ 
-                base: "8px",    // 320px - 480px
-                sm: "9px",      // 481px - 767px
-                md: "10px",     // 768px - 1024px
-                lg: "12px",     // 1025px - 1280px
-                xl: "16px"      // 1281px +
+                base: "8px",
+                sm: "9px",
+                md: "10px",
+                lg: "12px",
+                xl: "16px"
               }}
               py={{
-                base: "8px",    // 320px - 480px
-                sm: "10px",     // 481px - 767px
-                md: "12px",     // 768px - 1024px
-                lg: "12px",     // 1025px - 1280px
-                xl: "12px"      // 1281px +
+                base: "8px",
+                sm: "10px",
+                md: "12px",
+                lg: "12px",
+                xl: "12px"
               }}
               borderRadius="15px"
               w="100%"
@@ -247,38 +247,38 @@ function Sidebar(props) {
               <Flex>
                 <IconBox
                   bg={isActive ? "white" : inactiveBg} // White background when active
-                  color={isActive ? "#7b2cbf" : "blue.500"} // Purple icon when active, blue when inactive
+                  color={isActive ? "#0ea5e9" : "blue.500"} // ElectroMart Blue when active
                   h={{
-                    base: "24px",  // 320px - 480px
-                    sm: "26px",    // 481px - 767px
-                    md: "28px",    // 768px - 1024px
-                    lg: "30px",    // 1025px - 1280px
-                    xl: "30px"     // 1281px +
+                    base: "24px",
+                    sm: "26px",
+                    md: "28px",
+                    lg: "30px",
+                    xl: "30px"
                   }}
                   w={{
-                    base: "24px",  // 320px - 480px
-                    sm: "26px",    // 481px - 767px
-                    md: "28px",    // 768px - 1024px
-                    lg: "30px",    // 1025px - 1280px
-                    xl: "30px"     // 1281px +
+                    base: "24px",
+                    sm: "26px",
+                    md: "28px",
+                    lg: "30px",
+                    xl: "30px"
                   }}
                   me={{
-                    base: "8px",   // 320px - 480px
-                    sm: "10px",    // 481px - 767px
-                    md: "12px",    // 768px - 1024px
-                    lg: "12px",    // 1025px - 1280px
-                    xl: "12px"     // 1281px +
+                    base: "8px",
+                    sm: "10px",
+                    md: "12px",
+                    lg: "12px",
+                    xl: "12px"
                   }}
                   transition="all 0.2s ease-in-out"
                 >
                   {prop.icon}
                 </IconBox>
                 <Text my="auto" fontSize={{
-                  base: "xs",     // 320px - 480px
-                  sm: "sm",       // 481px - 767px
-                  md: "sm",       // 768px - 1024px
-                  lg: "sm",       // 1025px - 1280px
-                  xl: "sm"        // 1281px +
+                  base: "xs",
+                  sm: "sm",
+                  md: "sm",
+                  lg: "sm",
+                  xl: "sm"
                 }}>
                   {document.documentElement.dir === "rtl"
                     ? prop.rtlName
@@ -295,54 +295,59 @@ function Sidebar(props) {
 
   const brand = (
     <Box pt={{
-      base: "15px",  // 320px - 480px
-      sm: "20px",    // 481px - 767px
-      md: "25px",    // 768px - 1024px
-      lg: "25px",    // 1025px - 1280px
-      xl: "25px"     // 1281px +
+      base: "15px",
+      sm: "20px",
+      md: "25px",
+      lg: "25px",
+      xl: "25px"
     }} mb={{
-      base: "8px",   // 320px - 480px
-      sm: "10px",    // 481px - 767px
-      md: "12px",    // 768px - 1024px
-      lg: "12px",    // 1025px - 1280px
-      xl: "12px"     // 1281px +
+      base: "8px",
+      sm: "10px",
+      md: "12px",
+      lg: "12px",
+      xl: "12px"
     }}>
-      {logo}
+      {/* Replaced Logo with Text Brand */}
+      <Flex align="center" justify="center">
+        <Text fontSize="2xl" fontWeight="800" color="#0f172a" letterSpacing="tight">
+          Electro<Text as="span" color="#0ea5e9">Mart</Text>
+        </Text>
+      </Flex>
       <HSeparator my={{
-        base: "20px", // 320px - 480px
-        sm: "22px",   // 481px - 767px
-        md: "24px",   // 768px - 1024px
-        lg: "26px",   // 1025px - 1280px
-        xl: "26px"    // 1281px +
+        base: "20px",
+        sm: "22px",
+        md: "24px",
+        lg: "26px",
+        xl: "26px"
       }} />
     </Box>
   );
 
   return (
     <Box ref={mainPanel}>
-      {/* Desktop Sidebar - Show on lg screens and above */}
+      {/* Desktop Sidebar */}
       <Box
         display={{ 
-          base: "none",  // 320px - 480px
-          sm: "none",    // 481px - 767px
-          md: "none",    // 768px - 1024px
-          lg: "block",   // 1025px - 1280px
-          xl: "block"    // 1281px +
+          base: "none",
+          sm: "none",
+          md: "none",
+          lg: "block",
+          xl: "block"
         }}
         position="fixed"
         top={{
-          base: "40px",  // 320px - 480px
-          sm: "45px",    // 481px - 767px
-          md: "50px",    // 768px - 1024px
-          lg: "50px",    // 1025px - 1280px
-          xl: "50px"     // 1281px +
+          base: "40px",
+          sm: "45px",
+          md: "50px",
+          lg: "50px",
+          xl: "50px"
         }}
         left={{
-          base: "12px",  // 320px - 480px
-          sm: "14px",    // 481px - 767px
-          md: "16px",    // 768px - 1024px
-          lg: "16px",    // 1025px - 1280px
-          xl: "16px"     // 1281px +
+          base: "12px",
+          sm: "14px",
+          md: "16px",
+          lg: "16px",
+          xl: "16px"
         }}
         zIndex="9999"
       >
@@ -350,39 +355,39 @@ function Sidebar(props) {
           bg={sidebarBg}
           transition={variantChange}
           w={{
-            base: "240px",  // 320px - 480px
-            sm: "250px",    // 481px - 767px
-            md: "260px",    // 768px - 1024px
-            lg: "250px",    // 1025px - 1280px
-            xl: "260px"     // 1281px +
+            base: "240px",
+            sm: "250px",
+            md: "260px",
+            lg: "250px",
+            xl: "260px"
           }}
           maxW={{
-            base: "240px",  // 320px - 480px
-            sm: "250px",    // 481px - 767px
-            md: "260px",    // 768px - 1024px
-            lg: "260px",    // 1025px - 1280px
-            xl: "260px"     // 1281px +
+            base: "240px",
+            sm: "250px",
+            md: "260px",
+            lg: "260px",
+            xl: "260px"
           }}
           h={{
-            base: "calc(100vh - 60px)",  // 320px - 480px
-            sm: "calc(100vh - 65px)",    // 481px - 767px
-            md: "calc(100vh - 66px)",    // 768px - 1024px
-            lg: "calc(100vh - 66px)",    // 1025px - 1280px
-            xl: "calc(100vh - 66px)"     // 1281px +
+            base: "calc(100vh - 60px)",
+            sm: "calc(100vh - 65px)",
+            md: "calc(100vh - 66px)",
+            lg: "calc(100vh - 66px)",
+            xl: "calc(100vh - 66px)"
           }}
           ps={{
-            base: "15px",  // 320px - 480px
-            sm: "18px",    // 481px - 767px
-            md: "20px",    // 768px - 1024px
-            lg: "20px",    // 1025px - 1280px
-            xl: "20px"     // 1281px +
+            base: "15px",
+            sm: "18px",
+            md: "20px",
+            lg: "20px",
+            xl: "20px"
           }}
           pe={{
-            base: "15px",  // 320px - 480px
-            sm: "18px",    // 481px - 767px
-            md: "20px",    // 768px - 1024px
-            lg: "20px",    // 1025px - 1280px
-            xl: "20px"     // 1281px +
+            base: "15px",
+            sm: "18px",
+            md: "20px",
+            lg: "20px",
+            xl: "20px"
           }}
           m={sidebarMargins}
           filter="drop-shadow(1px 5px 14px rgba(0, 0, 0, 0.05))"
@@ -393,11 +398,11 @@ function Sidebar(props) {
           <Box flex="1" display="flex" flexDirection="column" overflow="hidden">
             <Box>{brand}</Box>
             <Stack direction="column" mb={{
-              base: "30px", // 320px - 480px
-              sm: "35px",   // 481px - 767px
-              md: "40px",   // 768px - 1024px
-              lg: "40px",   // 1025px - 1280px
-              xl: "40px"    // 1281px +
+              base: "30px",
+              sm: "35px",
+              md: "40px",
+              lg: "40px",
+              xl: "40px"
             }} flex="1" overflow="hidden">
               <Box overflow="hidden" flex="1">
                 {links}
@@ -411,15 +416,8 @@ function Sidebar(props) {
             color="#888"
             flexShrink={0}
           >
-            <Image 
-             src={FlareMindslogo}
-  alt="FlareMinds Logo"
-  mx="auto"
-  mb={2}
-  boxSize={{ base: "24px", sm: "26px", md: "28px" }}
-  objectFit="contain"
-            />
-            © 2025 Developed by <strong>FlareMinds</strong> ❤️
+            {/* Removed FlareMinds branding */}
+            <Text>© 2025 <strong>ElectroMart Admin</strong></Text>
           </Box>
         </Box>
       </Box>
@@ -427,7 +425,7 @@ function Sidebar(props) {
       <AlertDialog isOpen={isSigninPromptOpen} leastDestructiveRef={signinCancelRef} onClose={closeSigninPrompt} isCentered>
         <AlertDialogOverlay>
           <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="#7b2cbf">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="#0ea5e9">
               Not signed in
             </AlertDialogHeader>
             <AlertDialogBody>
@@ -445,7 +443,7 @@ function Sidebar(props) {
       <AlertDialog isOpen={isLogoutOpen} leastDestructiveRef={logoutCancelRef} onClose={closeLogout} isCentered>
         <AlertDialogOverlay>
           <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="#7b2cbf">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color=" #0EA5E9">
               Confirm Logout
             </AlertDialogHeader>
             <AlertDialogBody>Are you sure you want to log out?</AlertDialogBody>
@@ -510,7 +508,7 @@ export function SidebarResponsive(props) {
     window.location.replace(`${base}#/auth/signin`);
   };
 
-  const activeBg = useColorModeValue("#7b2cbf", "#7b2cbf"); // Purple background when active
+  const activeBg = useColorModeValue(" #0EA5E9", " #0EA5E9"); // Purple background when active
   const inactiveBg = useColorModeValue("white", "navy.700");
   const activeColor = useColorModeValue("white", "white"); // White text when active
   const inactiveColor = useColorModeValue("gray.400", "white");
@@ -653,7 +651,7 @@ export function SidebarResponsive(props) {
               <Flex>
                 <IconBox
                   bg={isActive ? "white" : inactiveBg} // White background when active
-                  color={isActive ? "#7b2cbf" : "blue.500"} // Purple icon when active, blue when inactive
+                  color={isActive ? " #0EA5E9" : "blue.500"} // Purple icon when active, blue when inactive
                   h={{
                     base: "24px",  // 320px - 480px
                     sm: "26px",    // 481px - 767px
@@ -850,15 +848,7 @@ export function SidebarResponsive(props) {
                 color="#888"
                 flexShrink={0}
               >
-                <Image 
-                  src={FlareMindslogo} 
-                  alt="FlareMinds Logo"
-                  mx="auto"
-                  mb={2}
-                  boxSize={{ base: "24px", sm: "26px", md: "28px" }}
-                  objectFit="contain"
-                />
-                © 2025 Developed by <strong>FlareMinds</strong> ❤️
+                <Text>© 2025 <strong>ElectroMart Admin</strong></Text>
               </Box>
             </Box>
           </DrawerBody>
@@ -866,7 +856,7 @@ export function SidebarResponsive(props) {
           <AlertDialog isOpen={isSigninPromptOpenResp} leastDestructiveRef={signinCancelRefResp} onClose={closeSigninPromptResp} isCentered>
             <AlertDialogOverlay>
               <AlertDialogContent>
-                <AlertDialogHeader fontSize="lg" fontWeight="bold" color="#7b2cbf">Not signed in</AlertDialogHeader>
+                <AlertDialogHeader fontSize="lg" fontWeight="bold" color=" #0EA5E9">Not signed in</AlertDialogHeader>
                   <AlertDialogBody>You are not signed in yet. Do you want to go to the Sign-in page?</AlertDialogBody>
                   <AlertDialogFooter>
                     <Button ref={signinCancelRefResp} onClick={closeSigninPromptResp} variant="ghost">Cancel</Button>
@@ -880,7 +870,7 @@ export function SidebarResponsive(props) {
           <AlertDialog isOpen={isLogoutOpenResp} leastDestructiveRef={logoutCancelRefResp} onClose={closeLogoutResp} isCentered>
             <AlertDialogOverlay>
               <AlertDialogContent>
-                <AlertDialogHeader fontSize="lg" fontWeight="bold" color="#7b2cbf">Confirm Logout</AlertDialogHeader>
+                <AlertDialogHeader fontSize="lg" fontWeight="bold" color=" #0EA5E9">Confirm Logout</AlertDialogHeader>
                 <AlertDialogBody>Are you sure you want to logout?</AlertDialogBody>
                 <AlertDialogFooter>
                   <Button ref={logoutCancelRefResp} onClick={closeLogoutResp} variant="ghost">Cancel</Button>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { BASE_URL } from "../../config";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 import {
   Flex,
@@ -22,7 +23,7 @@ import axios from "axios";
 
 function AdminLogin() {
   const bgForm = useColorModeValue("white", "gray.800");
-  const titleColor = useColorModeValue("purple.600", "purple.300");
+  const titleColor = useColorModeValue("blue.600", "blue.300");
   const toast = useToast();
 
   const [email, setEmail] = useState("");
@@ -88,7 +89,7 @@ function AdminLogin() {
 
     try {
       const res = await axios.post(
-        "https://server-e-fx6s.onrender.com/api/admins/login",
+        `${BASE_URL}/api/admins/login`,
         { email, password },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -132,7 +133,7 @@ function AdminLogin() {
       h="100vh"
       alignItems="center"
       justifyContent="center"
-      bg="linear-gradient(135deg, #667eea 0%, #764ba2 50%, #805ad5 100%)"
+      bg="linear-gradient(135deg, #0EA5E9 0%, #0284C7 50%, #0369A1 100%)"
       overflow="hidden"
       _before={{
         content: '""',
@@ -142,9 +143,9 @@ function AdminLogin() {
         w: "100%",
         h: "100%",
         background: `
-          radial-gradient(circle at 20% 20%, rgba(120, 80, 200, 0.4) 0%, transparent 50%),
-          radial-gradient(circle at 80% 80%, rgba(80, 60, 180, 0.3) 0%, transparent 50%),
-          radial-gradient(circle at 40% 60%, rgba(160, 100, 220, 0.2) 0%, transparent 50%)
+          radial-gradient(circle at 20% 20%, rgba(14, 165, 233, 0.4) 0%, transparent 50%),
+          radial-gradient(circle at 80% 80%, rgba(2, 132, 199, 0.3) 0%, transparent 50%),
+          radial-gradient(circle at 40% 60%, rgba(3, 105, 161, 0.2) 0%, transparent 50%)
         `,
         zIndex: 1,
       }}
@@ -250,14 +251,14 @@ function AdminLogin() {
           lg: "35px",         // 1025px-1280px
           xl: "40px"          // 1281px+
         }}
-        boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 30px rgba(128, 90, 213, 0.3)"
+        boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 30px rgba(14, 165, 233, 0.3)"
         overflow="hidden"
         zIndex="2"
         animation={`${slideIn} 0.6s ease-out`}
       >
         {/* Header Section */}
         <Flex
-          bg="linear-gradient(135deg, #805ad5 0%, #6b46c1 100%)"
+          bg="linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)"
           color="white"
           p={{ 
             base: "25px",     // 320px-480px
@@ -361,7 +362,7 @@ function AdminLogin() {
                 <Box
                   w="20px"
                   h="20px"
-                  bg="purple.100"
+                  bg="blue.100"
                   borderRadius="50%"
                   display="flex"
                   alignItems="center"
@@ -395,10 +396,10 @@ function AdminLogin() {
                 border="2px solid"
                 borderColor="gray.200"
                 bg="white"
-                _hover={{ borderColor: "purple.300" }}
+                _hover={{ borderColor: "blue.300" }}
                 _focus={{ 
-                  borderColor: "purple.500", 
-                  boxShadow: "0 0 0 3px rgba(128, 90, 213, 0.15)",
+                  borderColor: "blue.500", 
+                  boxShadow: "0 0 0 3px rgba(14, 165, 233, 0.15)",
                   bg: "white"
                 }}
                 transition="all 0.3s ease"
@@ -423,7 +424,7 @@ function AdminLogin() {
                 <Box
                   w="20px"
                   h="20px"
-                  bg="purple.100"
+                  bg="blue.100"
                   borderRadius="50%"
                   display="flex"
                   alignItems="center"
@@ -457,10 +458,10 @@ function AdminLogin() {
                   border="2px solid"
                   borderColor="gray.200"
                   bg="white"
-                  _hover={{ borderColor: "purple.300" }}
+                  _hover={{ borderColor: "blue.300" }}
                   _focus={{ 
-                    borderColor: "purple.500", 
-                    boxShadow: "0 0 0 3px rgba(128, 90, 213, 0.15)",
+                    borderColor: "blue.500", 
+                    boxShadow: "0 0 0 3px rgba(14, 165, 233, 0.15)",
                     bg: "white"
                   }}
                   transition="all 0.3s ease"
@@ -502,7 +503,7 @@ function AdminLogin() {
                     borderRadius="10px"
                     transition="all 0.3s ease"
                   >
-                    {showPassword ? <ViewIcon color="purple.500" /> : <ViewOffIcon color="purple.500" />}
+                    {showPassword ? <ViewIcon color="blue.500" /> : <ViewOffIcon color="blue.500" />}
                   </Button>
                 </InputRightElement>
               </InputGroup>
@@ -518,7 +519,7 @@ function AdminLogin() {
                 xl: "58px"      // 1281px+
               }}
               borderRadius="14px"
-              bg="linear-gradient(135deg, #805ad5 0%, #6b46c1 100%)"
+              bg="linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)"
               color="white"
               onClick={handleLogin}
               isLoading={loading}
@@ -532,13 +533,13 @@ function AdminLogin() {
               }}
               fontWeight="bold"
               _hover={{ 
-                bg: "linear-gradient(135deg, #6b46c1 0%, #805ad5 100%)",
+                bg: "linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)",
                 transform: "translateY(-2px)",
-                boxShadow: "0 12px 30px rgba(128, 90, 213, 0.4)"
+                boxShadow: "0 12px 30px rgba(14, 165, 233, 0.4)"
               }}
               _active={{ 
                 transform: "translateY(0)",
-                boxShadow: "0 6px 20px rgba(128, 90, 213, 0.3)"
+                boxShadow: "0 6px 20px rgba(14, 165, 233, 0.3)"
               }}
               _disabled={{
                 opacity: 0.7,
@@ -546,7 +547,7 @@ function AdminLogin() {
                 transform: "none"
               }}
               transition="all 0.3s ease"
-              boxShadow="0 8px 25px rgba(128, 90, 213, 0.25)"
+              boxShadow="0 8px 25px rgba(14, 165, 233, 0.25)"
             >
               {loading ? "🔐 Authenticating..." : "🚀 Sign In to Dashboard"}
             </Button>

@@ -35,17 +35,16 @@ import { DeleteIcon, LinkIcon, CloseIcon, AddIcon } from "@chakra-ui/icons";
 import React, { useState, useEffect } from "react";
 // --- CRITICAL CHANGE: IMPORT THE CUSTOM AXIOS INSTANCE ---
 import axiosInstance from "../utils/axiosInstance"; 
+import { BASE_URL } from "../../config";
 // ---------------------------------------------------------
 import { useNavigate } from "react-router-dom";
 
-// --- CRITICAL FIX: DEFINE BASE_URL FOR IMAGE HANDLING ---
-const BASE_URL = "http://localhost:7000"; // <--- ADJUST THIS TO YOUR ACTUAL BACKEND SERVER ADDRESS 
+// const BASE_URL = "https://electromart-e-com-backend.onrender.com"; // Removed hardcoded URL
 // ---------------------------------------------------------
 
 
 function AddProductForm() {
   // --- STATE MANAGEMENT ---
-  const [size, setSize] = useState("");
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
@@ -53,12 +52,26 @@ function AddProductForm() {
   const [productImages, setProductImages] = useState([]);
   const [newImageUrl, setNewImageUrl] = useState("");
 
+  // Product Fields
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [mrp, setMrp] = useState("");
   const [stock, setStock] = useState("");
-  const [status, setStatus] = useState("active");
+  const [status, setStatus] = useState("Available"); // Default to Backend Enum
+
+  // Variant Fields (Electronics Schema)
+  const [color, setColor] = useState("Black");
+  const [ram, setRam] = useState("8");
+  const [storage, setStorage] = useState("128");
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+
+  // --- ENUMS (MATCHING BACKEND PRODUCT.JS) ---
+  const COLORS = ["Red", "Blue", "Green", "Black", "White", "Yellow", "Pink", "Gray", "Maroon", "Purple"];
+  const RAM_OPTIONS = [4, 6, 8, 12, 16, 24, 32, 64];
+  const STORAGE_OPTIONS = [64, 128, 256, 512, 1024, 2048];
+  const STATUS_OPTIONS = ["Available", "Out of Stock", "Discontinued"];
 
   const [isLoading, setIsLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
@@ -188,49 +201,30 @@ function AddProductForm() {
 
   // ------------------ IMAGE HANDLERS ------------------
   const getFullImageUrl = (path) => {
-    if (path.startsWith("http")) return path;
-    if (path.startsWith("uploads/")) return `${BASE_URL}/${path}`;
-    return `${BASE_URL}/uploads/products/${path.split('/').pop()}`;
+    if (!path) return "placeholder.jpg";
+    if (typeof path === 'string') {
+        if (path.startsWith("http")) return path;
+        if (path.startsWith("blob:")) return path; // Handle local preview URLs
+        if (path.startsWith("uploads/")) return `${BASE_URL}/${path}`;
+        return `${BASE_URL}/uploads/products/${path.split('/').pop()}`;
+    }
+    return "placeholder.jpg";
   };
 
-  const handleImageChange = async (e) => {
-    if (isLoading || productImages.length >= 5) return;
+  const handleImageChange = (e) => {
+    if (productImages.length >= 5) return;
 
     const files = Array.from(e.target.files).slice(0, 5 - productImages.length);
     if (!files.length) return;
-    setIsLoading(true);
 
-    try {
-      const uploadPromises = files.map((file) => {
-        const formData = new FormData();
-        formData.append("file", file);
+    // Create local previews
+    const newImages = files.map(file => ({
+        file,
+        preview: URL.createObjectURL(file)
+    }));
 
-        return axiosInstance.post(`/products/upload`, formData);
-      });
-
-      const results = await Promise.all(uploadPromises);
-      const uploadedUrls = results
-        .filter((res) => res.data.success && res.data.data?.imageUrl)
-        .map((res) => res.data.data.imageUrl);
-
-      if (!uploadedUrls.length) {
-        toast({ title: "Upload Failed", description: "No images were uploaded successfully.", status: "warning" });
-        return;
-      }
-
-      setProductImages((prev) => [...prev, ...uploadedUrls].slice(0, 5)); 
-      toast({ title: "Upload Successful ✅", description: `${uploadedUrls.length} image(s) uploaded.`, status: "success" });
-    } catch (err) {
-      console.error("Failed to upload images", err.response?.data || err.message);
-      toast({
-        title: "Upload Error",
-        description: err.response?.data?.message || "Failed to upload images. Check file size/type and network.",
-        status: "error"
-      });
-    } finally {
-      setIsLoading(false);
-      e.target.value = null; 
-    }
+    setProductImages((prev) => [...prev, ...newImages].slice(0, 5));
+    e.target.value = null;
   };
 
   const handleAddImageUrl = () => {
@@ -256,11 +250,15 @@ function AddProductForm() {
     if (!selectedCategoryId) return "Please select a category.";
     if (!name || name.length < 3)
       return "Product name must be at least 3 characters.";
-    if (!size) return "Please select a size variant.";
+    
+    // Validate Enums
+    if (!COLORS.includes(color)) return "Invalid color selected.";
+    if (!RAM_OPTIONS.includes(Number(ram))) return "Invalid RAM selected.";
+    if (!STORAGE_OPTIONS.includes(Number(storage))) return "Invalid storage selected.";
+    if (!STATUS_OPTIONS.includes(status)) return "Invalid status selected.";
+
     if (!/^\d+(\.\d{1,2})?$/.test(price) || Number(price) <= 0)
       return "Price must be a valid positive number.";
-    if (mrp && !/^\d+(\.\d{1,2})?$/.test(mrp))
-      return "MRP must be a valid number.";
     if (!/^\d+$/.test(stock) || Number(stock) < 0)
       return "Stock must be a non-negative integer.";
     if (!productImages.length) return "Please upload at least one image.";
@@ -271,17 +269,20 @@ function AddProductForm() {
   const resetForm = () => {
     setName("");
     setDescription("");
-    setSize("");
+    setColor("Black");
+    setRam("8");
+    setStorage("128");
     setPrice("");
-    setMrp("");
     setStock("");
     setProductImages([]);
     setEditProductId(null);
     setSelectedCategoryId("");
     setNewImageUrl("");
-    setStatus("active");
+    setStatus("Available");
     onProductClose();
   };
+
+  // ... (keeping submit logic same as partially replaced above)
 
   const handleSubmitProduct = async () => {
     if (isLoading) {
@@ -299,39 +300,67 @@ function AddProductForm() {
 
     const sanitizedName = name.replace(/[^a-zA-Z0-9_-]/g, "_").toUpperCase();
 
+    // Prepare metadata payload
     const productData = {
       name: name.trim(),
       description: description.trim(),
       category: selectedCategoryId,
-      images: productImages, 
       status: status,
+      // Images will be handled separately for new products
+      images: editProductId ? productImages.filter(img => typeof img === 'string' || img.url) : [], 
       variants: [
         {
-          size,
-          color: "Default",
+          color: color,
+          ram: Number(ram),
+          storage: Number(storage),
           price: Number(price),
-          mrp: mrp ? Number(mrp) : 0,
           stock: Number(stock),
-          sku: `${sanitizedName.substring(0, 4)}_${size.toUpperCase()}_${new Date().getTime() % 10000}`, 
+          // Generate SKU: NAME_COLOR_RAM_STORAGE_TIMESTAMP
+          sku: `${sanitizedName.substring(0, 4)}_${color.toUpperCase()}_${ram}G_${storage}G_${new Date().getTime() % 10000}`,
+          emiEligible: false 
         },
       ],
     };
 
     try {
+      let productId = editProductId;
+
       if (editProductId) {
+        // UPDATE EXISTING PRODUCT
         await axiosInstance.put(
           `/products/update/${editProductId}`,
           productData
         );
         toast({ title: "Product Updated 🎉", description: `Product "${name}" has been updated.`, status: "success" });
       } else {
-        await axiosInstance.post(
+        // CREATE NEW PRODUCT
+        const res = await axiosInstance.post(
           `/products/create`,
           productData
         );
-        toast({ title: "Product Added 🚀", description: `New product "${name}" has been created.`, status: "success" });
+        productId = res.data.data._id;
+        toast({ title: "Product Created", description: `Product "${name}" created. Uploading images...`, status: "info" });
       }
+
+      // UPLOAD IMAGES
+      // Filter for new file objects (they have a 'file' property)
+      const filesToUpload = productImages.filter(img => img.file);
+      
+      if (filesToUpload.length > 0 && productId) {
+          const uploadPromises = filesToUpload.map((imgObj) => {
+            const formData = new FormData();
+            formData.append("file", imgObj.file);
+            formData.append("productId", productId); // Backend requires this!
+
+            return axiosInstance.post(`/products/upload`, formData);
+          });
+
+          await Promise.all(uploadPromises);
+          toast({ title: "Images Uploaded 📸", description: "All images linked successfully.", status: "success" });
+      }
+
       await fetchProducts(); 
+      resetForm();
     } catch (err) {
       console.error("Failed to submit product", err.response?.data || err.message);
       toast({
@@ -345,7 +374,6 @@ function AddProductForm() {
       });
     } finally {
       setIsLoading(false);
-      resetForm();
     }
   };
 
@@ -392,17 +420,28 @@ function AddProductForm() {
   };
 
   const handleEditProduct = (product) => {
-    resetForm();
+    // Don't call resetForm() here as it closes the modal in my implementation above! 
+    // Actually resetForm closes values but we want to OPEN.
+    // Let's just set values directly.
+    
     setName(product.name);
-    setDescription(product.description);
-    setStatus(product.status || "active");
+    setDescription(product.description || "");
+    setStatus(product.status || "Available");
 
     const variant = product.variants?.[0];
     if (variant) {
-      setSize(variant.size);
+      setColor(variant.color || "Black");
+      setRam(String(variant.ram || "8"));
+      setStorage(String(variant.storage || "128"));
       setPrice(String(variant.price || ""));
-      setMrp(String(variant.mrp || ""));
-      setStock(String(variant.stock || ""));
+      setStock(String(variant.stock || "0"));
+    } else {
+        // Default values if no variant found
+        setColor("Black");
+        setRam("8");
+        setStorage("128");
+        setPrice("");
+        setStock("");
     }
 
     setProductImages(product.images || []);
@@ -464,14 +503,14 @@ function AddProductForm() {
         <Text 
           fontSize={{ base: "xl", md: "3xl" }} // Responsive font size
           fontWeight="extrabold" 
-          color="#82278A"
+          color="#0ea5e9" // ElectroMart Blue
           mb={{ base: "3", md: "0" }} // Margin below text on mobile
         >
-          🛍️ Product Management Dashboard
+          Inventory Management
         </Text>
         <Button
           p="4"
-          colorScheme="teal"
+          colorScheme="blue" // Updated to match ElectroMart
           leftIcon={<AddIcon />}
           size={{ base: "sm", md: "md" }} // Responsive button size
           onClick={() => {
@@ -687,63 +726,51 @@ function AddProductForm() {
                   </FormControl>
 
                   {/* Status Dropdown - Added for editing */}
-                  {editProductId && (
-                    <FormControl isRequired>
-                        <FormLabel>Product Status</FormLabel>
-                        <Select
-                            value={status}
-                            onChange={(e) => setStatus(e.target.value)}
-                            size="lg"
-                        >
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="draft">Draft</option>
-                        </Select>
-                    </FormControl>
-                  )}
-
-
                   <FormControl isRequired>
-                    <FormLabel>Size Variant (Only one supported by current form)</FormLabel>
-                    <Flex gap="2" wrap="wrap">
-                      {["XS", "S", "M", "L", "XL", "XXL"].map((s) => (
-                        <Button
-                          key={s}
-                          size="md"
-                          colorScheme={size === s ? "teal" : "gray"}
-                          variant={size === s ? "solid" : "outline"}
-                          onClick={() => setSize(s)}
-                          borderRadius="full"
-                        >
-                          {s}
-                        </Button>
-                      ))}
-                    </Flex>
+                      <FormLabel>Product Status</FormLabel>
+                      <Select
+                          value={status}
+                          onChange={(e) => setStatus(e.target.value)}
+                          size="lg"
+                      >
+                          {STATUS_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                      </Select>
                   </FormControl>
 
-                  <Text fontSize="xl" fontWeight="semibold" color="#82278A" mt="4">Pricing & Stock</Text>
+                  <Text fontSize="xl" fontWeight="semibold" color="#0ea5e9" mt="4">Variant Details</Text>
                   <Divider />
 
-                  <Grid templateColumns={{ base: "1fr", sm: "repeat(3, 1fr)" }} gap="4">
+                  <Grid templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)" }} gap="4">
                     <FormControl isRequired>
-                      <FormLabel>Price (₹)</FormLabel>
-                      <Input
-                        placeholder="1299.00"
-                        type="number"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                      />
+                        <FormLabel>Color</FormLabel>
+                        <Select value={color} onChange={(e) => setColor(e.target.value)}>
+                            {COLORS.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </Select>
                     </FormControl>
-                    <FormControl>
-                      <FormLabel>MRP (₹)</FormLabel>
-                      <Input
-                        placeholder="1999.00 (Optional)"
-                        type="number"
-                        value={mrp}
-                        onChange={(e) => setMrp(e.target.value)}
-                      />
-                    </FormControl>
+
                     <FormControl isRequired>
+                        <FormLabel>RAM (GB)</FormLabel>
+                        <Select value={ram} onChange={(e) => setRam(e.target.value)}>
+                            {RAM_OPTIONS.map((r) => (
+                                <option key={r} value={r}>{r}</option>
+                            ))}
+                        </Select>
+                    </FormControl>
+
+                    <FormControl isRequired>
+                        <FormLabel>Storage (GB)</FormLabel>
+                        <Select value={storage} onChange={(e) => setStorage(e.target.value)}>
+                            {STORAGE_OPTIONS.map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                            ))}
+                        </Select>
+                    </FormControl>
+
+                     <FormControl isRequired>
                       <FormLabel>Stock Quantity</FormLabel>
                       <Input
                         placeholder="50"
@@ -753,6 +780,16 @@ function AddProductForm() {
                       />
                     </FormControl>
                   </Grid>
+
+                  <FormControl isRequired>
+                      <FormLabel>Price (₹)</FormLabel>
+                      <Input
+                        placeholder="1299.00"
+                        type="number"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                      />
+                  </FormControl>
                 </Stack>
               </GridItem>
 
