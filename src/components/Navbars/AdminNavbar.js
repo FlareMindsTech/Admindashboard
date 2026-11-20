@@ -23,7 +23,7 @@ export default function AdminNavbar(props) {
 
   // Colors
   let mainText = useColorModeValue("gray.700", "gray.200");
-  let navbarBg = "#7b2cbf"; 
+  let navbarBg = " #0EA5E9"; 
   let navbarShadow = "none";
   let navbarBorder = "transparent";
 
@@ -36,7 +36,7 @@ export default function AdminNavbar(props) {
       );
       navbarBorder = useColorModeValue("#E2E8F0", "rgba(255,255,255,0.1)");
     } else {
-      navbarBg = useColorModeValue("#7b2cbf", "gray.800");
+      navbarBg = useColorModeValue(" #0EA5E9", "gray.800");
       navbarShadow = "0px 4px 20px rgba(0, 0, 0, 0.05)";
     }
   }
@@ -55,7 +55,7 @@ export default function AdminNavbar(props) {
         left="0"
         right="0"
         height={{ base: "0px", md: "100px", lg: "110px", xl: "120px" }}
-        bg="#7b2cbf"
+        bg=" #0EA5E9"
         zIndex="-1"
       />
 

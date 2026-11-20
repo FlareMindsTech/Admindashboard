@@ -17,7 +17,7 @@ import {
 
 import ProductManagement from "views/Dashboard/ProductManagement";
 
-const ICON_COLOR = "#7b2cbf";
+const ICON_COLOR = " #0EA5E9";
 
 // ✅ Added: Logout component
 const Logout = () => {
@@ -50,7 +50,7 @@ var dashRoutes = [
     path: "/dashboard",
     name: "Dashboard",
     rtlName: "لوحة القيادة",
-    icon: <HomeIcon color="#7b2cbf" />,
+    icon: <HomeIcon color=" #0EA5E9" />,
     element: <Dashboard />,
     layout: "/admin",
   },
@@ -59,7 +59,7 @@ var dashRoutes = [
     path: "/admin-management",
     name: "Admin Management",
     rtlName: "إدارة المسؤول",
-    icon: <StatsIcon color="#7b2cbf" />,
+    icon: <StatsIcon color=" #0EA5E9" />,
     element: <AdminManagement />,
     layout: "/admin",
   }] : []),
@@ -67,7 +67,7 @@ var dashRoutes = [
     path: "/ProductManagement",
     name: "Product Management",
     rtlName: "إدارة المستخدمين",
-    icon: <StatsIcon color="#7b2cbf" />,
+    icon: <StatsIcon color=" #0EA5E9" />,
     element: <ProductManagement />,     
     layout: "/admin",
   },
@@ -75,7 +75,7 @@ var dashRoutes = [
     path: "/user-management",
     name: "User Management",
     rtlName: "إدارة المستخدمين",
-    icon: <StatsIcon color="#7b2cbf" />,
+    icon: <StatsIcon color=" #0EA5E9" />,
     element: <UserManagement />,
     layout: "/admin",
   },
@@ -83,7 +83,7 @@ var dashRoutes = [
     path: "/billing",
     name: "Billing",
     rtlName: "الفواتير",
-    icon: <CreditIcon color="#7b2cbf" />,
+    icon: <CreditIcon color=" #0EA5E9" />,
     element: <Billing />,
     layout: "/admin",
   },

@@ -95,8 +95,8 @@ export default function ProductManagement() {
   const navigate = useNavigate();
 
   // Custom color theme
-  const customColor = "#7b2cbf";
-  const customHoverColor = "#5a189a";
+  const customColor = "#0EA5E9"; // ElectroMart Blue
+  const customHoverColor = "#0284C7"; // Darker Blue for hover
 
   const [currentUser, setCurrentUser] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -135,16 +135,16 @@ export default function ProductManagement() {
 
   // Category doesn't have status field
   const initialCategory = { name: "", description: "" };
-
-  // Product has status field
-  const initialProduct = {
-    name: "",
-    description: "",
-    images: [],
-    status: "Available",
-  };
-
-  const statusOptions = ["Available", "Out of Stock", "Discontinued"];
+ const initialProduct = {
+  name: "",
+  price: "",
+  stock: "",
+  color: "Black", 
+  ram: "8",
+  storage: "128",
+  description: "",
+  images: [],
+};
 
   const [newCategory, setNewCategory] = useState(initialCategory);
   const [newProduct, setNewProduct] = useState(initialProduct);
@@ -1177,53 +1177,39 @@ export default function ProductManagement() {
       });
     }
 
-    // Validate all variants
-    const invalidVariants = variants.filter(variant =>
-      !variant.color || !variant.size || !variant.price || !variant.stock
-    );
-
-    if (invalidVariants.length > 0) {
-      return toast({
-        title: "Validation Error",
-        description: "Please fill all fields for each variant (color, size, price, stock).",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-
-    // Check for duplicate variants
-    const variantKeys = variants.map(v => `${v.color}-${v.size}`.toLowerCase());
-    const hasDuplicates = new Set(variantKeys).size !== variantKeys.length;
-
-    if (hasDuplicates) {
-      return toast({
-        title: "Duplicate Variants",
-        description: "Duplicate color-size combinations are not allowed.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
+  if (!newProduct.color) {
+    return toast({
+      title: "Validation Error",
+      description: "Please select a color.",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
 
     try {
       setIsSubmitting(true);
 
-      // Prepare product data
-      const productData = {
-        name: newProduct.name.trim(),
-        description: newProduct.description?.trim() || "",
-        category: selectedCategory._id,
-        status: newProduct.status || "Available", // Product status validation
-        images: newProduct.images?.filter(img => img.url || img.preview).map(img => img.url || img.preview) || [],
-        variants: variants.map(variant => ({
-          color: variant.color,
-          size: variant.size,
-          price: Number(variant.price),
-          stock: Number(variant.stock),
-          sku: variant.sku || `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        })),
-      };
+    const productData = {
+      name: newProduct.name.trim(),
+      description: newProduct.description?.trim() || "",
+      category: selectedCategory._id,
+      price: Number(newProduct.price),
+      stock: Number(newProduct.stock),
+      variants: [
+        {
+          color: newProduct.color,
+          ram: Number(newProduct.ram),
+          storage: Number(newProduct.storage),
+          price: Number(newProduct.price),
+          stock: Number(newProduct.stock),
+          sku: selectedProduct
+            ? selectedProduct.variants?.[0]?.sku
+            : `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          emiEligible: false
+        },
+      ],
+    };
 
       let response;
       if (selectedProduct) {
@@ -1311,47 +1297,32 @@ export default function ProductManagement() {
     }
   };
 
-  // Edit Product handler
-  const handleEditProduct = (product) => {
-    setSelectedProduct(product);
-    setSelectedCategory(categories.find((c) => c._id === product.category?._id || c._id === product.category));
+// Edit Product handler
+const handleEditProduct = (product) => {
+  setSelectedProduct(product);
+  setSelectedCategory(categories.find((c) => c._id === product.category?._id || c._id === product.category));
+  
+  const productImages = product.images || [];
+  const variant = product.variants?.[0] || {};
+  
+  setNewProduct({
+    name: product.name,
+    price: variant.price || "",
+    stock: variant.stock || "",
+    color: variant.color || "Black", // Handle Single String
+    ram: String(variant.ram || "8"),
+    storage: String(variant.storage || "128"),
+    description: product.description || "",
+    images: productImages,
+  });
+  setCurrentView("addProduct");
+};
 
-    const productImages = product.images || [];
+// ...
 
-    // Set variants from product data
-    if (product.variants && product.variants.length > 0) {
-      setVariants(product.variants.map(variant => {
-        const color = Array.isArray(variant.color) ? variant.color[0] || '' : variant.color || '';
-        const size = Array.isArray(variant.size) ? variant.size[0] || '' : variant.size || '';
-
-        return {
-          color: color,
-          size: size,
-          price: variant.price || '',
-          stock: variant.stock || '',
-          sku: variant.sku || `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        };
-      }));
-    } else {
-      setVariants([
-        {
-          color: '',
-          size: '',
-          price: '',
-          stock: '',
-          sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-        }
-      ]);
-    }
-
-    setNewProduct({
-      name: product.name || '',
-      description: product.description || '',
-      images: productImages,
-      status: product.status || "Available", // Product status
-    });
-    setCurrentView("addProduct");
-  };
+// (The button is far below, so I might need a separate chunk or just let the button be handled.
+// Wait, I can try to grab the button in this same file if I start at line 922 and end at 1416? No, that's too big (500 lines).
+// I will just update the Edit Logic here.)
 
   // Edit Category handler - No status field
   const handleEditCategory = (category) => {
@@ -1362,6 +1333,16 @@ export default function ProductManagement() {
     });
     setCurrentView("editCategory");
   };
+
+  // ... (Loader and other components)
+
+  // ...
+
+  // (This is lower down in the file, around line 1414 - need to target the Button specifically or the block)
+  // Since I can't reach line 1414 in this single replace_file_content easily without context, I will do it in a separate call or try to match a larger block if it's close.
+  // Actually, handleEditProduct is at line 922. The Button is at 1414.
+  // I will only update handleEditProduct here.
+  // I will make a separate call for the Button and the UI fields.
 
   // Loading component for tables
   const TableLoader = ({ columns = 6 }) => (
@@ -1610,228 +1591,107 @@ export default function ProductManagement() {
                         />
                       </FormControl>
 
-                      {/* Status Field for Product ONLY */}
-                      <FormControl>
-                        <FormLabel color="gray.700" fontSize="sm">Product Status</FormLabel>
-                        <Select
-                          value={newProduct.status}
-                          onChange={(e) => setNewProduct({ ...newProduct, status: e.target.value })}
-                          borderColor={`${customColor}50`}
-                          _hover={{ borderColor: customColor }}
-                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                          bg="white"
-                          size="sm"
-                        >
-                          {statusOptions.map((status) => (
-                            <option key={status} value={status}>{status}</option>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
+          <FormControl isRequired>
+            <FormLabel color="gray.700" fontSize="sm">Price *</FormLabel>
+            <Input
+              type="number"
+              value={newProduct.price}
+              onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+              placeholder="Enter price"
+              min="0"
+              step="0.01"
+              borderColor={`${customColor}50`}
+              _hover={{ borderColor: customColor }}
+              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+              bg="white"
+              size="sm"
+            />
+          </FormControl>
 
-                    {/* Custom Color Input Section */}
-                    <Box mb="20px">
-                      <FormLabel color="gray.700" fontSize="sm">Manage Colors</FormLabel>
-                      <Flex mb={3} gap={2}>
-                        <Input
-                          placeholder="Add custom color (e.g., Navy Blue, Teal)"
-                          value={customColorInput}
-                          onChange={(e) => setCustomColorInput(e.target.value)}
-                          size="sm"
-                          borderColor={`${customColor}50`}
-                          _hover={{ borderColor: customColor }}
-                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                          bg="white"
-                        />
-                        <Button
-                          size="sm"
-                          leftIcon={<FaPlus />}
-                          onClick={handleAddCustomColor}
-                          bg={customColor}
-                          _hover={{ bg: customHoverColor }}
-                          color="white"
-                          isDisabled={!customColorInput.trim()}
-                        >
-                          Add Color
-                        </Button>
-                      </Flex>
+          <FormControl isRequired>
+            <FormLabel color="gray.700" fontSize="sm">Stock *</FormLabel>
+            <Input
+              type="number"
+              value={newProduct.stock}
+              onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })}
+              placeholder="Enter stock quantity"
+              min="0"
+              borderColor={`${customColor}50`}
+              _hover={{ borderColor: customColor }}
+              _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+              bg="white"
+              size="sm"
+            />
+          </FormControl>
+        </Grid>
 
-                      {/* Available Colors Display */}
-                      <Flex flexWrap="wrap" gap={2} mb={2}>
-                        {availableColors.map((color) => {
-                          const isDefaultColor = ['Red', 'Blue', 'Green', 'Black', 'White', 'Yellow', 'Pink', 'Gray', 'Maroon', 'Purple'].includes(color);
-                          return (
-                            <Box key={color} position="relative">
-                              <Button
-                                size="xs"
-                                variant="outline"
-                                colorScheme="gray"
-                                fontSize="xs"
-                                _hover={{ shadow: "sm" }}
-                              >
-                                {color}
-                              </Button>
-                              {!isDefaultColor && (
-                                <IconButton
-                                  aria-label={`Remove ${color}`}
-                                  icon={<FaTimes />}
-                                  size="2xs"
-                                  colorScheme="red"
-                                  position="absolute"
-                                  top={-2}
-                                  right={-2}
-                                  borderRadius="full"
-                                  onClick={() => handleRemoveColor(color)}
-                                />
-                              )}
-                            </Box>
-                          );
-                        })}
-                      </Flex>
-                    </Box>
+        {/* Color Selection */}
+        <FormControl mb="20px" isRequired>
+          <FormLabel color="gray.700" fontSize="sm">Color *</FormLabel>
+          <Select
+            value={newProduct.color}
+            onChange={(e) => setNewProduct({ ...newProduct, color: e.target.value })}
+            borderColor={`${customColor}50`}
+            _hover={{ borderColor: customColor }}
+            _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+            bg="white"
+            size="sm"
+          >
+             {['Red', 'Blue', 'Green', 'Black', 'White', 'Yellow', 'Pink', 'Gray', 'Maroon', 'Purple'].map((c) => (
+                <option key={c} value={c}>{c}</option>
+             ))}
+          </Select>
+        </FormControl>
 
-                    {/* Variants Section */}
-                    <Box mb="20px">
-                      <Flex justify="space-between" align="center" mb={3}>
-                        <FormLabel color="gray.700" fontSize="sm" m={0}>Product Variants *</FormLabel>
-                        <Button
-                          size="sm"
-                          leftIcon={<FaPlus />}
-                          onClick={handleAddVariant}
-                          bg={customColor}
-                          _hover={{ bg: customHoverColor }}
-                          color="white"
-                        >
-                          Add Variant
-                        </Button>
-                      </Flex>
+        {/* RAM Selection */}
+        <FormControl mb="20px" isRequired>
+          <FormLabel color="gray.700" fontSize="sm">RAM (GB) *</FormLabel>
+          <Select
+            value={newProduct.ram}
+            onChange={(e) => setNewProduct({ ...newProduct, ram: e.target.value })}
+            borderColor={`${customColor}50`}
+            _hover={{ borderColor: customColor }}
+            _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+            bg="white"
+            size="sm"
+          >
+             {[4, 6, 8, 12, 16, 24, 32, 64].map((r) => (
+                <option key={r} value={r}>{r} GB</option>
+             ))}
+          </Select>
+        </FormControl>
 
-                      {variants.map((variant, index) => (
-                        <Box
-                          key={index}
-                          p={4}
-                          border="1px"
-                          borderColor="gray.200"
-                          borderRadius="md"
-                          mb={3}
-                          position="relative"
-                        >
-                          <Flex justify="space-between" align="center" mb={3}>
-                            <Text fontSize="sm" fontWeight="bold" color="gray.700">
-                              Variant {index + 1}
-                            </Text>
-                            {variants.length > 1 && (
-                              <IconButton
-                                aria-label="Remove variant"
-                                icon={<FaTimes />}
-                                size="xs"
-                                colorScheme="red"
-                                onClick={() => handleRemoveVariant(index)}
-                              />
-                            )}
-                          </Flex>
-
-                          <Grid templateColumns={["1fr", "1fr 1fr", "1fr 1fr 1fr 1fr"]} gap={4}>
-                            {/* Color Selection */}
-                            <FormControl isRequired>
-                              <FormLabel fontSize="xs" color="gray.600">Color</FormLabel>
-                              <Select
-                                value={variant.color}
-                                onChange={(e) => handleVariantChange(index, 'color', e.target.value)}
-                                placeholder="Select color"
-                                size="sm"
-                                borderColor={`${customColor}50`}
-                                _hover={{ borderColor: customColor }}
-                                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                                bg="white"
-                              >
-                                <option value="">Select color</option>
-                                {availableColors.map(color => (
-                                  <option key={color} value={color}>{color}</option>
-                                ))}
-                              </Select>
-                            </FormControl>
-
-                            {/* Size Selection */}
-                            <FormControl isRequired>
-                              <FormLabel fontSize="xs" color="gray.600">Size</FormLabel>
-                              <Select
-                                value={variant.size}
-                                onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
-                                placeholder="Select size"
-                                size="sm"
-                                borderColor={`${customColor}50`}
-                                _hover={{ borderColor: customColor }}
-                                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                                bg="white"
-                              >
-                                <option value="">Select size</option>
-                                {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(size => (
-                                  <option key={size} value={size}>{size}</option>
-                                ))}
-                              </Select>
-                            </FormControl>
-
-                            {/* Price */}
-                            <FormControl isRequired>
-                              <FormLabel fontSize="xs" color="gray.600">Price (₹)</FormLabel>
-                              <Input
-                                type="number"
-                                value={variant.price}
-                                onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
-                                placeholder="Enter price"
-                                min="0"
-                                step="0.01"
-                                size="sm"
-                                borderColor={`${customColor}50`}
-                                _hover={{ borderColor: customColor }}
-                                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                                bg="white"
-                              />
-                            </FormControl>
-
-                            {/* Stock */}
-                            <FormControl isRequired>
-                              <FormLabel fontSize="xs" color="gray.600">Stock</FormLabel>
-                              <Input
-                                type="number"
-                                value={variant.stock}
-                                onChange={(e) => handleVariantChange(index, 'stock', e.target.value)}
-                                placeholder="Enter stock"
-                                min="0"
-                                size="sm"
-                                borderColor={`${customColor}50`}
-                                _hover={{ borderColor: customColor }}
-                                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                                bg="white"
-                              />
-                            </FormControl>
-                          </Grid>
-
-                          {/* SKU Display */}
-                          {variant.sku && (
-                            <Text fontSize="xs" color="gray.500" mt={2}>
-                              SKU: <Text as="span" fontWeight="bold">{variant.sku}</Text>
-                            </Text>
-                          )}
-                        </Box>
-                      ))}
-                    </Box>
-
-                    <FormControl mb="20px">
-                      <FormLabel color="gray.700" fontSize="sm">Description</FormLabel>
-                      <Textarea
-                        value={newProduct.description}
-                        onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                        placeholder="Enter product description"
-                        rows={3}
-                        borderColor={`${customColor}50`}
-                        _hover={{ borderColor: customColor }}
-                        _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                        bg="white"
-                        size="sm"
-                      />
-                    </FormControl>
+        {/* Storage Selection */}
+        <FormControl mb="20px" isRequired>
+          <FormLabel color="gray.700" fontSize="sm">Storage (GB) *</FormLabel>
+          <Select
+            value={newProduct.storage}
+            onChange={(e) => setNewProduct({ ...newProduct, storage: e.target.value })}
+            borderColor={`${customColor}50`}
+            _hover={{ borderColor: customColor }}
+            _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+            bg="white"
+            size="sm"
+          >
+             {[64, 128, 256, 512, 1024, 2048].map((s) => (
+                <option key={s} value={s}>{s} GB</option>
+             ))}
+          </Select>
+        </FormControl>
+        <FormControl mb="20px">
+          <FormLabel color="gray.700" fontSize="sm">Description</FormLabel>
+          <Textarea
+            value={newProduct.description}
+            onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+            placeholder="Enter product description"
+            rows={3}
+            borderColor={`${customColor}50`}
+            _hover={{ borderColor: customColor }}
+            _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+            bg="white"
+            size="sm"
+          />
+        </FormControl>
 
                     {/* Image Upload Section */}
                     <FormControl mb="20px">
@@ -1894,40 +1754,40 @@ export default function ProductManagement() {
                   </Box>
                 </Box>
 
-                {/* Fixed Footer with Buttons */}
-                <Box
-                  flexShrink={0}
-                  p={4}
-                  borderTop="1px solid"
-                  borderColor={`${customColor}20`}
-                  bg="transparent"
-                >
-                  <Flex justify="flex-end">
-                    <Button
-                      variant="outline"
-                      mr={3}
-                      onClick={handleResetProduct}
-                      border="1px"
-                      borderColor="gray.300"
-                      size="sm"
-                    >
-                      Reset
-                    </Button>
-                    <Button
-                      bg={customColor}
-                      _hover={{ bg: customHoverColor }}
-                      color="white"
-                      onClick={handleSubmitProduct}
-                      isLoading={isSubmitting}
-                      isDisabled={!selectedCategory || variants.length === 0}
-                      size="sm"
-                    >
-                      {selectedProduct ? "Update Product" : "Create Product"}
-                    </Button>
-                  </Flex>
-                </Box>
-              </Box>
-            )}
+    {/* Fixed Footer with Buttons */}
+    <Box 
+      flexShrink={0} 
+      p={4} 
+      borderTop="1px solid" 
+      borderColor={`${customColor}20`}
+      bg="transparent"
+    >
+      <Flex justify="flex-end">
+        <Button 
+          variant="outline" 
+          mr={3} 
+          onClick={handleResetProduct}
+          border="1px"
+          borderColor="gray.300"
+          size="sm"
+        >
+          Reset
+        </Button>
+        <Button
+          bg={customColor}
+          _hover={{ bg: customHoverColor }}
+          color="white"
+          onClick={handleSubmitProduct}
+          isLoading={isSubmitting}
+          isDisabled={!selectedCategory || !newProduct.color}
+          size="sm"
+        >
+          {selectedProduct ? "Update Product" : "Create Product"}
+        </Button>
+      </Flex>
+    </Box>
+  </Box>
+)}
           </CardBody>
         </Card>
       </Flex>
