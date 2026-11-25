@@ -1337,35 +1337,11 @@ export default function CleanedBilling() {
     >
 
       <Box mb="24px">
-
-        <Flex
-          direction="row"
-          wrap="wrap"
-          justify="center"
-          gap={{ base: 3, md: 4 }}
-          overflowX="auto"
-          py={2}
-          css={{
-            '&::-webkit-scrollbar': {
-              height: '6px',
-            },
-            '&::-webkit-scrollbar-track': {
-              background: 'transparent',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              background: 'transparent',
-              borderRadius: '3px',
-              transition: 'background 0.3s ease',
-            },
-            '&:hover::-webkit-scrollbar-thumb': {
-              background: '#cbd5e1',
-            },
-            '&:hover::-webkit-scrollbar-thumb:hover': {
-              background: '#94a3b8',
-            },
-          }}
+        <SimpleGrid
+          columns={{ base: 1, sm: 2 }}
+          spacing={{ base: 3, md: 4 }}
+          w="100%"
         >
-
           <Card
             minH="83px"
             cursor="pointer"
@@ -1376,9 +1352,7 @@ export default function CleanedBilling() {
             bg="white"
             position="relative"
             overflow="hidden"
-            w={{ base: "32%", md: "30%", lg: "25%" }}
-            minW="100px"
-            flex="1"
+            w="100%"
             _before={{
               content: '""',
               position: "absolute",
@@ -1405,7 +1379,7 @@ export default function CleanedBilling() {
               zIndex={1} p={{ base: 3, md: 4 }}>
 
               <Flex
-                flexDirection="row" align="center" justify="space-between" w="100%" padding={5}>
+                flexDirection="row" align="center" justify="space-between" w="100%">
 
                 <Stat me="auto">
                   <StatLabel
@@ -1436,9 +1410,7 @@ export default function CleanedBilling() {
             bg="white"
             position="relative"
             overflow="hidden"
-            w={{ base: "32%", md: "30%", lg: "25%" }}
-            minW="100px"
-            flex="1"
+            w="100%"
             _before={{
               content: '""',
               position: "absolute",
@@ -1460,7 +1432,7 @@ export default function CleanedBilling() {
             }}
           >
             <CardBody position="relative" zIndex={1} p={{ base: 3, md: 4 }}>
-              <Flex flexDirection="row" align="center" justify="space-between" w="100%" padding={5}>
+              <Flex flexDirection="row" align="center" justify="space-between" w="100%">
                 <Stat me="auto">
                   <StatLabel
                     fontSize={{ base: "sm", md: "md" }}
@@ -1476,6 +1448,7 @@ export default function CleanedBilling() {
               </Flex>
             </CardBody>
           </Card>
+        </SimpleGrid>
 
           {/* <Card 
           minH="83px" 
@@ -1531,8 +1504,6 @@ export default function CleanedBilling() {
             </CardBody>
           </Card> */}
 
-        </Flex>
-
         {/* Success/Error Message Display */}
         {/* {error && (
           <Text
@@ -1586,7 +1557,7 @@ export default function CleanedBilling() {
 
       {/* Table Container */}
       <Box
-        mt={-8}
+        mt={4}
         flex="1"
         display="flex"
         flexDirection="column"
@@ -1595,22 +1566,23 @@ export default function CleanedBilling() {
         overflow="hidden"
       >
         <Card
-          shadow="xl"
-          bg="transparent"
+          shadow="sm"
+          bg="white"
+          borderRadius="xl"
+          border="1px solid"
+          borderColor="gray.100"
           display="flex"
           flexDirection="column"
-          height="90%"
+          height="100%"
           minH="0"
-          border="none"
         >
           <CardHeader
-            p="5px"
-            pb="5px"
-            padding='5'
-            bg="transparent"
+            p={4}
+            bg="white"
             flexShrink={0}
             borderBottom="1px solid"
-            borderColor={`${customColor}20`}
+            borderColor="gray.100"
+            borderRadius="xl xl 0 0"
           >
 
             <Flex
@@ -1620,7 +1592,7 @@ export default function CleanedBilling() {
               gap={4}
             >
 
-              <Heading size="md" flexShrink={0} color="gray.700">
+              <Heading size="sm" fontWeight="bold" flexShrink={0} color="gray.700">
                 {currentView === "orders" ? "🛒 Orders" : "💳 Payments"}
               </Heading>
 
@@ -1783,7 +1755,8 @@ export default function CleanedBilling() {
           </CardHeader>
 
           <CardBody
-            bg="transparent"
+            bg="white"
+            borderRadius="0 0 xl xl"
             flex="1"
             display="flex"
             flexDirection="column"

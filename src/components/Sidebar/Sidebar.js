@@ -47,8 +47,8 @@ function Sidebar(props) {
   // ... (keeping existing color variables)
   const activeBg = useColorModeValue("#0ea5e9", "#0ea5e9"); // ElectroMart Blue
   const inactiveBg = useColorModeValue("white", "navy.700");
-  const activeColor = useColorModeValue("white", "white"); 
-  const inactiveColor = useColorModeValue("gray.400", "gray.400");
+  const activeColor = useColorModeValue("white", "white"); // White text when active
+  const inactiveColor = useColorModeValue("gray.600", "gray.300");
   const sidebarActiveShadow = "0px 7px 11px rgba(0, 0, 0, 0.04)";
   const sidebarBg = useColorModeValue("white", "navy.800");
   const sidebarRadius = "20px";
@@ -166,6 +166,7 @@ function Sidebar(props) {
             _hover={{ bg: "gray.50" }}
             _active={{ bg: activeBg, transform: "none", borderColor: "transparent" }}
             _focus={{ boxShadow: "none" }}
+            _focusVisible={{ boxShadow: "0 0 0 2px rgba(123, 44, 191, 0.4)" }}
             onClick={() => {
               const user = localStorage.getItem("user") || sessionStorage.getItem("user");
               if (!user) {
@@ -178,7 +179,7 @@ function Sidebar(props) {
             <Flex>
               <IconBox
                 bg={inactiveBg}
-                color={"blue.500"}
+                color={"gray.500"}
                 h={{ base: "24px", sm: "26px", md: "28px", lg: "30px", xl: "30px" }}
                 w={{ base: "24px", sm: "26px", md: "28px", lg: "30px", xl: "30px" }}
                 me={{ base: "8px", sm: "10px", md: "12px", lg: "12px", xl: "12px" }}
@@ -243,11 +244,12 @@ function Sidebar(props) {
                 borderColor: "transparent",
               }}
               _focus={{ boxShadow: "none" }}
+              _focusVisible={{ boxShadow: "0 0 0 2px rgba(123, 44, 191, 0.4)" }}
             >
               <Flex>
                 <IconBox
                   bg={isActive ? "white" : inactiveBg} // White background when active
-                  color={isActive ? "#0ea5e9" : "blue.500"} // ElectroMart Blue when active
+                  color={isActive ? "#7b2cbf" : "gray.500"} // Purple icon when active, gray when inactive
                   h={{
                     base: "24px",
                     sm: "26px",
@@ -511,7 +513,7 @@ export function SidebarResponsive(props) {
   const activeBg = useColorModeValue(" #0EA5E9", " #0EA5E9"); // Purple background when active
   const inactiveBg = useColorModeValue("white", "navy.700");
   const activeColor = useColorModeValue("white", "white"); // White text when active
-  const inactiveColor = useColorModeValue("gray.400", "white");
+  const inactiveColor = useColorModeValue("gray.600", "gray.300");
   const sidebarActiveShadow = useColorModeValue(
     "0px 7px 11px rgba(0, 0, 0, 0.04)",
     "none"
@@ -578,6 +580,7 @@ export function SidebarResponsive(props) {
             _hover={{ bg: "gray.50" }}
             _active={{ bg: activeBg, transform: "none", borderColor: "transparent" }}
             _focus={{ boxShadow: "none" }}
+            _focusVisible={{ boxShadow: "0 0 0 2px rgba(123, 44, 191, 0.4)" }}
             onClick={() => {
               const user = localStorage.getItem("user") || sessionStorage.getItem("user");
               if (!user) {
@@ -590,7 +593,7 @@ export function SidebarResponsive(props) {
             <Flex>
               <IconBox
                 bg={inactiveBg}
-                color={"blue.500"}
+                color={"gray.500"}
                 h={{ base: "24px", sm: "26px", md: "28px" }}
                 w={{ base: "24px", sm: "26px", md: "28px" }}
                 me={{ base: "8px", sm: "10px", md: "12px" }}
@@ -647,11 +650,12 @@ export function SidebarResponsive(props) {
                 borderColor: "transparent",
               }}
               _focus={{ boxShadow: "none" }}
+              _focusVisible={{ boxShadow: "0 0 0 2px rgba(123, 44, 191, 0.4)" }}
             >
               <Flex>
                 <IconBox
                   bg={isActive ? "white" : inactiveBg} // White background when active
-                  color={isActive ? " #0EA5E9" : "blue.500"} // Purple icon when active, blue when inactive
+                  color={isActive ? "#7b2cbf" : "gray.500"} // Purple icon when active, gray when inactive
                   h={{
                     base: "24px",  // 320px - 480px
                     sm: "26px",    // 481px - 767px
