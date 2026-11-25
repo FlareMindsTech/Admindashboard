@@ -8,6 +8,7 @@ import {
   Icon,
   Input,
   InputGroup,
+  InputLeftElement,
   InputRightElement,
   Select,
   SimpleGrid,
@@ -1266,9 +1267,9 @@ function UserManagement() {
           </Flex>
         </Box>
 
-        {/* Table Container - Removed background box */}
+        {/* Table Container */}
         <Box
-          mt={{ base: "0px", md: "-32px" }}
+          mt={4}
           flex="1"
           display="flex"
           flexDirection="column"
@@ -1276,59 +1277,64 @@ function UserManagement() {
           pt={0}
           overflow="hidden"
         >
-          {/* Table Card with transparent background */}
+          {/* Table Card */}
           <Card
-            shadow="xl"
-            bg="transparent"
+            shadow="sm"
+            bg="white"
+            borderRadius="xl"
+            border="1px solid"
+            borderColor="gray.100"
             display="flex"
             flexDirection="column"
             height="100%"
             minH="0"
-            border="none"
           >
             {/* Table Header */}
             <CardHeader
-              p="5px"
-              pb="5px"
-              bg="transparent"
+              p={4}
+              bg="white"
               flexShrink={0}
               borderBottom="1px solid"
-              borderColor={`${customColor}20`}
+              borderColor="gray.100"
+              borderRadius="xl xl 0 0"
             >
               <Flex justify="space-between" align="center" flexWrap="wrap" gap={4}>
                 {/* Title */}
-                <Heading size="md" flexShrink={0} color="gray.700">
+                <Heading size="sm" fontWeight="bold" flexShrink={0} color="gray.700">
                   👥 Users Table
                 </Heading>
 
                 {/* Search Bar */}
                 <Flex align="center" flex="1" maxW="400px">
-                  <Input
-                    placeholder="Search by name, email, or phone..."
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                    size="sm"
-                    mr={2}
-                    borderColor={`${customColor}50`}
-                    _hover={{ borderColor: customColor }}
-                    _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                    bg="white"
-                  />
-                  <Icon as={FaSearch} color="gray.400" />
-                  {searchTerm && (
-                    <Button
-                      size="sm"
-                      ml={2}
-                      onClick={handleClearSearch}
+                  <InputGroup size="sm" w="100%">
+                    <InputLeftElement pointerEvents="none">
+                      <Icon as={FaSearch} color="gray.400" />
+                    </InputLeftElement>
+                    <Input
+                      placeholder="Search by name, email, or phone..."
+                      value={searchTerm}
+                      onChange={handleSearchChange}
+                      pl="36px"
+                      borderRadius="md"
+                      borderColor={`${customColor}50`}
+                      _hover={{ borderColor: customColor }}
+                      _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
                       bg="white"
-                      color={customColor}
-                      border="1px"
-                      borderColor={customColor}
-                      _hover={{ bg: customColor, color: "white" }}
-                    >
-                      Clear
-                    </Button>
-                  )}
+                    />
+                    {searchTerm && (
+                      <InputRightElement>
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          onClick={handleClearSearch}
+                          color="gray.400"
+                          _hover={{ color: "gray.600" }}
+                        >
+                          ✕
+                        </Button>
+                      </InputRightElement>
+                    )}
+                  </InputGroup>
                 </Flex>
 
                 {/* Add User Button */}
@@ -1348,7 +1354,8 @@ function UserManagement() {
 
             {/* Table Content Area - Scrollable Body with Fixed Header */}
             <CardBody
-              bg="transparent"
+              bg="white"
+              borderRadius="0 0 xl xl"
               flex="1"
               display="flex"
               flexDirection="column"

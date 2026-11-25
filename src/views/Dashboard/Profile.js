@@ -306,7 +306,7 @@ const StockAnalysisComponent = ({ products, refreshProducts }) => {
         <Text fontSize="lg" fontWeight="bold">Product Stock Analysis</Text>
         <Button
           size="sm"
-          colorScheme="blue"
+          colorScheme="purple"
           onClick={handleRefresh}
           isLoading={isRefreshing}
           leftIcon={<FaBoxOpen />}
@@ -675,18 +675,17 @@ export default function AdminProfile() {
   const totalProductPages = Math.ceil(adminData.adminProducts.length / productsPerPage);
 
   return (
-    <Flex direction={{ base: "column", md: "row" }} gap={8} p={6} mt={12}>
+    <Flex direction={{ base: "column", md: "row" }} gap={{ base: 4, md: 6 }} p={{ base: 3, md: 6 }} mt={{ base: 4, md: 6 }}>
       {/* Left Panel - Fixed Card */}
       <Card
         w={{ base: "100%", md: "280px" }}
         bg={cardBg}
-        mt={12}
         p={5}
         borderRadius="2xl"
         boxShadow="md"
         transition="all 0.3s ease"
         _hover={{ transform: "translateY(-3px)", boxShadow: "xl" }}
-        position="sticky"
+        position={{ base: "static", md: "sticky" }}
         top="100px"
         alignSelf="flex-start"
       >
@@ -725,9 +724,9 @@ export default function AdminProfile() {
                   }
                   onClick={() => handleActionClick(action)}
                   colorScheme={
-                    currentView === "users" && action.label === "Manage Users" ? "#5a189a" :
-                      currentView === "products" && action.label === "Manage Products" ? "#5a189a" :
-                        currentView === "analytics" && action.label === "Product Stock Overview" ? "#5a189a" :
+                    currentView === "users" && action.label === "Manage Users" ? "purple" :
+                      currentView === "products" && action.label === "Manage Products" ? "purple" :
+                        currentView === "analytics" && action.label === "Product Stock Overview" ? "purple" :
                           "gray"
                   }
                 >
@@ -742,7 +741,7 @@ export default function AdminProfile() {
       </Card>
 
       {/* Right Panel */}
-      <Grid templateColumns="1fr" gap={4} flex="1" mt={12}>
+      <Grid templateColumns="1fr" gap={4} flex="1">
         {isEditingProfile && (
           <ProfileEditComponent
             adminData={adminData}

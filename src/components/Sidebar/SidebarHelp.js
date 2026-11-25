@@ -26,8 +26,6 @@ export function SidebarHelp(props) {
       mt="auto"
       mx='20px'>
       <Image src={SidebarHelpImage} w='110px' h="auto" />
-      <Link href='https://www.creative-tim.com/product/argon-dashboard-chakra-pro' minW='100%'>       
-      </Link>
     </Stack>
   );
 }

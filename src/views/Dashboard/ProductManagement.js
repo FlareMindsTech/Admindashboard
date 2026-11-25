@@ -42,6 +42,9 @@ import {
   IconButton,
   Box,
   Input,
+  InputGroup,
+  InputLeftElement,
+  InputRightElement,
   FormControl,
   FormLabel,
   Modal,
@@ -85,6 +88,7 @@ import {
   FaPlus,
   FaTimes,
   FaPercentage,
+  FaCheck,
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdCategory, MdInventory, MdWarning } from "react-icons/md";
@@ -167,18 +171,24 @@ export default function ProductManagement() {
     product: ""
   });
 
-  // Color management states
+  // Color & Size management states
   const [availableColors, setAvailableColors] = useState([
     'Red', 'Blue', 'Green', 'Black', 'White',
     'Yellow', 'Pink', 'Gray', 'Maroon', 'Purple'
   ]);
   const [customColorInput, setCustomColorInput] = useState("");
+  const [availableSizes, setAvailableSizes] = useState([
+    'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'FREE'
+  ]);
+  const [customSizeInput, setCustomSizeInput] = useState("");
+  const [showAddCustomSize, setShowAddCustomSize] = useState(false);
+  const [activeVariantIndex, setActiveVariantIndex] = useState(0);
 
   // Variants management
   const [variants, setVariants] = useState([
     {
       color: '',
-      size: '',
+      size: [],
       price: '',
       stock: '',
       sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`
@@ -582,7 +592,210 @@ export default function ProductManagement() {
     }
   };
 
+  // Size management helper
+  const getVariantSizes = (variantSize) => {
+    if (Array.isArray(variantSize)) return variantSize.filter(Boolean);
+    if (typeof variantSize === "string" && variantSize.trim()) {
+      if (variantSize.includes(",")) {
+        return variantSize.split(",").map(s => s.trim()).filter(Boolean);
+      }
+      return [variantSize.trim()];
+    }
+    return [];
+  };
+
+  const handleToggleVariantSize = (index, sizeToToggle) => {
+    const updatedVariants = [...variants];
+    const currentSizes = getVariantSizes(updatedVariants[index].size);
+    let newSizes;
+    if (currentSizes.includes(sizeToToggle)) {
+      newSizes = currentSizes.filter(s => s !== sizeToToggle);
+    } else {
+      newSizes = [...currentSizes, sizeToToggle];
+    }
+    updatedVariants[index].size = newSizes;
+
+    // Auto-generate SKU
+    if (updatedVariants[index].color && newSizes.length > 0) {
+      const colorCode = updatedVariants[index].color.substring(0, 3).toUpperCase();
+      const sizeCode = newSizes.map(s => s.substring(0, 2).toUpperCase()).join('-');
+      updatedVariants[index].sku = `SKU-${colorCode}-${sizeCode}-${Date.now().toString().slice(-6)}`;
+    }
+
+    setVariants(updatedVariants);
+  };
+
+  const handleToggleAllSizes = (index) => {
+    const updatedVariants = [...variants];
+    const currentSizes = getVariantSizes(updatedVariants[index].size);
+    const primarySizes = availableSizes.slice(0, 7); // XS to 3XL
+    const isAllSelected = primarySizes.every(s => currentSizes.includes(s));
+    const newSizes = isAllSelected ? [] : Array.from(new Set([...currentSizes, ...primarySizes]));
+    updatedVariants[index].size = newSizes;
+
+    if (updatedVariants[index].color && newSizes.length > 0) {
+      const colorCode = updatedVariants[index].color.substring(0, 3).toUpperCase();
+      const sizeCode = newSizes.map(s => s.substring(0, 2).toUpperCase()).join('-');
+      updatedVariants[index].sku = `SKU-${colorCode}-${sizeCode}-${Date.now().toString().slice(-6)}`;
+    }
+
+    setVariants(updatedVariants);
+  };
+
+  const handleAddCustomSize = (customSizeName) => {
+    const s = customSizeName.trim().toUpperCase();
+    if (!s) return;
+    if (!availableSizes.includes(s)) {
+      setAvailableSizes(prev => [...prev, s]);
+    }
+    setCustomSizeInput("");
+    setShowAddCustomSize(false);
+  };
+
   // Color management functions
+  const getColorHex = (colorName) => {
+    const colorHexMap = {
+      red: "#E53E3E",
+      blue: "#3182CE",
+      green: "#38A169",
+      black: "#1A202C",
+      white: "#FFFFFF",
+      yellow: "#D69E2E",
+      pink: "#ED64A6",
+      gray: "#718096",
+      maroon: "#800000",
+      purple: "#805AD5",
+      teal: "#319795",
+      navy: "#000080",
+      orange: "#DD6B20",
+      brown: "#744210",
+      cyan: "#00B5D8",
+      olive: "#808000",
+      coral: "#FF7F50",
+      gold: "#FFD700",
+      silver: "#C0C0C0",
+      beige: "#F5F5DC",
+      lavender: "#E6E6FA",
+      magenta: "#FF00FF",
+    };
+    if (!colorName) return "#CBD5E0";
+    const normalized = colorName.toLowerCase().replace(/[^a-z]/g, "");
+    for (const [key, hex] of Object.entries(colorHexMap)) {
+      if (normalized.includes(key)) {
+        return hex;
+      }
+    }
+    return colorName.toLowerCase();
+  };
+
+  const handleColorClick = (color) => {
+    // Determine target variant index
+    let targetIndex = activeVariantIndex;
+    if (targetIndex >= variants.length) {
+      targetIndex = variants.length - 1;
+    }
+    if (targetIndex < 0) targetIndex = 0;
+
+    const currentTarget = variants[targetIndex];
+
+    // If the targeted variant currently has this color selected:
+    if (currentTarget && currentTarget.color?.toLowerCase() === color.toLowerCase()) {
+      const currentSizes = getVariantSizes(currentTarget.size);
+      // If unfilled (no size, no stock, and no price), toggle it off
+      if (currentSizes.length === 0 && !currentTarget.stock && (!currentTarget.price || Number(currentTarget.price) === 0)) {
+        if (variants.length > 1) {
+          setVariants(prev => prev.filter((_, i) => i !== targetIndex));
+          setActiveVariantIndex(Math.max(0, targetIndex - 1));
+          toast({
+            title: "Color Deselected",
+            description: `Removed "${color}" variant`,
+            status: "info",
+            duration: 2000,
+            isClosable: true,
+          });
+          return;
+        } else {
+          handleVariantChange(targetIndex, "color", "");
+          toast({
+            title: "Color Cleared",
+            description: `Cleared color for Variant 1`,
+            status: "info",
+            duration: 2000,
+            isClosable: true,
+          });
+          return;
+        }
+      } else {
+        // Variant has size/price/stock - clicking same color adds another variant (e.g. for another size)
+        const newVariant = {
+          color: color,
+          size: [],
+          price: currentTarget.price || "",
+          stock: "",
+          sku: `SKU-${color.substring(0, 3).toUpperCase()}-${Date.now().toString().slice(-6)}`
+        };
+        setVariants(prev => [...prev, newVariant]);
+        setActiveVariantIndex(variants.length);
+        toast({
+          title: "New Variant Added",
+          description: `Added another variant for "${color}" (specify sizes below)`,
+          status: "success",
+          duration: 2000,
+          isClosable: true,
+        });
+        return;
+      }
+    }
+
+    // If any variant has no color set, fill that one
+    const emptyColorIndex = variants.findIndex(v => !v.color);
+    if (emptyColorIndex !== -1) {
+      handleVariantChange(emptyColorIndex, "color", color);
+      setActiveVariantIndex(emptyColorIndex);
+      toast({
+        title: "Color Selected",
+        description: `Applied "${color}" to Variant ${emptyColorIndex + 1}`,
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // If current target variant has a color but no size/price/stock, update its color
+    const targetSizes = getVariantSizes(currentTarget?.size);
+    if (currentTarget && targetSizes.length === 0 && !currentTarget.stock && (!currentTarget.price || Number(currentTarget.price) === 0)) {
+      handleVariantChange(targetIndex, "color", color);
+      toast({
+        title: "Color Updated",
+        description: `Updated Variant ${targetIndex + 1} color to "${color}"`,
+        status: "info",
+        duration: 2000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Otherwise, create a new variant with this color
+    const lastVar = variants[variants.length - 1];
+    const newVariant = {
+      color: color,
+      size: [],
+      price: lastVar?.price || "",
+      stock: "",
+      sku: `SKU-${color.substring(0, 3).toUpperCase()}-${Date.now().toString().slice(-6)}`
+    };
+    setVariants(prev => [...prev, newVariant]);
+    setActiveVariantIndex(variants.length);
+    toast({
+      title: "Variant Added",
+      description: `Added Variant ${variants.length + 1} with "${color}"`,
+      status: "success",
+      duration: 2000,
+      isClosable: true,
+    });
+  };
+
   const handleAddCustomColor = () => {
     const color = customColorInput.trim();
 
@@ -597,7 +810,7 @@ export default function ProductManagement() {
       return;
     }
 
-    if (availableColors.includes(color)) {
+    if (availableColors.some(c => c.toLowerCase() === color.toLowerCase())) {
       toast({
         title: "Color Exists",
         description: `Color "${color}" already exists in the list`,
@@ -610,10 +823,11 @@ export default function ProductManagement() {
 
     setAvailableColors(prev => [...prev, color]);
     setCustomColorInput("");
+    handleColorClick(color);
 
     toast({
       title: "Color Added",
-      description: `Color "${color}" added successfully`,
+      description: `Color "${color}" added and selected`,
       status: "success",
       duration: 3000,
       isClosable: true,
@@ -622,7 +836,7 @@ export default function ProductManagement() {
 
   const handleRemoveColor = (colorToRemove) => {
     // Don't allow removal if it's used in any variant
-    const isColorUsed = variants.some(variant => variant.color === colorToRemove);
+    const isColorUsed = variants.some(variant => variant.color?.toLowerCase() === colorToRemove.toLowerCase());
     if (isColorUsed) {
       toast({
         title: "Cannot Remove",
@@ -647,16 +861,17 @@ export default function ProductManagement() {
 
   // Variant management functions
   const handleAddVariant = () => {
-    setVariants([
-      ...variants,
+    setVariants(prev => [
+      ...prev,
       {
         color: '',
-        size: '',
+        size: [],
         price: '',
         stock: '',
         sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`
       }
     ]);
+    setActiveVariantIndex(variants.length);
   };
 
   const handleRemoveVariant = (index) => {
@@ -672,6 +887,7 @@ export default function ProductManagement() {
     }
 
     setVariants(variants.filter((_, i) => i !== index));
+    setActiveVariantIndex(prev => Math.max(0, Math.min(prev, variants.length - 2)));
   };
 
   const handleVariantChange = (index, field, value) => {
@@ -679,9 +895,10 @@ export default function ProductManagement() {
     updatedVariants[index][field] = value;
 
     // Auto-generate SKU if color and size are set
-    if ((field === 'color' || field === 'size') && updatedVariants[index].color && updatedVariants[index].size) {
+    const currentSizes = getVariantSizes(field === 'size' ? value : updatedVariants[index].size);
+    if (updatedVariants[index].color && currentSizes.length > 0) {
       const colorCode = updatedVariants[index].color.substring(0, 3).toUpperCase();
-      const sizeCode = updatedVariants[index].size.toUpperCase();
+      const sizeCode = currentSizes.map(s => s.substring(0, 2).toUpperCase()).join('-');
       updatedVariants[index].sku = `SKU-${colorCode}-${sizeCode}-${Date.now().toString().slice(-6)}`;
     }
 
@@ -821,9 +1038,10 @@ export default function ProductManagement() {
     setNewCategory(initialCategory);
     setNewProduct(initialProduct);
     setCustomColorInput("");
+    setActiveVariantIndex(0);
     setVariants([{
       color: '',
-      size: '',
+      size: [],
       price: '',
       stock: '',
       sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`
@@ -977,9 +1195,10 @@ export default function ProductManagement() {
   const handleResetProduct = () => {
     setNewProduct(initialProduct);
     setCustomColorInput("");
+    setActiveVariantIndex(0);
     setVariants([{
       color: '',
-      size: '',
+      size: [],
       price: '',
       stock: '',
       sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`
@@ -1162,14 +1381,15 @@ export default function ProductManagement() {
     }
 
     // Validate all variants
-    const invalidVariants = variants.filter(variant =>
-      !variant.color || !variant.size || !variant.price || !variant.stock
-    );
+    const invalidVariants = variants.filter(variant => {
+      const sizes = getVariantSizes(variant.size);
+      return !variant.color || sizes.length === 0 || !variant.price || !variant.stock;
+    });
 
     if (invalidVariants.length > 0) {
       return toast({
         title: "Validation Error",
-        description: "Please fill all fields for each variant (color, size, price, stock).",
+        description: "Please fill all fields for each variant (color, at least one size, price, stock).",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -1177,7 +1397,10 @@ export default function ProductManagement() {
     }
 
     // Check for duplicate variants
-    const variantKeys = variants.map(v => `${v.color}-${v.size}`.toLowerCase());
+    const variantKeys = variants.map(v => {
+      const sizes = getVariantSizes(v.size).slice().sort().join(',');
+      return `${v.color}-${sizes}`.toLowerCase();
+    });
     const hasDuplicates = new Set(variantKeys).size !== variantKeys.length;
 
     if (hasDuplicates) {
@@ -1202,7 +1425,7 @@ export default function ProductManagement() {
         images: newProduct.images?.filter(img => img.url || img.preview).map(img => img.url || img.preview) || [],
         variants: variants.map(variant => ({
           color: variant.color,
-          size: variant.size,
+          size: getVariantSizes(variant.size),
           price: Number(variant.price),
           stock: Number(variant.stock),
           sku: variant.sku || `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -1304,13 +1527,35 @@ export default function ProductManagement() {
 
     // Set variants from product data
     if (product.variants && product.variants.length > 0) {
+      // Ensure custom colors from product variants exist in availableColors
+      const productColors = product.variants
+        .map(v => (Array.isArray(v.color) ? v.color[0] : v.color))
+        .filter(Boolean);
+      if (productColors.length > 0) {
+        setAvailableColors(prev => {
+          const newColors = productColors.filter(c => !prev.some(p => p.toLowerCase() === c.toLowerCase()));
+          return newColors.length > 0 ? [...prev, ...newColors] : prev;
+        });
+      }
+
+      // Ensure custom sizes from product variants exist in availableSizes
+      const productSizes = product.variants
+        .flatMap(v => getVariantSizes(v.size))
+        .filter(Boolean);
+      if (productSizes.length > 0) {
+        setAvailableSizes(prev => {
+          const newSizes = productSizes.filter(s => !prev.includes(s));
+          return newSizes.length > 0 ? [...prev, ...newSizes] : prev;
+        });
+      }
+
       setVariants(product.variants.map(variant => {
         const color = Array.isArray(variant.color) ? variant.color[0] || '' : variant.color || '';
-        const size = Array.isArray(variant.size) ? variant.size[0] || '' : variant.size || '';
+        const sizes = getVariantSizes(variant.size);
 
         return {
           color: color,
-          size: size,
+          size: sizes,
           price: variant.price || '',
           stock: variant.stock || '',
           sku: variant.sku || `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -1320,7 +1565,7 @@ export default function ProductManagement() {
       setVariants([
         {
           color: '',
-          size: '',
+          size: [],
           price: '',
           stock: '',
           sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`
@@ -1334,6 +1579,7 @@ export default function ProductManagement() {
       images: productImages,
       status: product.status || "Available", // Product status
     });
+    setActiveVariantIndex(0);
     setCurrentView("addProduct");
   };
 
@@ -1615,12 +1861,31 @@ export default function ProductManagement() {
 
                     {/* Custom Color Input Section */}
                     <Box mb="20px">
-                      <FormLabel color="gray.700" fontSize="sm">Manage Colors</FormLabel>
+                      <Flex justify="space-between" align="center" mb={1}>
+                        <FormLabel color="gray.700" fontSize="sm" m={0}>
+                          Manage Colors
+                        </FormLabel>
+                        {variants.some(v => v.color) && (
+                          <Badge colorScheme="purple" fontSize="2xs" borderRadius="full" px={2} py={0.5}>
+                            {variants.filter(v => v.color).length} Variant{variants.filter(v => v.color).length > 1 ? "s" : ""}
+                          </Badge>
+                        )}
+                      </Flex>
+                      <Text fontSize="2xs" color="gray.500" mb={3}>
+                        Click any color below to apply or add it as a variant. Type a name to add a custom color.
+                      </Text>
+
                       <Flex mb={3} gap={2}>
                         <Input
                           placeholder="Add custom color (e.g., Navy Blue, Teal)"
                           value={customColorInput}
                           onChange={(e) => setCustomColorInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddCustomColor();
+                            }
+                          }}
                           size="sm"
                           borderColor={`${customColor}50`}
                           _hover={{ borderColor: customColor }}
@@ -1644,14 +1909,49 @@ export default function ProductManagement() {
                       <Flex flexWrap="wrap" gap={2} mb={2}>
                         {availableColors.map((color) => {
                           const isDefaultColor = ['Red', 'Blue', 'Green', 'Black', 'White', 'Yellow', 'Pink', 'Gray', 'Maroon', 'Purple'].includes(color);
+                          const isSelected = variants.some(
+                            (v) => v.color?.toLowerCase() === color.toLowerCase()
+                          );
+                          const colorHex = getColorHex(color);
+
                           return (
                             <Box key={color} position="relative">
                               <Button
                                 size="xs"
-                                variant="outline"
-                                colorScheme="gray"
+                                variant={isSelected ? "solid" : "outline"}
+                                bg={isSelected ? customColor : "white"}
+                                color={isSelected ? "white" : "gray.700"}
+                                borderColor={isSelected ? customColor : "gray.300"}
                                 fontSize="xs"
-                                _hover={{ shadow: "sm" }}
+                                fontWeight={isSelected ? "semibold" : "normal"}
+                                _hover={{
+                                  bg: isSelected ? customHoverColor : `${customColor}15`,
+                                  borderColor: customColor,
+                                  shadow: "sm",
+                                  transform: "translateY(-1px)",
+                                }}
+                                _active={{
+                                  transform: "scale(0.96)",
+                                }}
+                                transition="all 0.15s ease-in-out"
+                                cursor="pointer"
+                                onClick={() => handleColorClick(color)}
+                                leftIcon={
+                                  isSelected ? (
+                                    <Icon as={FaCheck} fontSize="10px" />
+                                  ) : (
+                                    <Box
+                                      as="span"
+                                      w="10px"
+                                      h="10px"
+                                      borderRadius="full"
+                                      bg={colorHex}
+                                      display="inline-block"
+                                      border={color.toLowerCase() === "white" ? "1px solid #CBD5E0" : "none"}
+                                      flexShrink={0}
+                                    />
+                                  )
+                                }
                               >
                                 {color}
                               </Button>
@@ -1665,7 +1965,11 @@ export default function ProductManagement() {
                                   top={-2}
                                   right={-2}
                                   borderRadius="full"
-                                  onClick={() => handleRemoveColor(color)}
+                                  zIndex={2}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveColor(color);
+                                  }}
                                 />
                               )}
                             </Box>
@@ -1690,32 +1994,81 @@ export default function ProductManagement() {
                         </Button>
                       </Flex>
 
-                      {variants.map((variant, index) => (
-                        <Box
-                          key={index}
-                          p={4}
-                          border="1px"
-                          borderColor="gray.200"
-                          borderRadius="md"
-                          mb={3}
-                          position="relative"
-                        >
-                          <Flex justify="space-between" align="center" mb={3}>
-                            <Text fontSize="sm" fontWeight="bold" color="gray.700">
-                              Variant {index + 1}
-                            </Text>
-                            {variants.length > 1 && (
-                              <IconButton
-                                aria-label="Remove variant"
-                                icon={<FaTimes />}
-                                size="xs"
-                                colorScheme="red"
-                                onClick={() => handleRemoveVariant(index)}
-                              />
-                            )}
-                          </Flex>
+                      {variants.map((variant, index) => {
+                        const isActive = activeVariantIndex === index;
+                        const selectedSizes = getVariantSizes(variant.size);
+                        return (
+                          <Box
+                            key={index}
+                            p={4}
+                            border="1px"
+                            borderColor={isActive ? customColor : "gray.200"}
+                            boxShadow={isActive ? `0 0 0 1px ${customColor}30` : "none"}
+                            borderRadius="md"
+                            mb={3}
+                            position="relative"
+                            onClick={() => setActiveVariantIndex(index)}
+                            transition="all 0.2s"
+                          >
+                            <Flex justify="space-between" align="center" mb={3}>
+                              <Flex align="center" gap={2} wrap="wrap">
+                                <Text fontSize="sm" fontWeight="bold" color={isActive ? customColor : "gray.700"}>
+                                  Variant {index + 1}
+                                </Text>
+                                {variants.length > 1 && isActive && (
+                                  <Badge colorScheme="purple" fontSize="2xs" variant="subtle">Active</Badge>
+                                )}
+                                {variant.color && (
+                                  <Badge
+                                    fontSize="2xs"
+                                    bg={`${customColor}20`}
+                                    color={customColor}
+                                    display="flex"
+                                    alignItems="center"
+                                    gap={1}
+                                    px={2}
+                                    py={0.5}
+                                    borderRadius="full"
+                                  >
+                                    <Box
+                                      as="span"
+                                      w="6px"
+                                      h="6px"
+                                      borderRadius="full"
+                                      bg={getColorHex(variant.color)}
+                                      border={variant.color.toLowerCase() === "white" ? "1px solid #CBD5E0" : "none"}
+                                    />
+                                    {variant.color}
+                                  </Badge>
+                                )}
+                                {selectedSizes.length > 0 && (
+                                  <Badge
+                                    fontSize="2xs"
+                                    colorScheme="gray"
+                                    variant="subtle"
+                                    borderRadius="full"
+                                    px={2}
+                                    py={0.5}
+                                  >
+                                    Sizes: {selectedSizes.join(", ")}
+                                  </Badge>
+                                )}
+                              </Flex>
+                              {variants.length > 1 && (
+                                <IconButton
+                                  aria-label="Remove variant"
+                                  icon={<FaTimes />}
+                                  size="xs"
+                                  colorScheme="red"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveVariant(index);
+                                  }}
+                                />
+                              )}
+                            </Flex>
 
-                          <Grid templateColumns={["1fr", "1fr 1fr", "1fr 1fr 1fr 1fr"]} gap={4}>
+                          <Grid templateColumns={["1fr", "1fr 1fr", "1fr 1.6fr 1fr 1fr"]} gap={4} alignItems="start">
                             {/* Color Selection */}
                             <FormControl isRequired>
                               <FormLabel fontSize="xs" color="gray.600">Color</FormLabel>
@@ -1736,24 +2089,116 @@ export default function ProductManagement() {
                               </Select>
                             </FormControl>
 
-                            {/* Size Selection */}
+                            {/* Multi-Size Selection */}
                             <FormControl isRequired>
-                              <FormLabel fontSize="xs" color="gray.600">Size</FormLabel>
-                              <Select
-                                value={variant.size}
-                                onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
-                                placeholder="Select size"
-                                size="sm"
-                                borderColor={`${customColor}50`}
-                                _hover={{ borderColor: customColor }}
-                                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                                bg="white"
-                              >
-                                <option value="">Select size</option>
-                                {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(size => (
-                                  <option key={size} value={size}>{size}</option>
-                                ))}
-                              </Select>
+                              <Flex justify="space-between" align="center" mb={1.5}>
+                                <FormLabel fontSize="xs" color="gray.600" m={0}>
+                                  Sizes * {selectedSizes.length > 0 && `(${selectedSizes.length})`}
+                                </FormLabel>
+                                <Flex gap={1} align="center">
+                                  <Button
+                                    size="2xs"
+                                    variant="ghost"
+                                    color={customColor}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleAllSizes(index);
+                                    }}
+                                    fontSize="2xs"
+                                    px={1.5}
+                                    h="18px"
+                                    _hover={{ bg: `${customColor}15` }}
+                                  >
+                                    {availableSizes.slice(0, 7).every(s => selectedSizes.includes(s)) ? "Clear" : "All"}
+                                  </Button>
+                                  <Button
+                                    size="2xs"
+                                    variant="ghost"
+                                    color="gray.500"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowAddCustomSize(prev => !prev);
+                                    }}
+                                    fontSize="2xs"
+                                    px={1.5}
+                                    h="18px"
+                                    _hover={{ bg: "gray.100" }}
+                                  >
+                                    + Custom
+                                  </Button>
+                                </Flex>
+                              </Flex>
+
+                              {showAddCustomSize && (
+                                <Flex gap={1} mb={2}>
+                                  <Input
+                                    placeholder="e.g. 38, 10, FREE"
+                                    size="2xs"
+                                    value={customSizeInput}
+                                    onChange={(e) => setCustomSizeInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        handleAddCustomSize(customSizeInput);
+                                      }
+                                    }}
+                                    bg="white"
+                                  />
+                                  <Button
+                                    size="2xs"
+                                    colorScheme="purple"
+                                    bg={customColor}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleAddCustomSize(customSizeInput);
+                                    }}
+                                  >
+                                    Add
+                                  </Button>
+                                </Flex>
+                              )}
+
+                              <Flex wrap="wrap" gap={1}>
+                                {availableSizes.map(size => {
+                                  const isSizeSelected = selectedSizes.includes(size);
+                                  return (
+                                    <Button
+                                      key={size}
+                                      size="xs"
+                                      px={2}
+                                      h="26px"
+                                      minW="32px"
+                                      fontSize="xs"
+                                      variant={isSizeSelected ? "solid" : "outline"}
+                                      bg={isSizeSelected ? customColor : "white"}
+                                      color={isSizeSelected ? "white" : "gray.700"}
+                                      borderColor={isSizeSelected ? customColor : "gray.300"}
+                                      fontWeight={isSizeSelected ? "bold" : "normal"}
+                                      _hover={{
+                                        bg: isSizeSelected ? customHoverColor : `${customColor}15`,
+                                        borderColor: customColor,
+                                      }}
+                                      _active={{ transform: "scale(0.95)" }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleVariantSize(index, size);
+                                      }}
+                                    >
+                                      {size}
+                                    </Button>
+                                  );
+                                })}
+                              </Flex>
+
+                              {selectedSizes.length > 0 ? (
+                                <Text fontSize="2xs" color="gray.600" mt={1}>
+                                  Selected: <Text as="span" fontWeight="bold" color={customColor}>{selectedSizes.join(", ")}</Text>
+                                </Text>
+                              ) : (
+                                <Text fontSize="2xs" color="red.500" mt={1}>
+                                  Choose one or more sizes
+                                </Text>
+                              )}
                             </FormControl>
 
                             {/* Price */}
@@ -1799,7 +2244,8 @@ export default function ProductManagement() {
                             </Text>
                           )}
                         </Box>
-                      ))}
+                      );
+                    })}
                     </Box>
 
                     <FormControl mb="20px">
@@ -2324,41 +2770,42 @@ export default function ProductManagement() {
               {/* Search Bar - Only show for categories, products, and offers */}
               {(currentView === "categories" || currentView === "products" || currentView === "offers") && (
                 <Flex align="center" flex="1" maxW="350px" minW="200px">
-                  <Input
-                    placeholder={
-                      currentView === "categories"
-                        ? "Search categories..."
-                        : currentView === "products"
-                          ? "Search products..."
-                          : "Search coupons..."
-                    }
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                    size="sm"
-                    mr={2}
-                    borderColor={`${customColor}50`}
-                    _hover={{ borderColor: customColor }}
-                    _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                    bg="white"
-                    fontSize="sm"
-                  />
-                  <Icon as={FaSearch} color="gray.400" boxSize={3} />
-                  {searchTerm && (
-                    <Button
-                      size="sm"
-                      ml={2}
-                      onClick={handleClearSearch}
+                  <InputGroup size="sm" w="100%">
+                    <InputLeftElement pointerEvents="none">
+                      <Icon as={FaSearch} color="gray.400" boxSize={3} />
+                    </InputLeftElement>
+                    <Input
+                      placeholder={
+                        currentView === "categories"
+                          ? "Search categories..."
+                          : currentView === "products"
+                            ? "Search products..."
+                            : "Search coupons..."
+                      }
+                      value={searchTerm}
+                      onChange={handleSearchChange}
+                      pl="32px"
+                      borderRadius="md"
+                      borderColor={`${customColor}50`}
+                      _hover={{ borderColor: customColor }}
+                      _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
                       bg="white"
-                      color={customColor}
-                      border="1px"
-                      borderColor={customColor}
-                      _hover={{ bg: customColor, color: "white" }}
-                      fontSize="xs"
-                      px={2}
-                    >
-                      Clear
-                    </Button>
-                  )}
+                      fontSize="sm"
+                    />
+                    {searchTerm && (
+                      <InputRightElement>
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          onClick={handleClearSearch}
+                          color="gray.400"
+                          _hover={{ color: "gray.600" }}
+                        >
+                          ✕
+                        </Button>
+                      </InputRightElement>
+                    )}
+                  </InputGroup>
                 </Flex>
               )}
 
@@ -3387,7 +3834,7 @@ export default function ProductManagement() {
                             </Box>
                             <Box>
                               <Text fontSize="xs" color="gray.500">Size</Text>
-                              <Text fontSize="sm" fontWeight="medium">{variant.size || "N/A"}</Text>
+                              <Text fontSize="sm" fontWeight="medium">{getVariantSizes(variant.size).join(", ") || "N/A"}</Text>
                             </Box>
                             <Box>
                               <Text fontSize="xs" color="gray.500">Price</Text>
@@ -3753,7 +4200,7 @@ export default function ProductManagement() {
                               <Flex justify="space-between" align="center" mb={2}>
                                 <HStack>
                                   <Badge colorScheme="purple" variant="solid">{variant.color || "Default"}</Badge>
-                                  <Badge colorScheme="gray">{variant.size || "Standard"}</Badge>
+                                  <Badge colorScheme="gray">{getVariantSizes(variant.size).join(", ") || "Standard"}</Badge>
                                 </HStack>
                                 <Text fontSize="xs" color="gray.400">SKU: {variant.sku || "N/A"}</Text>
                               </Flex>
@@ -3821,7 +4268,7 @@ export default function ProductManagement() {
                                   return (
                                     <SimpleGrid key={vIdx} columns={3} spacing={2} p={2} bg="white" borderRadius="md" border="1px" borderColor="gray.100">
                                       <VStack align="start" spacing={0}>
-                                        <Text fontSize="10px" color="gray.500">{variant.color} / {variant.size}</Text>
+                                        <Text fontSize="10px" color="gray.500">{variant.color} / {getVariantSizes(variant.size).join(", ")}</Text>
                                         <Text fontWeight="bold" fontSize="xs" textDecoration="line-through">₹{originalPrice.toLocaleString()}</Text>
                                       </VStack>
                                       <VStack align="center" spacing={0}>

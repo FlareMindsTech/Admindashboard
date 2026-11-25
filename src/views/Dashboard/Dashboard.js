@@ -573,7 +573,7 @@ const ModernCityMap = ({ districts, onDistrictHover, hoveredDistrict, loading })
     return (
       <Flex justify="center" align="center" height="100%" bg="gray.50" borderRadius="lg">
         <VStack spacing={3}>
-          <Spinner size="lg" color="#DC2626" />
+          <Spinner size="lg" color="#7b2cbf" />
           <Text color="gray.500" fontSize="sm">Loading city data...</Text>
         </VStack>
       </Flex>
@@ -844,7 +844,7 @@ const CategoryDonutChart = ({ categoryStats, productStats, loading, activeView, 
 
 // Product Details Component
 const ProductDetailsChart = ({ productStats, loading }) => {
-  const accent = '#DC2626';
+  const accent = '#7b2cbf';
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   if (loading) {
@@ -970,7 +970,7 @@ const getLineChartOptions = (categories) => ({
 export default function EcommerceDashboard() {
   const bg = useColorModeValue('linear-gradient(180deg,#fafafa 0%,#f5f5f5 100%)', 'gray.800');
   const cardBg = useColorModeValue('white', 'gray.700');
-  const accent = '#DC2626';
+  const accent = '#7b2cbf';
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   const [hoveredDistrict, setHoveredDistrict] = useState(null);
@@ -1123,34 +1123,8 @@ export default function EcommerceDashboard() {
   return (
     <Box
       minH="100vh"
-      mt={9}
-      p={{ base: 2, md: 3 }}
-      overflow="auto"
-      css={{
-        '&::-webkit-scrollbar': {
-          width: '6px',
-        },
-        '&::-webkit-scrollbar-track': {
-          background: 'transparent',
-          borderRadius: '3px',
-        },
-        '&::-webkit-scrollbar-thumb': {
-          background: 'transparent',
-          borderRadius: '3px',
-          transition: 'background 0.3s ease',
-        },
-        '&:hover::-webkit-scrollbar-thumb': {
-          background: '#cbd5e1',
-        },
-        '&:hover::-webkit-scrollbar-thumb:hover': {
-          background: '#94a3b8',
-        },
-        scrollbarWidth: 'thin',
-        scrollbarColor: 'transparent transparent',
-        '&:hover': {
-          scrollbarColor: '#cbd5e1 transparent',
-        },
-      }}
+      mt={{ base: 4, md: 6 }}
+      p={{ base: 3, md: 4 }}
     >
       {/* Stats Cards Row */}
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={{ base: 3, md: 6 }} mb={6}>
@@ -1169,7 +1143,7 @@ export default function EcommerceDashboard() {
                 </Stat>
               </Box>
               <Box>
-                <Flex align="center" justify="center" w={12} h={12} borderRadius="xl" bg="#FEE2E2">
+                <Flex align="center" justify="center" w={12} h={12} borderRadius="xl" bg="purple.50">
                   <FiShoppingCart size={20} color={accent} />
                 </Flex>
               </Box>
@@ -1231,34 +1205,7 @@ export default function EcommerceDashboard() {
       </SimpleGrid>
 
       {/* Main Content Grid */}
-      <Box
-        overflowY="auto"
-        maxH="calc(100vh - 200px)"
-        css={{
-          '&::-webkit-scrollbar': {
-            width: '6px',
-          },
-          '&::-webkit-scrollbar-track': {
-            background: 'transparent',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            background: 'transparent',
-            borderRadius: '3px',
-            transition: 'background 0.3s ease',
-          },
-          '&:hover::-webkit-scrollbar-thumb': {
-            background: '#cbd5e1',
-          },
-          '&:hover::-webkit-scrollbar-thumb:hover': {
-            background: '#94a3b8',
-          },
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'transparent transparent',
-          '&:hover': {
-            scrollbarColor: '#cbd5e1 transparent',
-          },
-        }}
-      >
+      <Box mt={2}>
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={{ base: 4, md: 6 }} minH="600px">
           {/* Left: Enhanced Donut Chart with Product Details */}
           <Card bg={cardBg} boxShadow="lg" borderRadius="xl" gridColumn={{ md: 'span 1' }}>
@@ -1278,7 +1225,7 @@ export default function EcommerceDashboard() {
             <CardBody>
               <Flex justify="space-between" align="center" mb={4}>
                 <Heading size="sm" color="gray.700">Order Distribution Map</Heading>
-                <Badge colorScheme="red" fontSize="sm">
+                <Badge colorScheme="purple" fontSize="sm">
                   Total Orders: {loading ? '...' : orderData.totalOrders}
                 </Badge>
               </Flex>
@@ -1355,10 +1302,13 @@ export default function EcommerceDashboard() {
       </Box>
 
       {/* Refresh Button */}
-      <Flex justify="center" mt={4}>
+      <Flex justify="center" mt={6} mb={4}>
         <Button
           leftIcon={<FiRefreshCw />}
-          colorScheme="red"
+          bg="#7b2cbf"
+          color="white"
+          _hover={{ bg: "#5a189a" }}
+          _active={{ bg: "#4a1282" }}
           onClick={handleRefreshData}
           isLoading={loading}
         >
